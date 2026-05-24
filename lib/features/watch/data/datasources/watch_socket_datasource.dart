@@ -100,8 +100,8 @@ class WatchSocketDataSource {
   void sendControl({required String action, double? currentTime, double? rate}) {
     _socket.emitEvent('control', {
       'action': action,
-      if (currentTime != null) 'currentTime': currentTime,
-      if (rate != null) 'rate': rate,
+      'currentTime': ?currentTime,
+      'rate': ?rate,
     });
   }
 

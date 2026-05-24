@@ -132,7 +132,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
   Future<void> delete(String slug, {String? password}) async {
     final res = await _client.delete(
       '/rooms/$slug',
-      data: {if (password != null) 'password': password},
+      data: {'password': ?password},
     );
     if (!res.success) throw ServerException(res.message ?? 'room_delete_failed');
   }

@@ -11,7 +11,6 @@ import '/core/shared/status_view.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/injections/injection.dart';
 import '/logic/socket/socket_status_indicator.dart';
-import '/routes/routes_names.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';

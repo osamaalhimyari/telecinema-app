@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/create_room_params.dart';
-import '../../../domain/entities/download_progress.dart';
 import '../../../domain/entities/room_type.dart';
 import '../../../domain/usecases/create_room_usecase.dart';
 import '../../../domain/usecases/download_progress_usecase.dart';
