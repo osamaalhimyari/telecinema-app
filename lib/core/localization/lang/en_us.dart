@@ -52,6 +52,7 @@ const Map<String, String> enUs = {
   TranslationKeys.chatThrottled: 'You\'re sending messages too fast.',
 
   TranslationKeys.reactions: 'Reactions',
+  TranslationKeys.chooseReactions: 'Pick 8 reactions for this room',
 
   TranslationKeys.holdToTalk: 'Hold to talk',
   TranslationKeys.speaking: 'speaking',

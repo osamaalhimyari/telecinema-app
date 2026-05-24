@@ -16,6 +16,7 @@ class ViewersPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WatchCubit, WatchState>(
+      buildWhen: (a, b) => a.presence != b.presence || a.waiting != b.waiting,
       builder: (context, state) {
         if (state.presence.isEmpty) {
           return Center(child: Text(context.tr(TranslationKeys.noOneWatching), style: context.text.bodyMedium));

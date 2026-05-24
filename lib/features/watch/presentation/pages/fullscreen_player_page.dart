@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/watch_cubit.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
+import '../widgets/fullscreen_controls.dart';
 import '../widgets/fullscreen_reaction_button.dart';
 import '../widgets/video_surface.dart';
 
@@ -64,6 +65,33 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
               child: Padding(
                 padding: EdgeInsets.all(8),
                 child: FullscreenReactionButton(),
+              ),
+            ),
+          ),
+          // Chat + push-to-talk, pinned top-right.
+          const SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.all(8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FullscreenChatButton(),
+                    SizedBox(width: 10),
+                    FullscreenVoiceButton(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // "<name> speaking" indicator, top-center.
+          const SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: FullscreenSpeakingIndicator(),
               ),
             ),
           ),

@@ -124,30 +124,38 @@ class _RoomScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<WatchCubit>().state;
-    final room = state.room;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(room?.name ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(
-                '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
-                style: context.text.bodySmall,
-              ),
-            ],
+          // Only the title and menu read state — and only room/viewerCount, not
+          // the video position which ticks several times a second. Scoping these
+          // keeps a position tick from rebuilding the whole screen (which would
+          // make incoming reactions/chat feel laggy).
+          title: BlocBuilder<WatchCubit, WatchState>(
+            buildWhen: (a, b) => a.room != b.room || a.viewerCount != b.viewerCount,
+            builder: (context, state) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(state.room?.name ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
+                  style: context.text.bodySmall,
+                ),
+              ],
+            ),
           ),
           actions: [
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 4),
               child: Center(child: SocketStatusIndicator()),
             ),
-            _RoomMenu(state: state),
+            BlocBuilder<WatchCubit, WatchState>(
+              buildWhen: (a, b) => a.room != b.room,
+              builder: (context, state) => _RoomMenu(state: state),
+            ),
           ],
         ),
         body: LayoutBuilder(

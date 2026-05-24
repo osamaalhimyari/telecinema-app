@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../pages/fullscreen_player_page.dart';
@@ -24,6 +25,17 @@ class PlayerStage extends StatelessWidget {
     return ColoredBox(
       color: Colors.black,
       child: BlocBuilder<WatchCubit, WatchState>(
+        // Rebuild only when the *source/readiness* changes — not on every
+        // position tick. The slider/controls live in VideoSurface, which has
+        // its own (scoped) subscription.
+        buildWhen: (a, b) =>
+            a.isExternal != b.isExternal ||
+            a.videoReady != b.videoReady ||
+            a.videoError != b.videoError ||
+            a.externalUrl != b.externalUrl ||
+            a.subtitleUrl != b.subtitleUrl ||
+            a.resyncTick != b.resyncTick ||
+            a.lastSync != b.lastSync,
         builder: (context, state) {
           if (state.isExternal) return _external(context, state);
           return _file(context, state);
@@ -60,11 +72,17 @@ class PlayerStage extends StatelessWidget {
   /// keeps running in sync. `BlocProvider.value` does not close the cubit when
   /// the route is popped — the room page still owns it.
   void _openFullscreen(BuildContext context) {
-    final cubit = context.read<WatchCubit>();
+    // Hand the fullscreen route the same cubits so playback stays in sync and
+    // the push-to-talk mic keeps working. `.value` won't dispose them on pop.
+    final watch = context.read<WatchCubit>();
+    final voice = context.read<VoiceCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BlocProvider<WatchCubit>.value(
-          value: cubit,
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider<WatchCubit>.value(value: watch),
+            BlocProvider<VoiceCubit>.value(value: voice),
+          ],
           child: const FullscreenPlayerPage(),
         ),
       ),

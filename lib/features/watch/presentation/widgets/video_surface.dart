@@ -78,12 +78,33 @@ class _VideoSurfaceState extends State<VideoSurface> {
         children: [
           const Spacer(),
           Center(
-            child: IconButton.filled(
-              iconSize: 36,
-              style: IconButton.styleFrom(backgroundColor: Colors.white24),
-              icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-              color: Colors.white,
-              onPressed: cubit.togglePlay,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  iconSize: 32,
+                  color: Colors.white,
+                  tooltip: '-10s',
+                  icon: const Icon(Icons.replay_10_rounded),
+                  onPressed: () => cubit.seekBy(const Duration(seconds: -10)),
+                ),
+                const SizedBox(width: 20),
+                IconButton.filled(
+                  iconSize: 36,
+                  style: IconButton.styleFrom(backgroundColor: Colors.white24),
+                  icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                  color: Colors.white,
+                  onPressed: cubit.togglePlay,
+                ),
+                const SizedBox(width: 20),
+                IconButton(
+                  iconSize: 32,
+                  color: Colors.white,
+                  tooltip: '+10s',
+                  icon: const Icon(Icons.forward_10_rounded),
+                  onPressed: () => cubit.seekBy(const Duration(seconds: 10)),
+                ),
+              ],
             ),
           ),
           const Spacer(),

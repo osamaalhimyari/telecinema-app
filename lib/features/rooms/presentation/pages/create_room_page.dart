@@ -12,6 +12,19 @@ import '../../domain/entities/room_type.dart';
 import '../bloc/create_room/create_room_cubit.dart';
 import '../bloc/create_room/create_room_state.dart';
 
+/// Emoji the creator can choose from; the picked ones become the room's
+/// reaction palette.
+const _reactionPalette = <String>[
+  '😂', '❤️', '🔥', '👍', '👎', '😮',
+  '😢', '😡', '👏', '🎉', '💯', '🤔',
+  '😍', '😅', '😱', '🥳', '🤣', '💀',
+  '👀', '✨', '🙏', '🤯',
+];
+
+const _defaultReactions = <String>['😂', '❤️', '🔥', '👍', '😮', '😢', '👏', '🎉'];
+
+const _maxReactions = 8;
+
 class CreateRoomPage extends StatelessWidget {
   const CreateRoomPage({super.key});
 
@@ -41,6 +54,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
   RoomType _type = RoomType.external;
   String? _videoPath;
   String? _videoName;
+  final List<String> _reactions = [..._defaultReactions];
 
   @override
   void dispose() {
@@ -75,6 +89,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         externalUrl: _type == RoomType.external ? _externalUrl.text.trim() : null,
         videoUrl: _type == RoomType.download ? _videoUrl.text.trim() : null,
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
+        reactions: _reactions.isEmpty ? null : List.of(_reactions),
       ),
     );
   }
@@ -133,6 +148,16 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '${context.tr(TranslationKeys.chooseReactions)}  (${_reactions.length}/$_maxReactions)',
+                          style: context.text.titleSmall,
+                        ),
+                      ),
+                      _reactionsPicker(context),
                     ],
                   ),
                 ),
@@ -150,6 +175,46 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(context.tr(key), style: context.text.titleSmall),
   );
+
+  Widget _reactionsPicker(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _reactionPalette.map((emoji) {
+        final selected = _reactions.contains(emoji);
+        return GestureDetector(
+          onTap: () => _toggleReaction(emoji),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected
+                  ? context.colors.primary.withValues(alpha: 0.18)
+                  : context.colors.surface,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? context.colors.primary : context.colors.outline,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _toggleReaction(String emoji) {
+    if (_reactions.contains(emoji)) {
+      setState(() => _reactions.remove(emoji));
+    } else if (_reactions.length < _maxReactions) {
+      setState(() => _reactions.add(emoji));
+    } else {
+      context.showSnack(context.tr(TranslationKeys.chooseReactions));
+    }
+  }
 
   Widget _typeSelector(BuildContext context) {
     return SegmentedButton<RoomType>(

@@ -52,6 +52,7 @@ const Map<String, String> arAr = {
   TranslationKeys.chatThrottled: 'أنت ترسل الرسائل بسرعة كبيرة.',
 
   TranslationKeys.reactions: 'تفاعلات',
+  TranslationKeys.chooseReactions: 'اختر 8 تفاعلات لهذه الغرفة',
 
   TranslationKeys.holdToTalk: 'اضغط مع الاستمرار للتحدث',
   TranslationKeys.speaking: 'يتحدث',

@@ -306,6 +306,18 @@ class WatchCubit extends Cubit<WatchState> {
     _repo.sendControl(action: 'seek', currentTime: position.inMilliseconds / 1000.0);
   }
 
+  /// Skip by [delta] (e.g. ±10s), clamped to the video's bounds. Like a manual
+  /// seek, this syncs the whole room via the `control` event.
+  Future<void> seekBy(Duration delta) async {
+    final p = _player;
+    if (p == null) return;
+    final dur = p.state.duration;
+    var target = p.state.position + delta;
+    if (target < Duration.zero) target = Duration.zero;
+    if (dur > Duration.zero && target > dur) target = dur;
+    await seekTo(target);
+  }
+
   Future<void> setRate(double rate) async {
     final p = _player;
     if (p == null) return;

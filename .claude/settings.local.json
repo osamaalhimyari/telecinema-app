@@ -8,7 +8,8 @@
       "PowerShell(flutter analyze lib/features/watch/)",
       "PowerShell(flutter analyze lib/features/watch/presentation/pages/room_page.dart lib/core/shared/name_dialog.dart)",
       "PowerShell(flutter analyze lib/features/watch/ lib/main.dart)",
-      "PowerShell(flutter analyze)"
+      "PowerShell(flutter analyze)",
+      "PowerShell(flutter analyze lib/features/watch/presentation/pages/room_page.dart)"
     ]
   }
 }

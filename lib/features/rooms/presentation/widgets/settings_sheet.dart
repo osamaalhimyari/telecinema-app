@@ -47,15 +47,26 @@ class _SettingsSheetState extends State<SettingsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.tr(TranslationKeys.settings), style: context.text.titleLarge),
+          Text(
+            context.tr(TranslationKeys.settings),
+            style: context.text.titleLarge,
+          ),
           const SizedBox(height: 20),
 
-          Text(context.tr(TranslationKeys.yourName), style: context.text.titleSmall),
+          Text(
+            context.tr(TranslationKeys.yourName),
+            style: context.text.titleSmall,
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _name,
             maxLength: 30,
             textInputAction: TextInputAction.done,
+            onChanged: (value) {
+              if (value.isNotEmpty) {
+                context.read<IdentityCubit>().setName(value);
+              }
+            },
             decoration: InputDecoration(
               hintText: context.tr(TranslationKeys.enterName),
               prefixIcon: const Icon(Icons.person_outline_rounded),
@@ -79,7 +90,9 @@ class _SettingsSheetState extends State<SettingsSheet> {
             label: context.tr(TranslationKeys.language),
             trailing: TextButton(
               onPressed: () => context.read<LocaleCubit>().toggle(),
-              child: Text(context.read<LocaleCubit>().isRtl ? 'العربية' : 'English'),
+              child: Text(
+                context.read<LocaleCubit>().isRtl ? 'العربية' : 'English',
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -93,6 +106,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
               child: Text(context.tr(TranslationKeys.save)),
             ),
           ),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -100,7 +114,11 @@ class _SettingsSheetState extends State<SettingsSheet> {
 }
 
 class _RowTile extends StatelessWidget {
-  const _RowTile({required this.icon, required this.label, required this.trailing});
+  const _RowTile({
+    required this.icon,
+    required this.label,
+    required this.trailing,
+  });
   final IconData icon;
   final String label;
   final Widget trailing;

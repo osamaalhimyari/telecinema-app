@@ -61,6 +61,7 @@ class TranslationKeys {
 
   // Reactions
   static const reactions = 'reactions';
+  static const chooseReactions = 'choose_reactions';
 
   // Voice (push-to-talk)
   static const holdToTalk = 'hold_to_talk';
