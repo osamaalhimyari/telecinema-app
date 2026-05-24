@@ -20,7 +20,7 @@ class AppConfig {
   // real public URL. HTTP (not HTTPS) is permitted on Android/iOS via the
   // cleartext flags already set in the native manifests.
   // ===========================================================================
-  static const String baseUrl = 'https://telecinema.example.com';
+  static const String baseUrl = 'https://telecinema.up.railway.app';
 
   /// REST API root. Matches the `/api` prefix registered in `start/routes.ts`.
   static String get baseApiUrl => '$baseUrl/api';
@@ -31,15 +31,19 @@ class AppConfig {
   /// Absolute URL of a room's streamable video (`GET /video/:filename`, with
   /// HTTP range support). Empty filename → null (e.g. external rooms).
   static String? videoUrl(String? filename) =>
-      (filename == null || filename.isEmpty) ? null : '$baseUrl/video/$filename';
+      (filename == null || filename.isEmpty)
+      ? null
+      : '$baseUrl/video/$filename';
 
   /// Absolute URL of a room's thumbnail (served statically from `public/`).
-  static String? thumbnailUrl(String? filename) => (filename == null || filename.isEmpty)
+  static String? thumbnailUrl(String? filename) =>
+      (filename == null || filename.isEmpty)
       ? null
       : '$baseUrl/thumbnails/$filename';
 
   /// Absolute URL of a room's subtitle track (`GET /subtitles/:filename`).
-  static String? subtitleUrl(String? filename) => (filename == null || filename.isEmpty)
+  static String? subtitleUrl(String? filename) =>
+      (filename == null || filename.isEmpty)
       ? null
       : '$baseUrl/subtitles/$filename';
 }
