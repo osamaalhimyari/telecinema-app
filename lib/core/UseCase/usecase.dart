@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_types_as_parameter_names
+
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
