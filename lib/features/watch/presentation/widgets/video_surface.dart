@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -8,8 +8,8 @@ import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
 /// Sync-aware video render + playback controls for a file room, shared by the
-/// inline [PlayerStage] and the fullscreen page. The [VideoPlayerController] is
-/// owned by the [WatchCubit], so the same instance drives both surfaces — the
+/// inline [PlayerStage] and the fullscreen page. The media_kit [VideoController]
+/// is owned by the [WatchCubit], so the same instance drives both surfaces — the
 /// fullscreen view stays in sync with the room for free.
 ///
 /// [fullscreen] only swaps the toggle icon; [onToggleFullscreen] decides whether
@@ -34,7 +34,7 @@ class _VideoSurfaceState extends State<VideoSurface> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<WatchCubit>();
-    final controller = cubit.controller;
+    final controller = cubit.videoController;
     final state = context.watch<WatchCubit>().state;
 
     if (controller == null) {
@@ -46,13 +46,8 @@ class _VideoSurfaceState extends State<VideoSurface> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(
-            child: AspectRatio(
-              aspectRatio:
-                  controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-              child: VideoPlayer(controller),
-            ),
-          ),
+          // The Video widget letterboxes to the real aspect ratio on black.
+          Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
           if (state.isBuffering) const Center(child: CircularProgressIndicator()),
           AnimatedOpacity(
             opacity: _controlsVisible ? 1 : 0,

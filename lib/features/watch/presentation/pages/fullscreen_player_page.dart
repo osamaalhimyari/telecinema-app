@@ -9,9 +9,9 @@ import '../widgets/fullscreen_reaction_button.dart';
 import '../widgets/video_surface.dart';
 
 /// Full-screen, landscape view of the room's video. It reuses the room's
-/// [WatchCubit] (passed in via `BlocProvider.value`) and therefore its
-/// [VideoPlayerController], so playback stays in sync with the room. Forces
-/// landscape + immersive system UI on entry and restores the defaults on exit.
+/// [WatchCubit] (passed in via `BlocProvider.value`) and therefore its media_kit
+/// player, so playback stays in sync with the room. Forces landscape + immersive
+/// system UI on entry and restores the defaults on exit.
 class FullscreenPlayerPage extends StatefulWidget {
   const FullscreenPlayerPage({super.key});
 

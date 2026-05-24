@@ -32,7 +32,9 @@ dependencies:
   socket_io_client: ^3.1.2 # Socket.IO v4 protocol (matches backend socket.io ^4)
 
   # ---- Media ----
-  video_player: ^2.8.0 # synchronized <video> equivalent (ExoPlayer / AVPlayer)
+  media_kit: ^1.2.6 # libmpv-backed player for file rooms: faster start + caching
+  media_kit_video: ^2.0.1 # the Video render widget
+  media_kit_libs_video: ^1.0.7 # bundled native libs (Android/iOS/web/desktop)
   webview_flutter: ^4.10.0 # external (embed) rooms render inside a WebView
   flutter_svg: ^2.0.10 # seeded room thumbnails are SVG
   image_picker: ^1.1.2 # pick a local video for the upload flow

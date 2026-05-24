@@ -47,7 +47,7 @@ class PlayerStage extends StatelessWidget {
 
   Widget _file(BuildContext context, WatchState state) {
     if (state.videoError) return _message(context, TranslationKeys.videoUnavailable);
-    if (!state.videoReady || context.read<WatchCubit>().controller == null) {
+    if (!state.videoReady || context.read<WatchCubit>().videoController == null) {
       return const Center(child: CircularProgressIndicator());
     }
     return VideoSurface(

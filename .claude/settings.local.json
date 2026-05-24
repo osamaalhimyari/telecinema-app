@@ -6,7 +6,9 @@
       "PowerShell(flutter build apk --release)",
       "PowerShell(flutter analyze lib/features/watch/ lib/core/localization/)",
       "PowerShell(flutter analyze lib/features/watch/)",
-      "PowerShell(flutter analyze lib/features/watch/presentation/pages/room_page.dart lib/core/shared/name_dialog.dart)"
+      "PowerShell(flutter analyze lib/features/watch/presentation/pages/room_page.dart lib/core/shared/name_dialog.dart)",
+      "PowerShell(flutter analyze lib/features/watch/ lib/main.dart)",
+      "PowerShell(flutter analyze)"
     ]
   }
 }

@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '/core/config/app_config.dart';
 import '/core/constants/app_constants.dart';
@@ -19,11 +20,11 @@ import '../../domain/entities/reaction_event.dart';
 import '../../domain/repositories/watch_repository.dart';
 import 'watch_state.dart';
 
-/// The synchronized-room brain. Owns the [VideoPlayerController] for file
-/// rooms, applies the server's authoritative `sync` (extrapolated for latency)
-/// and reports local buffering so the room's wait-gate can pause everyone.
-/// External (embed) rooms have no controller — they reload the WebView on
-/// resync / source change instead.
+/// The synchronized-room brain. Owns the libmpv-backed [Player] for file rooms,
+/// applies the server's authoritative `sync` (extrapolated for latency) and
+/// reports local buffering so the room's wait-gate can pause everyone. External
+/// (embed) rooms have no player — they reload the WebView on resync / source
+/// change instead.
 class WatchCubit extends Cubit<WatchState> {
   WatchCubit(
     this._repo,
@@ -41,11 +42,13 @@ class WatchCubit extends Cubit<WatchState> {
   final UploadSubtitleUseCase _uploadSubtitle;
   final KeyValueStorage _storage;
 
-  VideoPlayerController? _controller;
-  VideoPlayerController? get controller => _controller;
+  Player? _player;
+
+  /// The render handle for the [Video] widget. Lives as long as the player.
+  VideoController? _videoController;
+  VideoController? get videoController => _videoController;
 
   final List<StreamSubscription<dynamic>> _subs = [];
-  Timer? _ticker;
   Timer? _bufferDebounce;
   bool _reportedBuffering = false;
   PlaybackSync? _pendingSync;
@@ -139,13 +142,33 @@ class WatchCubit extends Cubit<WatchState> {
   // ===========================================================================
 
   Future<void> _initVideo(String url) async {
-    final ctrl = VideoPlayerController.networkUrl(Uri.parse(url));
-    _controller = ctrl;
+    final player = Player(
+      configuration: const PlayerConfiguration(
+        // A larger demuxer buffer keeps more of the stream cached, so backward
+        // seeks land instantly instead of re-downloading.
+        bufferSize: 64 * 1024 * 1024,
+      ),
+    );
+    final controller = VideoController(player);
+    _player = player;
+    _videoController = controller;
+
+    _enableCache(player);
+
+    _subs.addAll([
+      player.stream.position.listen((p) => emit(state.copyWith(position: p))),
+      player.stream.duration.listen((d) {
+        if (d > Duration.zero) emit(state.copyWith(duration: d));
+      }),
+      player.stream.playing.listen((playing) => emit(state.copyWith(isPlaying: playing))),
+      player.stream.buffering.listen(_onBuffering),
+      player.stream.rate.listen((r) => emit(state.copyWith(playbackRate: r))),
+      player.stream.error.listen((_) => emit(state.copyWith(videoError: true))),
+    ]);
+
     try {
-      await ctrl.initialize();
-      emit(state.copyWith(videoReady: true, duration: ctrl.value.duration, videoError: false));
-      ctrl.addListener(_onControllerTick);
-      _startTicker();
+      await player.open(Media(url), play: false);
+      emit(state.copyWith(videoReady: true, videoError: false));
       if (_pendingSync != null) {
         await _applyToVideo(_pendingSync!);
         _pendingSync = null;
@@ -155,24 +178,26 @@ class WatchCubit extends Cubit<WatchState> {
     }
   }
 
-  void _startTicker() {
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      final ctrl = _controller;
-      if (ctrl == null || !ctrl.value.isInitialized) return;
-      emit(state.copyWith(position: ctrl.value.position));
-    });
+  /// Best-effort: enable libmpv's read cache + a generous back-buffer so
+  /// re-seeks within a video don't re-download. No-op on web (no [NativePlayer]).
+  Future<void> _enableCache(Player player) async {
+    final platform = player.platform;
+    if (platform is! NativePlayer) return;
+    try {
+      await platform.setProperty('cache', 'yes');
+      await platform.setProperty('demuxer-max-back-bytes', '${48 * 1024 * 1024}');
+    } catch (_) {
+      /* property unsupported on this backend — ignore */
+    }
   }
 
-  /// Reacts to controller value changes — drives the buffer-wait gate.
-  void _onControllerTick() {
-    final ctrl = _controller;
-    if (ctrl == null) return;
-    final v = ctrl.value;
-    emit(state.copyWith(isBuffering: v.isBuffering, isPlaying: v.isPlaying));
+  /// Drives the buffer-wait gate from the player's buffering stream.
+  void _onBuffering(bool buffering) {
+    emit(state.copyWith(isBuffering: buffering));
+    final playing = _player?.state.playing ?? false;
 
     // Report a *sustained* stall so a momentary hiccup doesn't pause the room.
-    if (v.isBuffering && v.isPlaying) {
+    if (buffering && playing) {
       _bufferDebounce ??= Timer(AppConstants.bufferReportDelay, () {
         if (!_reportedBuffering) {
           _reportedBuffering = true;
@@ -231,23 +256,23 @@ class WatchCubit extends Cubit<WatchState> {
   }
 
   Future<void> _applyToVideo(PlaybackSync s) async {
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized) {
+    final p = _player;
+    if (p == null || !state.videoReady) {
       _pendingSync = s;
       return;
     }
-    if (s.playbackRate > 0 && (ctrl.value.playbackSpeed - s.playbackRate).abs() > 0.01) {
-      await ctrl.setPlaybackSpeed(s.playbackRate);
+    if (s.playbackRate > 0 && (p.state.rate - s.playbackRate).abs() > 0.01) {
+      await p.setRate(s.playbackRate);
     }
     final target = s.effectiveTime();
-    final current = ctrl.value.position.inMilliseconds / 1000.0;
+    final current = p.state.position.inMilliseconds / 1000.0;
     if ((target - current).abs() > AppConstants.hardSeekThresholdSeconds) {
-      await ctrl.seekTo(Duration(milliseconds: (target * 1000).round()));
+      await p.seek(Duration(milliseconds: (target * 1000).round()));
     }
-    if (s.isPlaying && !ctrl.value.isPlaying) {
-      await ctrl.play();
-    } else if (!s.isPlaying && ctrl.value.isPlaying) {
-      await ctrl.pause();
+    if (s.isPlaying && !p.state.playing) {
+      await p.play();
+    } else if (!s.isPlaying && p.state.playing) {
+      await p.pause();
     }
     emit(state.copyWith(isPlaying: s.isPlaying, playbackRate: s.playbackRate));
   }
@@ -256,16 +281,16 @@ class WatchCubit extends Cubit<WatchState> {
   // User playback controls (file rooms) — emit `control` to the room
   // ===========================================================================
 
-  double get _seconds => (_controller?.value.position.inMilliseconds ?? 0) / 1000.0;
+  double get _seconds => (_player?.state.position.inMilliseconds ?? 0) / 1000.0;
 
   Future<void> togglePlay() async {
-    final ctrl = _controller;
-    if (ctrl == null) return;
-    if (ctrl.value.isPlaying) {
-      await ctrl.pause();
+    final p = _player;
+    if (p == null) return;
+    if (p.state.playing) {
+      await p.pause();
       _repo.sendControl(action: 'pause', currentTime: _seconds);
     } else {
-      await ctrl.play();
+      await p.play();
       _repo.sendControl(action: 'play', currentTime: _seconds);
     }
   }
@@ -275,16 +300,16 @@ class WatchCubit extends Cubit<WatchState> {
   void emitLocalSeekPreview(Duration position) => emit(state.copyWith(position: position));
 
   Future<void> seekTo(Duration position) async {
-    final ctrl = _controller;
-    if (ctrl == null) return;
-    await ctrl.seekTo(position);
+    final p = _player;
+    if (p == null) return;
+    await p.seek(position);
     _repo.sendControl(action: 'seek', currentTime: position.inMilliseconds / 1000.0);
   }
 
   Future<void> setRate(double rate) async {
-    final ctrl = _controller;
-    if (ctrl == null) return;
-    await ctrl.setPlaybackSpeed(rate);
+    final p = _player;
+    if (p == null) return;
+    await p.setRate(rate);
     emit(state.copyWith(playbackRate: rate));
     _repo.sendControl(action: 'rate', rate: rate);
   }
@@ -349,13 +374,11 @@ class WatchCubit extends Cubit<WatchState> {
 
   @override
   Future<void> close() async {
-    _ticker?.cancel();
     _bufferDebounce?.cancel();
     for (final s in _subs) {
       await s.cancel();
     }
-    _controller?.removeListener(_onControllerTick);
-    await _controller?.dispose();
+    await _player?.dispose();
     _repo.leave();
     await _reactions.close();
     await _incomingChat.close();
