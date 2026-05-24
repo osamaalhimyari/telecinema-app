@@ -43,6 +43,7 @@ const Map<String, String> enUs = {
   TranslationKeys.deleteRoomConfirm: 'Delete this room and its video? This cannot be undone.',
   TranslationKeys.roomNotEmpty: 'Someone is still watching — wait until the room is empty.',
   TranslationKeys.playbackSpeed: 'Playback speed',
+  TranslationKeys.fullscreen: 'Fullscreen',
   TranslationKeys.viewersTab: 'Viewers',
   TranslationKeys.chatTab: 'Chat',
 

@@ -88,25 +88,27 @@ class _FloaterState extends State<_Floater> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            final t = _c.value;
-            final bottom = constraints.maxHeight * (0.12 + t * 0.7);
-            final left = constraints.maxWidth * widget.startDx + sin(t * pi * 2) * 14;
-            return Positioned(
-              left: left,
-              bottom: bottom,
-              child: Opacity(
-                opacity: (1 - t).clamp(0.0, 1.0),
-                child: Text(widget.emoji, style: const TextStyle(fontSize: 30)),
-              ),
-            );
-          },
-        );
-      },
+    // `Positioned.fill` must be a *direct* child of the overlay Stack. Wrapping
+    // a `Positioned` in a `LayoutBuilder` inserts a RenderObject between it and
+    // the Stack, which throws "Incorrect use of ParentDataWidget" and paints a
+    // grey error box over the player. We position fractionally with `Align`
+    // instead, so no layout constraints are needed.
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _c,
+        child: Text(widget.emoji, style: const TextStyle(fontSize: 30)),
+        builder: (context, child) {
+          final t = _c.value;
+          final yFromBottom = 0.12 + t * 0.7; // drifts up: 12% → 82% of height
+          return Align(
+            alignment: Alignment(widget.startDx * 2 - 1, 1 - 2 * yFromBottom),
+            child: Transform.translate(
+              offset: Offset(sin(t * pi * 2) * 14, 0), // gentle horizontal sway
+              child: Opacity(opacity: (1 - t).clamp(0.0, 1.0), child: child),
+            ),
+          );
+        },
+      ),
     );
   }
 }

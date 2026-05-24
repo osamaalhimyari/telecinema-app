@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '/core/shared/name_dialog.dart';
 import '/core/shared/status_view.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/injections/injection.dart';
+import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
@@ -63,6 +65,15 @@ class _RoomViewState extends State<_RoomView> {
     _throttleSub = context.read<WatchCubit>().chatThrottled.listen((_) {
       if (mounted) context.showSnack(context.tr(TranslationKeys.chatThrottled));
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureName());
+  }
+
+  /// On entering a room, require a display name if none is set yet. The name is
+  /// saved once (changeable later from Settings); backing out leaves the room.
+  Future<void> _ensureName() async {
+    if (!mounted || context.read<IdentityCubit>().hasName) return;
+    final named = await NameDialog.show(context);
+    if (!named && mounted && context.canPop()) context.pop();
   }
 
   @override
@@ -139,38 +150,47 @@ class _RoomScaffold extends StatelessWidget {
             _RoomMenu(state: state),
           ],
         ),
-        body: Column(
-          children: [
-            Stack(
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // The video takes the top half of the screen in portrait; the
+            // reaction bar, tabs and (now smaller) chat share the rest.
+            final playerHeight = constraints.maxHeight * 0.5;
+            return Column(
               children: [
-                const PlayerStage(),
-                Positioned.fill(
-                  child: FloatingReactions(stream: context.read<WatchCubit>().reactions),
+                SizedBox(
+                  height: playerHeight,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const PlayerStage(),
+                      FloatingReactions(stream: context.read<WatchCubit>().reactions),
+                    ],
+                  ),
+                ),
+                const WaitBanner(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      const Expanded(child: ReactionBar()),
+                      const SizedBox(width: 8),
+                      const VoiceButton(),
+                      const SizedBox(width: 12),
+                    ],
+                  ),
+                ),
+                TabBar(
+                  tabs: [
+                    Tab(text: context.tr(TranslationKeys.chatTab)),
+                    Tab(text: context.tr(TranslationKeys.viewersTab)),
+                  ],
+                ),
+                const Expanded(
+                  child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
                 ),
               ],
-            ),
-            const WaitBanner(),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  const Expanded(child: ReactionBar()),
-                  const SizedBox(width: 8),
-                  const VoiceButton(),
-                  const SizedBox(width: 12),
-                ],
-              ),
-            ),
-            TabBar(
-              tabs: [
-                Tab(text: context.tr(TranslationKeys.chatTab)),
-                Tab(text: context.tr(TranslationKeys.viewersTab)),
-              ],
-            ),
-            const Expanded(
-              child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

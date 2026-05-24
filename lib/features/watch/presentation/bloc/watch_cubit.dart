@@ -54,6 +54,11 @@ class WatchCubit extends Cubit<WatchState> {
   final _reactions = StreamController<ReactionEvent>.broadcast();
   Stream<ReactionEvent> get reactions => _reactions.stream;
 
+  /// Transient feed of *incoming* chat for the fullscreen floating overlay.
+  /// (Messages are still appended to `state.messages` for the chat panel.)
+  final _incomingChat = StreamController<ChatMessage>.broadcast();
+  Stream<ChatMessage> get incomingChat => _incomingChat.stream;
+
   Stream<void> get chatThrottled => _repo.chatThrottled;
 
   // ===========================================================================
@@ -288,7 +293,10 @@ class WatchCubit extends Cubit<WatchState> {
   // Social + room ops
   // ===========================================================================
 
-  void _onChat(ChatMessage m) => emit(state.copyWith(messages: _capped([...state.messages, m])));
+  void _onChat(ChatMessage m) {
+    emit(state.copyWith(messages: _capped([...state.messages, m])));
+    if (!_incomingChat.isClosed) _incomingChat.add(m);
+  }
 
   List<ChatMessage> _capped(List<ChatMessage> msgs) {
     if (msgs.length <= AppConstants.chatHistoryLimit) return msgs;
@@ -350,6 +358,7 @@ class WatchCubit extends Cubit<WatchState> {
     await _controller?.dispose();
     _repo.leave();
     await _reactions.close();
+    await _incomingChat.close();
     return super.close();
   }
 }

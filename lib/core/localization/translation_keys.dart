@@ -50,6 +50,7 @@ class TranslationKeys {
   static const deleteRoomConfirm = 'delete_room_confirm';
   static const roomNotEmpty = 'room_not_empty';
   static const playbackSpeed = 'playback_speed';
+  static const fullscreen = 'fullscreen';
   static const viewersTab = 'viewers_tab';
   static const chatTab = 'chat_tab';
 

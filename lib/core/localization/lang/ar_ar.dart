@@ -43,6 +43,7 @@ const Map<String, String> arAr = {
   TranslationKeys.deleteRoomConfirm: 'حذف هذه الغرفة وفيديوها؟ لا يمكن التراجع.',
   TranslationKeys.roomNotEmpty: 'لا يزال أحدهم يشاهد — انتظر حتى تفرغ الغرفة.',
   TranslationKeys.playbackSpeed: 'سرعة التشغيل',
+  TranslationKeys.fullscreen: 'ملء الشاشة',
   TranslationKeys.viewersTab: 'المشاهدون',
   TranslationKeys.chatTab: 'الدردشة',
 

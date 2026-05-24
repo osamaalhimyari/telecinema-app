@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:pub.dev)",
+      "PowerShell(flutter analyze lib/features/watch/presentation/bloc/voice/)",
+      "PowerShell(flutter build apk --release)",
+      "PowerShell(flutter analyze lib/features/watch/ lib/core/localization/)",
+      "PowerShell(flutter analyze lib/features/watch/)",
+      "PowerShell(flutter analyze lib/features/watch/presentation/pages/room_page.dart lib/core/shared/name_dialog.dart)"
+    ]
+  }
+}

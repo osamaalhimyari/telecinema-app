@@ -39,7 +39,11 @@ dependencies:
   file_picker: ^8.1.4 # pick an .srt/.vtt subtitle file for embed rooms
 
   # ---- Push-to-talk voice (mobile↔mobile burst relay over the socket) ----
-  record: ^5.1.2
+  # 6.x keeps the same AudioRecorder API as 5.x but ships a consistent set of
+  # federated platform impls. (5.x let record_platform_interface float up to
+  # 1.6.0, which the stale record_linux 0.7.2 couldn't satisfy — breaking the
+  # kernel snapshot on every platform, including Android.)
+  record: ^6.2.1
   just_audio: ^0.9.42
 
   # ---- Storage / platform ----
