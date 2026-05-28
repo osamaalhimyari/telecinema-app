@@ -1,7 +1,7 @@
 import '../translation_keys.dart';
 
 const Map<String, String> arAr = {
-  TranslationKeys.appName: 'مشاهدة جماعية',
+  TranslationKeys.appName: 'TeleCinema',
 
   TranslationKeys.retry: 'إعادة المحاولة',
   TranslationKeys.cancel: 'إلغاء',
@@ -18,7 +18,7 @@ const Map<String, String> arAr = {
   TranslationKeys.errorNotFound: 'غير موجود.',
   TranslationKeys.errorUnknown: 'حدث خطأ ما.',
 
-  TranslationKeys.roomsTitle: 'مشاهدة جماعية',
+  TranslationKeys.roomsTitle: 'TeleCinema',
   TranslationKeys.roomsSubtitle: 'اختر غرفة وشاهدوا معاً بشكل متزامن.',
   TranslationKeys.roomsEmpty: 'لا توجد غرف بعد',
   TranslationKeys.roomsEmptyHint: 'أنشئ أول غرفة لبدء المشاهدة الجماعية.',
@@ -44,6 +44,7 @@ const Map<String, String> arAr = {
   TranslationKeys.roomNotEmpty: 'لا يزال أحدهم يشاهد — انتظر حتى تفرغ الغرفة.',
   TranslationKeys.playbackSpeed: 'سرعة التشغيل',
   TranslationKeys.fullscreen: 'ملء الشاشة',
+  TranslationKeys.pictureInPicture: 'صورة داخل صورة',
   TranslationKeys.viewersTab: 'المشاهدون',
   TranslationKeys.chatTab: 'الدردشة',
 

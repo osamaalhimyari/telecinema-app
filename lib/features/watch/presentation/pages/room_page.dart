@@ -1,9 +1,15 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:simple_pip_mode/actions/pip_action.dart';
+import 'package:simple_pip_mode/actions/pip_actions_layout.dart';
+import 'package:simple_pip_mode/pip_widget.dart';
+import 'package:simple_pip_mode/simple_pip.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -65,7 +71,10 @@ class _RoomViewState extends State<_RoomView> {
     _throttleSub = context.read<WatchCubit>().chatThrottled.listen((_) {
       if (mounted) context.showSnack(context.tr(TranslationKeys.chatThrottled));
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureName());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureName();
+      _enableAutoPip();
+    });
   }
 
   /// On entering a room, require a display name if none is set yet. The name is
@@ -76,15 +85,52 @@ class _RoomViewState extends State<_RoomView> {
     if (!named && mounted && context.canPop()) context.pop();
   }
 
+  /// PiP is Android-only (and not on web).
+  bool get _pipSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  /// Enable Android 12+ auto-enter PiP while in this room, so leaving the app
+  /// floats the video. Disabled again when the room is left.
+  Future<void> _enableAutoPip() async {
+    if (!_pipSupported) return;
+    try {
+      if (await SimplePip.isAutoPipAvailable) await SimplePip().setAutoPipMode();
+    } catch (_) {/* unsupported on this device */}
+  }
+
+  void _disableAutoPip() {
+    if (!_pipSupported) return;
+    try {
+      SimplePip().setAutoPipMode(autoEnter: false);
+    } catch (_) {}
+  }
+
+  /// Maps the PiP window's system buttons to room playback (which syncs all).
+  void _onPipAction(PipAction action) {
+    final cubit = context.read<WatchCubit>();
+    switch (action) {
+      case PipAction.play:
+        if (!cubit.state.isPlaying) cubit.togglePlay();
+      case PipAction.pause:
+        if (cubit.state.isPlaying) cubit.togglePlay();
+      case PipAction.rewind:
+        cubit.seekBy(const Duration(seconds: -10));
+      case PipAction.forward:
+        cubit.seekBy(const Duration(seconds: 10));
+      default:
+        break;
+    }
+  }
+
   @override
   void dispose() {
     _throttleSub?.cancel();
+    _disableAutoPip();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<WatchCubit, WatchState>(
+    final content = BlocListener<WatchCubit, WatchState>(
       listenWhen: (a, b) => a.phase != b.phase && b.phase == WatchPhase.deleted,
       listener: (context, _) {
         context.showSnack(context.tr(TranslationKeys.roomDeleted));
@@ -115,6 +161,39 @@ class _RoomViewState extends State<_RoomView> {
           };
         },
       ),
+    );
+
+    if (!_pipSupported) return content;
+    // Android Picture-in-Picture: floats the video over other apps. The PiP
+    // window shows just the video (pipChild); system buttons drive playback,
+    // and setIsPlaying keeps the play/pause icon in sync.
+    return BlocListener<WatchCubit, WatchState>(
+      listenWhen: (a, b) => a.isPlaying != b.isPlaying,
+      listener: (_, state) => SimplePip().setIsPlaying(state.isPlaying),
+      child: PipWidget(
+        pipLayout: PipActionsLayout.mediaWithSeek10,
+        onPipAction: _onPipAction,
+        onPipEntered: () =>
+            SimplePip().setIsPlaying(context.read<WatchCubit>().state.isPlaying),
+        pipChild: const _PipVideoView(),
+        child: content,
+      ),
+    );
+  }
+}
+
+/// The minimal video-only view shown inside the Android PiP window.
+class _PipVideoView extends StatelessWidget {
+  const _PipVideoView();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<WatchCubit>().videoController;
+    return ColoredBox(
+      color: Colors.black,
+      child: controller == null
+          ? const SizedBox.expand()
+          : Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '/core/shared/user_avatar.dart';
 import '/logic/identity/identity_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
@@ -91,7 +92,7 @@ class _ChatPanelState extends State<ChatPanel> {
                             Text(
                               m.name,
                               style: context.text.labelMedium?.copyWith(
-                                color: context.colors.primary,
+                                color: userColorFor(m.name),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

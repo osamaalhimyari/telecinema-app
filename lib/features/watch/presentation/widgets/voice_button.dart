@@ -20,10 +20,12 @@ class VoiceButton extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<VoiceCubit>();
         final active = state.micActive;
-        return GestureDetector(
-          onTapDown: (_) => cubit.startTalking(),
-          onTapUp: (_) => cubit.stopTalking(),
-          onTapCancel: cubit.stopTalking,
+        // Listener (raw pointer events) instead of GestureDetector: a hold-to-
+        // talk shouldn't be cancelled just because the finger drifts a little.
+        return Listener(
+          onPointerDown: (_) => cubit.startTalking(),
+          onPointerUp: (_) => cubit.stopTalking(),
+          onPointerCancel: (_) => cubit.stopTalking(),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '/core/shared/user_avatar.dart';
 import '../../domain/entities/reaction_event.dart';
 
 /// Overlays floating emoji that drift up and fade out, fed by the room's
@@ -29,9 +30,15 @@ class _FloatingReactionsState extends State<FloatingReactions> {
 
   void _spawn(ReactionEvent e) {
     if (e.emoji.isEmpty || !mounted) return;
+    // The local user's own reaction is tagged id == 'me' (see WatchCubit) — the
+    // sender sees just the emoji. Reactions relayed from other viewers carry the
+    // sender's name and get a small avatar beneath the emoji.
+    final showAvatar = e.id != 'me' && e.name.trim().isNotEmpty;
     final floater = _Floater(
       key: UniqueKey(),
       emoji: e.emoji,
+      name: e.name,
+      showAvatar: showAvatar,
       startDx: 0.1 + _rand.nextDouble() * 0.8,
       onDone: (key) => setState(() => _items.removeWhere((f) => f.key == key)),
     );
@@ -54,11 +61,15 @@ class _Floater extends StatefulWidget {
   const _Floater({
     required super.key,
     required this.emoji,
+    required this.name,
+    required this.showAvatar,
     required this.startDx,
     required this.onDone,
   });
 
   final String emoji;
+  final String name;
+  final bool showAvatar;
   final double startDx;
   final void Function(Key key) onDone;
 
@@ -96,7 +107,16 @@ class _FloaterState extends State<_Floater> with SingleTickerProviderStateMixin 
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _c,
-        child: Text(widget.emoji, style: const TextStyle(fontSize: 30)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.emoji, style: const TextStyle(fontSize: 30)),
+            if (widget.showAvatar) ...[
+              const SizedBox(height: 2),
+              UserAvatar(name: widget.name, size: 20),
+            ],
+          ],
+        ),
         builder: (context, child) {
           final t = _c.value;
           final yFromBottom = 0.12 + t * 0.7; // drifts up: 12% → 82% of height

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '/core/shared/user_avatar.dart';
 import '../../domain/entities/chat_message.dart';
 
 /// Live chat overlay for the fullscreen player: each incoming message floats in
@@ -121,8 +122,8 @@ class _ChatBubbleState extends State<_ChatBubble> with SingleTickerProviderState
             children: [
               TextSpan(
                 text: '${widget.message.name}  ',
-                style: const TextStyle(
-                  color: Color(0xFF9FC3FF),
+                style: TextStyle(
+                  color: userColorFor(widget.message.name),
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),

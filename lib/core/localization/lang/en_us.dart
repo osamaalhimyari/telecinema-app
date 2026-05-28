@@ -1,7 +1,7 @@
 import '../translation_keys.dart';
 
 const Map<String, String> enUs = {
-  TranslationKeys.appName: 'Watch Party',
+  TranslationKeys.appName: 'TeleCinema',
 
   TranslationKeys.retry: 'Retry',
   TranslationKeys.cancel: 'Cancel',
@@ -18,7 +18,7 @@ const Map<String, String> enUs = {
   TranslationKeys.errorNotFound: 'Not found.',
   TranslationKeys.errorUnknown: 'Something went wrong.',
 
-  TranslationKeys.roomsTitle: 'Watch Party',
+  TranslationKeys.roomsTitle: 'TeleCinema',
   TranslationKeys.roomsSubtitle: 'Pick a room and watch together, in sync.',
   TranslationKeys.roomsEmpty: 'No rooms yet',
   TranslationKeys.roomsEmptyHint: 'Create the first room to start watching together.',
@@ -44,6 +44,7 @@ const Map<String, String> enUs = {
   TranslationKeys.roomNotEmpty: 'Someone is still watching — wait until the room is empty.',
   TranslationKeys.playbackSpeed: 'Playback speed',
   TranslationKeys.fullscreen: 'Fullscreen',
+  TranslationKeys.pictureInPicture: 'Picture in picture',
   TranslationKeys.viewersTab: 'Viewers',
   TranslationKeys.chatTab: 'Chat',
 

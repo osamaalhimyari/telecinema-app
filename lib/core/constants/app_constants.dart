@@ -1,7 +1,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Watch Party';
+  static const String appName = 'TeleCinema';
 
   /// Cap on how many chat messages are kept in memory client-side. The server
   /// keeps a ring buffer of 80 (see `start/socket.ts`); we mirror that so the

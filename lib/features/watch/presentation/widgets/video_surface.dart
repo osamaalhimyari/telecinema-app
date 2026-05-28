@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:simple_pip_mode/simple_pip.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -30,6 +32,9 @@ class VideoSurface extends StatefulWidget {
 
 class _VideoSurfaceState extends State<VideoSurface> {
   bool _controlsVisible = true;
+
+  /// PiP is offered only inline (not in fullscreen) and only on Android.
+  bool get _pipSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +138,14 @@ class _VideoSurfaceState extends State<VideoSurface> {
                 ),
                 Text(_fmt(dur), style: const TextStyle(color: Colors.white, fontSize: 12)),
                 _speedMenu(context, state, cubit),
+                if (!widget.fullscreen && _pipSupported)
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    color: Colors.white,
+                    tooltip: context.tr(TranslationKeys.pictureInPicture),
+                    icon: const Icon(Icons.picture_in_picture_alt_rounded),
+                    onPressed: () => SimplePip().enterPipMode(),
+                  ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   color: Colors.white,

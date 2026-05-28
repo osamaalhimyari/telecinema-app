@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,37 +33,61 @@ class VoiceCubit extends Cubit<VoiceState> {
 
   static const _mime = 'audio/aac';
 
+  /// `start()` (permission + recorder init) is async; track it so a release
+  /// that arrives mid-startup isn't dropped (which used to leave the recorder
+  /// running and send nothing).
+  bool _startingMic = false;
+  bool _stopRequested = false;
+  String? _recordPath;
+
   // ---- transmit ----------------------------------------------------------
 
   Future<void> startTalking() async {
-    if (state.micActive) return;
-    if (!await _recorder.hasPermission()) {
-      emit(state.copyWith(permissionDenied: true));
-      return;
-    }
-    final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/ptt_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    if (state.micActive || _startingMic) return;
+    _startingMic = true;
+    _stopRequested = false;
     try {
+      if (!await _recorder.hasPermission()) {
+        emit(state.copyWith(permissionDenied: true));
+        return;
+      }
+      final dir = await getTemporaryDirectory();
+      _recordPath = '${dir.path}/ptt_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.aacLc, numChannels: 1, sampleRate: 24000),
-        path: path,
+        path: _recordPath!,
       );
       emit(state.copyWith(micActive: true, permissionDenied: false));
+      HapticFeedback.vibrate(); // short buzz — you're live, start talking
       _repo.voiceStart(_mime);
     } catch (_) {
       emit(state.copyWith(micActive: false));
+      _recordPath = null;
+    } finally {
+      _startingMic = false;
+      // Released while we were still starting up → stop (and send) now.
+      if (_stopRequested) await stopTalking();
     }
   }
 
   Future<void> stopTalking() async {
+    // Release arrived before startup finished — defer to startTalking's finally.
+    if (_startingMic) {
+      _stopRequested = true;
+      return;
+    }
     if (!state.micActive) return;
     emit(state.copyWith(micActive: false));
+
     String? path;
     try {
       path = await _recorder.stop();
     } catch (_) {
       path = null;
     }
+    path ??= _recordPath;
+    _recordPath = null;
+
     if (path != null) {
       try {
         final bytes = await File(path).readAsBytes();

@@ -1,4 +1,4 @@
-# Watch Party
+# TeleCinema
 
 > Synchronized video rooms, live chat, reactions, and push-to-talk voice — a cross-platform Flutter client.
 
@@ -8,7 +8,7 @@
 ![Realtime](https://img.shields.io/badge/Realtime-Socket.IO-010101?logo=socketdotio&logoColor=white)
 ![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Desktop-success)
 
-Watch Party lets people watch the same video together, in sync, from anywhere. Playback is driven by an authoritative server clock, so everyone in a room sees the same moment — whether the video was uploaded directly, downloaded from a link, or embedded from a third-party site. Around the video sits a live social layer: chat, emoji reactions, presence, and burst push-to-talk voice.
+TeleCinema lets people watch the same video together, in sync, from anywhere. Playback is driven by an authoritative server clock, so everyone in a room sees the same moment — whether the video was uploaded directly, downloaded from a link, or embedded from a third-party site. Around the video sits a live social layer: chat, emoji reactions, presence, and burst push-to-talk voice.
 
 The app is the mobile/desktop companion to an [AdonisJS](https://adonisjs.com/) backend and speaks the **exact same realtime protocol as the web client**, so users on any platform share one room seamlessly.
 
@@ -121,7 +121,7 @@ lib/
 ### Prerequisites
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) **3.11+** (Dart SDK `^3.11.0`)
-- A running instance of the Watch Party **AdonisJS backend** (serves the REST API, Socket.IO endpoint, and static video/thumbnail/subtitle assets)
+- A running instance of the TeleCinema **AdonisJS backend** (serves the REST API, Socket.IO endpoint, and static video/thumbnail/subtitle assets)
 - Platform toolchains for your target (Android Studio / Xcode / a desktop or web build setup)
 
 ### Installation

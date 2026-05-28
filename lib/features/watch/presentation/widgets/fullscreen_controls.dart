@@ -124,10 +124,10 @@ class FullscreenVoiceButton extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<VoiceCubit>();
         final active = state.micActive;
-        return GestureDetector(
-          onTapDown: (_) => cubit.startTalking(),
-          onTapUp: (_) => cubit.stopTalking(),
-          onTapCancel: cubit.stopTalking,
+        return Listener(
+          onPointerDown: (_) => cubit.startTalking(),
+          onPointerUp: (_) => cubit.stopTalking(),
+          onPointerCancel: (_) => cubit.stopTalking(),
           child: Container(
             width: 48,
             height: 48,

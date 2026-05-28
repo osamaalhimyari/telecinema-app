@@ -1,5 +1,7 @@
 package com.example.watch_aprty_app
 
-import io.flutter.embedding.android.FlutterActivity
+import cl.puntito.simple_pip_mode.PipCallbackHelperActivityWrapper
 
-class MainActivity : FlutterActivity()
+// Extends the simple_pip_mode wrapper so Picture-in-Picture callbacks (enter /
+// exit / action buttons) reach the Flutter side.
+class MainActivity : PipCallbackHelperActivityWrapper()
