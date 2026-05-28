@@ -46,23 +46,29 @@ class _VideoSurfaceState extends State<VideoSurface> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return GestureDetector(
-      onTap: () => setState(() => _controlsVisible = !_controlsVisible),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // The Video widget letterboxes to the real aspect ratio on black.
-          Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
-          if (state.isBuffering) const Center(child: CircularProgressIndicator()),
-          AnimatedOpacity(
-            opacity: _controlsVisible ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: IgnorePointer(
-              ignoring: !_controlsVisible,
-              child: _controls(context, state, cubit),
+    // The player and its controls always read left-to-right — a seek bar that
+    // filled and skipped backwards under Arabic (RTL) would be confusing. The
+    // surrounding app stays RTL; only this player subtree is pinned to LTR.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: GestureDetector(
+        onTap: () => setState(() => _controlsVisible = !_controlsVisible),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // The Video widget letterboxes to the real aspect ratio on black.
+            Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
+            if (state.isBuffering) const Center(child: CircularProgressIndicator()),
+            AnimatedOpacity(
+              opacity: _controlsVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: _controls(context, state, cubit),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

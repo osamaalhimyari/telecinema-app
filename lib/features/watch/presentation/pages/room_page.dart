@@ -26,6 +26,7 @@ import '../widgets/chat_panel.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
 import '../widgets/reaction_bar.dart';
+import '../widgets/reaction_picker_card.dart';
 import '../widgets/unlock_overlay.dart';
 import '../widgets/viewers_panel.dart';
 import '../widgets/voice_button.dart';
@@ -260,7 +261,12 @@ class _RoomScaffold extends StatelessWidget {
                   child: Row(
                     children: [
                       const Expanded(child: ReactionBar()),
-                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: context.tr(TranslationKeys.reactions),
+                        icon: const Icon(Icons.add_reaction_outlined),
+                        onPressed: () => showReactionPicker(context),
+                      ),
+                      const SizedBox(width: 4),
                       const VoiceButton(),
                       const SizedBox(width: 12),
                     ],
