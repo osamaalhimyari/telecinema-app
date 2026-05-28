@@ -112,4 +112,10 @@ const Map<String, String> arAr = {
   TranslationKeys.settings: 'الإعدادات',
   TranslationKeys.theme: 'المظهر',
   TranslationKeys.language: 'اللغة',
+  TranslationKeys.server: 'الخادم',
+  TranslationKeys.serverHint: 'https://your-server.com',
+  TranslationKeys.serverDefaultLabel: 'الافتراضي',
+  TranslationKeys.serverInvalid: 'أدخل رابط http(s) صالحاً.',
+  TranslationKeys.serverChangedRestart: 'تم تحديث الخادم — أعد تشغيل التطبيق للتطبيق.',
+  TranslationKeys.resetToDefault: 'استعادة الافتراضي',
 };

@@ -27,5 +27,6 @@ class SharedPrefsStorage implements KeyValueStorage {
 class StorageKeys {
   StorageKeys._();
   static const displayName = 'display_name';
+  static const serverBaseUrl = 'server_base_url';
   static String roomUnlocked(String slug) => 'room_unlocked_$slug';
 }

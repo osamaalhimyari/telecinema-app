@@ -119,4 +119,10 @@ const Map<String, String> enUs = {
   TranslationKeys.settings: 'Settings',
   TranslationKeys.theme: 'Theme',
   TranslationKeys.language: 'Language',
+  TranslationKeys.server: 'Server',
+  TranslationKeys.serverHint: 'https://your-server.com',
+  TranslationKeys.serverDefaultLabel: 'Default',
+  TranslationKeys.serverInvalid: 'Enter a valid http(s) URL.',
+  TranslationKeys.serverChangedRestart: 'Server updated — restart the app to apply.',
+  TranslationKeys.resetToDefault: 'Reset to default',
 };

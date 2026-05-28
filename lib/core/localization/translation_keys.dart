@@ -124,4 +124,10 @@ class TranslationKeys {
   static const settings = 'settings';
   static const theme = 'theme';
   static const language = 'language';
+  static const server = 'server';
+  static const serverHint = 'server_hint';
+  static const serverDefaultLabel = 'server_default_label';
+  static const serverInvalid = 'server_invalid';
+  static const serverChangedRestart = 'server_changed_restart';
+  static const resetToDefault = 'reset_to_default';
 }

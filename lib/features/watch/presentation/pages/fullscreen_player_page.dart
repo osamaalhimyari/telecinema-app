@@ -6,7 +6,7 @@ import '../bloc/watch_cubit.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
-import '../widgets/fullscreen_reaction_button.dart';
+import '../widgets/fullscreen_reaction_bar.dart';
 import '../widgets/video_surface.dart';
 
 /// Full-screen, landscape view of the room's video. It reuses the room's
@@ -58,13 +58,14 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           // in fullscreen). Both ignore pointers so taps reach the player.
           FloatingReactions(stream: cubit.reactions),
           FloatingChatOverlay(stream: cubit.incomingChat),
-          // Collapsible reaction palette, pinned top-left.
+          // Reaction palette — a single tappable line of the room's emoji,
+          // pinned top-left.
           const SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
               child: Padding(
                 padding: EdgeInsets.all(8),
-                child: FullscreenReactionButton(),
+                child: FullscreenReactionBar(),
               ),
             ),
           ),

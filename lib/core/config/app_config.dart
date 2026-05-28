@@ -20,9 +20,32 @@ class AppConfig {
   // real public URL. HTTP (not HTTPS) is permitted on Android/iOS via the
   // cleartext flags already set in the native manifests.
   // ===========================================================================
-  // static const String baseUrl = 'https://telecinema.up.railway.app';
-  static const String baseUrl = 'https://telecinema.onrender.com';
-  // static const String baseUrl = 'https://telecinema.runasp.net';
+  /// The built-in server, used when the user hasn't overridden it. The "Reset
+  /// to default" button in Settings restores this.
+  static const String defaultBaseUrl = 'https://telecinema.onrender.com';
+
+  /// The active server origin. Mutable so it can be overridden at runtime from
+  /// Settings (persisted, then loaded at startup before the network layer is
+  /// built). Everything below — REST, Socket.IO, media URLs — derives from it.
+  static String baseUrl = defaultBaseUrl;
+
+  /// Strips surrounding whitespace and any trailing slashes so the derived
+  /// `$baseUrl/api`, `$baseUrl/video/...` joins stay clean.
+  static String normalizeUrl(String raw) {
+    var v = raw.trim();
+    while (v.endsWith('/')) {
+      v = v.substring(0, v.length - 1);
+    }
+    return v;
+  }
+
+  /// A usable server origin must be an absolute http(s) URL with a host.
+  static bool isValidUrl(String raw) {
+    final uri = Uri.tryParse(normalizeUrl(raw));
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
 
   /// REST API root. Matches the `/api` prefix registered in `start/routes.ts`.
   static String get baseApiUrl => '$baseUrl/api';

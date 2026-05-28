@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '/core/config/app_config.dart';
 import '/core/network/api_client.dart';
 import '/core/network/dio_api_client.dart';
 import '/core/services/locale_service.dart';
@@ -33,6 +34,13 @@ Future<void> injectSingletons(GetIt sl) async {
   // ===== Storage =====
   final prefs = await SharedPreferences.getInstance();
   sl.registerLazySingleton<KeyValueStorage>(() => SharedPrefsStorage(prefs));
+
+  // Apply a user-overridden server URL (set in Settings) before the network
+  // layer is built, so REST, Socket.IO and media URLs all target it from launch.
+  final savedUrl = prefs.getString(StorageKeys.serverBaseUrl);
+  if (savedUrl != null && AppConfig.isValidUrl(savedUrl)) {
+    AppConfig.baseUrl = AppConfig.normalizeUrl(savedUrl);
+  }
 
   // ===== Network =====
   sl.registerLazySingleton<ApiClient>(() => DioApiClient());
