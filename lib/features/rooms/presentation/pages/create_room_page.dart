@@ -49,9 +49,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
   final _name = TextEditingController();
   final _externalUrl = TextEditingController();
   final _videoUrl = TextEditingController();
+  final _magnet = TextEditingController();
   final _password = TextEditingController();
 
-  RoomType _type = RoomType.external;
+  RoomType _type = RoomType.torrent;
   String? _videoPath;
   String? _videoName;
   final List<String> _reactions = [..._defaultReactions];
@@ -61,6 +62,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     _name.dispose();
     _externalUrl.dispose();
     _videoUrl.dispose();
+    _magnet.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -88,6 +90,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         password: _password.text.trim().isEmpty ? null : _password.text.trim(),
         externalUrl: _type == RoomType.external ? _externalUrl.text.trim() : null,
         videoUrl: _type == RoomType.download ? _videoUrl.text.trim() : null,
+        magnet: _type == RoomType.torrent ? _magnet.text.trim() : null,
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
         reactions: _reactions.isEmpty ? null : List.of(_reactions),
       ),
@@ -220,9 +223,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     return SegmentedButton<RoomType>(
       segments: [
         ButtonSegment(
-          value: RoomType.external,
-          icon: const Icon(Icons.cast_rounded, size: 18),
-          label: Text(context.tr(TranslationKeys.typeExternal)),
+          value: RoomType.torrent,
+          icon: const Icon(Icons.stream_rounded, size: 18),
+          label: Text(context.tr(TranslationKeys.typeTorrent)),
         ),
         ButtonSegment(
           value: RoomType.download,
@@ -243,6 +246,27 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
 
   Widget _sourceField(BuildContext context) {
     switch (_type) {
+      case RoomType.torrent:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(context.tr(TranslationKeys.typeTorrentDesc), style: context.text.bodySmall),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _magnet,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: context.tr(TranslationKeys.magnetUrl),
+                hintText: context.tr(TranslationKeys.magnetUrlHint),
+                prefixIcon: const Icon(Icons.stream_rounded),
+              ),
+              validator: (v) => (_type == RoomType.torrent && (v == null || !v.trim().startsWith('magnet:')))
+                  ? context.tr(TranslationKeys.magnetUrlHint)
+                  : null,
+            ),
+          ],
+        );
       case RoomType.external:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,6 +328,11 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
       return _progress(context, context.tr(TranslationKeys.uploadingVideo), state.uploadProgress);
     }
     if (state.status == CreateRoomStatus.downloading) {
+      // Torrent rooms reuse the same poll, but there is no download bar — the
+      // room opens as soon as peers/metadata are found, so show a prep label.
+      if (_type == RoomType.torrent) {
+        return _progress(context, context.tr(TranslationKeys.preparingTorrent), null);
+      }
       final pct = state.downloadPercent;
       return _progress(
         context,

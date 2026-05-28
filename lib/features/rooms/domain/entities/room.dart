@@ -50,8 +50,13 @@ class Room extends Equatable {
 
   bool get isExternal => roomType.isExternal;
 
-  /// Streamable video URL for upload/download rooms; null for external rooms.
-  String? get videoUrl => isExternal ? null : AppConfig.videoUrl(videoFilename);
+  /// Streamable video URL: the swarm stream for torrent rooms, the stored file
+  /// for upload/download rooms, null for external (WebView) rooms.
+  String? get videoUrl {
+    if (isExternal) return null;
+    if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
+    return AppConfig.videoUrl(videoFilename);
+  }
 
   String? get thumbnailUrl => AppConfig.thumbnailUrl(thumbnailFilename);
 

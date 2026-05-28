@@ -35,6 +35,12 @@ class AppConfig {
       ? null
       : '$baseUrl/video/$filename';
 
+  /// Absolute URL that streams a torrent room's video from the swarm
+  /// (`GET /stream/:slug`, with HTTP range support). The server adds the
+  /// magnet on demand, so the app never sees the magnet itself.
+  static String? torrentStreamUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/stream/$slug';
+
   /// Absolute URL of a room's thumbnail (served statically from `public/`).
   static String? thumbnailUrl(String? filename) =>
       (filename == null || filename.isEmpty)

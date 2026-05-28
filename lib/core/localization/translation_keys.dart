@@ -23,6 +23,12 @@ class TranslationKeys {
   static const errorNotFound = 'error_not_found';
   static const errorUnknown = 'error_unknown';
 
+  // Torrent failure keys (must match torrent_streamer.ts error keys)
+  static const torrentInvalidMagnet = 'torrent_invalid_magnet';
+  static const torrentTimeout = 'torrent_timeout';
+  static const torrentNoVideo = 'torrent_no_video';
+  static const torrentFailed = 'torrent_failed';
+
   // Rooms list
   static const roomsTitle = 'rooms_title';
   static const roomsSubtitle = 'rooms_subtitle';
@@ -85,15 +91,20 @@ class TranslationKeys {
   static const typeDownloadDesc = 'type_download_desc';
   static const typeUpload = 'type_upload';
   static const typeUploadDesc = 'type_upload_desc';
+  static const typeTorrent = 'type_torrent';
+  static const typeTorrentDesc = 'type_torrent_desc';
   static const externalUrl = 'external_url';
   static const externalUrlHint = 'external_url_hint';
   static const videoUrl = 'video_url';
   static const videoUrlHint = 'video_url_hint';
+  static const magnetUrl = 'magnet_url';
+  static const magnetUrlHint = 'magnet_url_hint';
   static const pickVideo = 'pick_video';
   static const password = 'password';
   static const passwordOptionalHint = 'password_optional_hint';
   static const creatingRoom = 'creating_room';
   static const downloadingVideo = 'downloading_video';
+  static const preparingTorrent = 'preparing_torrent';
   static const uploadingVideo = 'uploading_video';
   static const changeSourceUrlHint = 'change_source_url_hint';
 

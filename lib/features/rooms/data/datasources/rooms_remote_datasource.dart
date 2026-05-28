@@ -76,6 +76,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
     final type = switch (params.type) {
       RoomType.external => 'external',
       RoomType.download => 'download',
+      RoomType.torrent => 'torrent',
       RoomType.upload => 'upload',
     };
 
@@ -102,6 +103,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.password != null && params.password!.isNotEmpty) 'password': params.password,
       if (params.externalUrl != null) 'externalUrl': params.externalUrl,
       if (params.videoUrl != null) 'videoUrl': params.videoUrl,
+      if (params.magnet != null) 'magnet': params.magnet,
       if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
     });
     if (!res.success) throw ServerException(res.message ?? 'room_create_failed');
