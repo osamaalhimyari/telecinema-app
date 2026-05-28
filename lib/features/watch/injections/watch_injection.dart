@@ -7,6 +7,7 @@ import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
+import '../data/datasources/torrent_engine.dart';
 import '../data/datasources/watch_socket_datasource.dart';
 import '../data/repositories/watch_repository_impl.dart';
 import '../domain/repositories/watch_repository.dart';
@@ -24,6 +25,9 @@ Future<void> injectWatchSingletons(GetIt sl) async {
   sl.registerLazySingleton<WatchRepository>(
     () => WatchRepositoryImpl(sl<WatchSocketDataSource>()),
   );
+  // Process-wide embedded torrent engine (librqbit). One instance for the app:
+  // the Rust engine is a global, started lazily on the first torrent room.
+  sl.registerLazySingleton<TorrentEngine>(() => TorrentEngine());
 }
 
 Future<void> injectWatchFactories(GetIt sl) async {
@@ -35,6 +39,7 @@ Future<void> injectWatchFactories(GetIt sl) async {
       sl<DeleteRoomUseCase>(),
       sl<UploadSubtitleUseCase>(),
       sl<KeyValueStorage>(),
+      sl<TorrentEngine>(),
     ),
   );
   sl.registerFactory<VoiceCubit>(() => VoiceCubit(sl<WatchRepository>()));

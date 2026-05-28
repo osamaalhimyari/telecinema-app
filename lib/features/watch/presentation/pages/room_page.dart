@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,6 @@ import '../widgets/chat_panel.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
 import '../widgets/reaction_bar.dart';
-import '../widgets/reaction_picker_card.dart';
 import '../widgets/unlock_overlay.dart';
 import '../widgets/viewers_panel.dart';
 import '../widgets/voice_button.dart';
@@ -87,15 +87,20 @@ class _RoomViewState extends State<_RoomView> {
   }
 
   /// PiP is Android-only (and not on web).
-  bool get _pipSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _pipSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   /// Enable Android 12+ auto-enter PiP while in this room, so leaving the app
   /// floats the video. Disabled again when the room is left.
   Future<void> _enableAutoPip() async {
     if (!_pipSupported) return;
     try {
-      if (await SimplePip.isAutoPipAvailable) await SimplePip().setAutoPipMode();
-    } catch (_) {/* unsupported on this device */}
+      if (await SimplePip.isAutoPipAvailable) {
+        await SimplePip().setAutoPipMode();
+      }
+    } catch (_) {
+      /* unsupported on this device */
+    }
   }
 
   void _disableAutoPip() {
@@ -148,7 +153,9 @@ class _RoomViewState extends State<_RoomView> {
               appBar: AppBar(),
               body: StatusView(
                 icon: Icons.error_outline_rounded,
-                title: context.tr(state.errorKey ?? TranslationKeys.errorUnknown),
+                title: context.tr(
+                  state.errorKey ?? TranslationKeys.errorUnknown,
+                ),
                 actionLabel: context.tr(TranslationKeys.close),
                 onAction: () => context.pop(),
               ),
@@ -157,8 +164,7 @@ class _RoomViewState extends State<_RoomView> {
               appBar: AppBar(title: Text(state.room?.name ?? '')),
               body: const UnlockOverlay(),
             ),
-            WatchPhase.deleted ||
-            WatchPhase.ready => const _RoomScaffold(),
+            WatchPhase.deleted || WatchPhase.ready => const _RoomScaffold(),
           };
         },
       ),
@@ -174,8 +180,9 @@ class _RoomViewState extends State<_RoomView> {
       child: PipWidget(
         pipLayout: PipActionsLayout.mediaWithSeek10,
         onPipAction: _onPipAction,
-        onPipEntered: () =>
-            SimplePip().setIsPlaying(context.read<WatchCubit>().state.isPlaying),
+        onPipEntered: () => SimplePip().setIsPlaying(
+          context.read<WatchCubit>().state.isPlaying,
+        ),
         pipChild: const _PipVideoView(),
         child: content,
       ),
@@ -194,7 +201,11 @@ class _PipVideoView extends StatelessWidget {
       color: Colors.black,
       child: controller == null
           ? const SizedBox.expand()
-          : Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
+          : Video(
+              controller: controller,
+              controls: NoVideoControls,
+              fit: BoxFit.contain,
+            ),
     );
   }
 }
@@ -214,12 +225,17 @@ class _RoomScaffold extends StatelessWidget {
           // keeps a position tick from rebuilding the whole screen (which would
           // make incoming reactions/chat feel laggy).
           title: BlocBuilder<WatchCubit, WatchState>(
-            buildWhen: (a, b) => a.room != b.room || a.viewerCount != b.viewerCount,
+            buildWhen: (a, b) =>
+                a.room != b.room || a.viewerCount != b.viewerCount,
             builder: (context, state) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(state.room?.name ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  state.room?.name ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Text(
                   '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
                   style: context.text.bodySmall,
@@ -251,7 +267,9 @@ class _RoomScaffold extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       const PlayerStage(),
-                      FloatingReactions(stream: context.read<WatchCubit>().reactions),
+                      FloatingReactions(
+                        stream: context.read<WatchCubit>().reactions,
+                      ),
                     ],
                   ),
                 ),
@@ -261,11 +279,6 @@ class _RoomScaffold extends StatelessWidget {
                   child: Row(
                     children: [
                       const Expanded(child: ReactionBar()),
-                      IconButton(
-                        tooltip: context.tr(TranslationKeys.reactions),
-                        icon: const Icon(Icons.add_reaction_outlined),
-                        onPressed: () => showReactionPicker(context),
-                      ),
                       const SizedBox(width: 4),
                       const VoiceButton(),
                       const SizedBox(width: 12),
@@ -304,24 +317,42 @@ class _RoomMenu extends StatelessWidget {
       onSelected: (value) => _handle(context, cubit, value),
       itemBuilder: (context) => [
         if (state.isExternal) ...[
-          PopupMenuItem(value: 'resync', child: _item(Icons.sync_rounded, context.tr(TranslationKeys.resync))),
+          PopupMenuItem(
+            value: 'resync',
+            child: _item(
+              Icons.sync_rounded,
+              context.tr(TranslationKeys.resync),
+            ),
+          ),
           PopupMenuItem(
             value: 'source',
-            child: _item(Icons.swap_horiz_rounded, context.tr(TranslationKeys.changeSource)),
+            child: _item(
+              Icons.swap_horiz_rounded,
+              context.tr(TranslationKeys.changeSource),
+            ),
           ),
           PopupMenuItem(
             value: 'subtitle',
-            child: _item(Icons.subtitles_outlined, context.tr(TranslationKeys.addSubtitle)),
+            child: _item(
+              Icons.subtitles_outlined,
+              context.tr(TranslationKeys.addSubtitle),
+            ),
           ),
         ],
         if (room?.isUserCreated ?? false)
           PopupMenuItem(
             value: 'delete',
-            child: _item(Icons.delete_outline_rounded, context.tr(TranslationKeys.deleteRoom)),
+            child: _item(
+              Icons.delete_outline_rounded,
+              context.tr(TranslationKeys.deleteRoom),
+            ),
           ),
         PopupMenuItem(
           value: 'leave',
-          child: _item(Icons.logout_rounded, context.tr(TranslationKeys.leaveRoom)),
+          child: _item(
+            Icons.logout_rounded,
+            context.tr(TranslationKeys.leaveRoom),
+          ),
         ),
       ],
     );
@@ -331,7 +362,11 @@ class _RoomMenu extends StatelessWidget {
     children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
   );
 
-  Future<void> _handle(BuildContext context, WatchCubit cubit, String value) async {
+  Future<void> _handle(
+    BuildContext context,
+    WatchCubit cubit,
+    String value,
+  ) async {
     switch (value) {
       case 'resync':
         cubit.requestResync();
@@ -356,10 +391,15 @@ class _RoomMenu extends StatelessWidget {
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.url,
-          decoration: InputDecoration(hintText: ctx.tr(TranslationKeys.changeSourceUrlHint)),
+          decoration: InputDecoration(
+            hintText: ctx.tr(TranslationKeys.changeSourceUrlHint),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => ctx.pop(), child: Text(ctx.tr(TranslationKeys.cancel))),
+          TextButton(
+            onPressed: () => ctx.pop(),
+            child: Text(ctx.tr(TranslationKeys.cancel)),
+          ),
           FilledButton(
             onPressed: () => ctx.pop(controller.text.trim()),
             child: Text(ctx.tr(TranslationKeys.save)),
@@ -402,13 +442,18 @@ class _RoomMenu extends StatelessWidget {
               TextField(
                 controller: controller,
                 obscureText: true,
-                decoration: InputDecoration(labelText: ctx.tr(TranslationKeys.password)),
+                decoration: InputDecoration(
+                  labelText: ctx.tr(TranslationKeys.password),
+                ),
               ),
             ],
           ],
         ),
         actions: [
-          TextButton(onPressed: () => ctx.pop(false), child: Text(ctx.tr(TranslationKeys.cancel))),
+          TextButton(
+            onPressed: () => ctx.pop(false),
+            child: Text(ctx.tr(TranslationKeys.cancel)),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: ctx.colors.error),
             onPressed: () => ctx.pop(true),

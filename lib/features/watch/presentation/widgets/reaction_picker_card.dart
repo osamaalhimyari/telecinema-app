@@ -3,10 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../bloc/watch_cubit.dart';
-import 'emoji_set.dart';
 
 /// Pops the floating reaction card. Captures the [WatchCubit] up front so the
 /// dialog (pushed on the root navigator, outside the room's BlocProvider) can
@@ -30,7 +30,11 @@ Future<void> showReactionPicker(BuildContext context) {
 /// room's own palette is shown first (deduped), followed by a broad set, so the
 /// quick reactions stay at the top and everything else is reachable by scroll.
 class ReactionPickerCard extends StatelessWidget {
-  const ReactionPickerCard({super.key, required this.onPick, this.roomReactions = const []});
+  const ReactionPickerCard({
+    super.key,
+    required this.onPick,
+    this.roomReactions = const [],
+  });
 
   final void Function(String emoji) onPick;
   final List<String> roomReactions;
@@ -41,8 +45,10 @@ class ReactionPickerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final seen = <String>{};
     final emojis = <String>[
-      for (final e in roomReactions) if (e.isNotEmpty && seen.add(e)) e,
-      for (final e in kReactionEmojis) if (seen.add(e)) e,
+      for (final e in roomReactions)
+        if (e.isNotEmpty && seen.add(e)) e,
+      for (final e in kReactionEmojis)
+        if (seen.add(e)) e,
     ];
 
     final size = MediaQuery.sizeOf(context);
@@ -52,7 +58,10 @@ class ReactionPickerCard extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight + 56),
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          maxHeight: maxHeight + 56,
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
           child: Column(
@@ -61,7 +70,10 @@ class ReactionPickerCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(context.tr(TranslationKeys.reactions), style: context.text.titleSmall),
+                  Text(
+                    context.tr(TranslationKeys.reactions),
+                    style: context.text.titleSmall,
+                  ),
                   const Spacer(),
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -76,18 +88,24 @@ class ReactionPickerCard extends StatelessWidget {
                   child: GridView.builder(
                     shrinkWrap: true,
                     padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: _columns,
-                      mainAxisSpacing: 4,
-                      crossAxisSpacing: 4,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: _columns,
+                          mainAxisSpacing: 4,
+                          crossAxisSpacing: 4,
+                        ),
                     itemCount: emojis.length,
                     itemBuilder: (context, i) {
                       final emoji = emojis[i];
                       return InkWell(
                         borderRadius: BorderRadius.circular(10),
                         onTap: () => onPick(emoji),
-                        child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
                       );
                     },
                   ),

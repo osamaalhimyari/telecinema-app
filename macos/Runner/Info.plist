@@ -28,5 +28,14 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TeleCinema uses the microphone for push-to-talk voice chat inside a room.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Permit the on-device torrent stream served over http://127.0.0.1 and
+		     cleartext LAN dev servers, without broadly disabling ATS. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

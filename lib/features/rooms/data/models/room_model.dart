@@ -30,6 +30,7 @@ class RoomModel {
         viewCountLabel: _nullableString(json['viewCountLabel']),
         createdAgo: _nullableString(json['createdAgo']),
         category: _nullableString(json['category']),
+        magnet: _nullableString(json['magnetUri']),
       ),
     );
   }

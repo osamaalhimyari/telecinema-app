@@ -21,6 +21,7 @@ class WatchState extends Equatable {
     this.isBuffering = false,
     this.videoReady = false,
     this.videoError = false,
+    this.preparingTorrent = false,
     this.viewerCount = 0,
     this.presence = const [],
     this.waiting = const [],
@@ -47,6 +48,10 @@ class WatchState extends Equatable {
   final bool isBuffering;
   final bool videoReady;
   final bool videoError;
+
+  /// True while the on-device torrent engine is resolving the magnet (fetching
+  /// swarm metadata) before the player can open the local stream URL.
+  final bool preparingTorrent;
 
   // Social
   final int viewerCount;
@@ -85,6 +90,7 @@ class WatchState extends Equatable {
     bool? isBuffering,
     bool? videoReady,
     bool? videoError,
+    bool? preparingTorrent,
     int? viewerCount,
     List<PresenceUser>? presence,
     List<PresenceUser>? waiting,
@@ -107,6 +113,7 @@ class WatchState extends Equatable {
       isBuffering: isBuffering ?? this.isBuffering,
       videoReady: videoReady ?? this.videoReady,
       videoError: videoError ?? this.videoError,
+      preparingTorrent: preparingTorrent ?? this.preparingTorrent,
       viewerCount: viewerCount ?? this.viewerCount,
       presence: presence ?? this.presence,
       waiting: waiting ?? this.waiting,
@@ -132,6 +139,7 @@ class WatchState extends Equatable {
     isBuffering,
     videoReady,
     videoError,
+    preparingTorrent,
     viewerCount,
     presence,
     waiting,

@@ -18,15 +18,19 @@ const Map<String, String> enUs = {
   TranslationKeys.errorNotFound: 'Not found.',
   TranslationKeys.errorUnknown: 'Something went wrong.',
 
-  TranslationKeys.torrentInvalidMagnet: 'That does not look like a valid magnet link.',
-  TranslationKeys.torrentTimeout: 'Could not find any peers for that magnet. Try another.',
-  TranslationKeys.torrentNoVideo: 'No playable video was found in that torrent.',
+  TranslationKeys.torrentInvalidMagnet:
+      'That does not look like a valid magnet link.',
+  TranslationKeys.torrentTimeout:
+      'Could not find any peers for that magnet. Try another.',
+  TranslationKeys.torrentNoVideo:
+      'No playable video was found in that torrent.',
   TranslationKeys.torrentFailed: 'That torrent could not be opened.',
 
   TranslationKeys.roomsTitle: 'TeleCinema',
   TranslationKeys.roomsSubtitle: 'Pick a room and watch together, in sync.',
   TranslationKeys.roomsEmpty: 'No rooms yet',
-  TranslationKeys.roomsEmptyHint: 'Create the first room to start watching together.',
+  TranslationKeys.roomsEmptyHint:
+      'Create the first room to start watching together.',
   TranslationKeys.watching: 'watching',
   TranslationKeys.noOneWatching: 'No one watching',
   TranslationKeys.passwordProtected: 'Password protected',
@@ -45,8 +49,10 @@ const Map<String, String> enUs = {
   TranslationKeys.leaveRoom: 'Leave room',
   TranslationKeys.deleteRoom: 'Delete room',
   TranslationKeys.roomDeleted: 'This room was deleted.',
-  TranslationKeys.deleteRoomConfirm: 'Delete this room and its video? This cannot be undone.',
-  TranslationKeys.roomNotEmpty: 'Someone is still watching — wait until the room is empty.',
+  TranslationKeys.deleteRoomConfirm:
+      'Delete this room and its video? This cannot be undone.',
+  TranslationKeys.roomNotEmpty:
+      'Someone is still watching — wait until the room is empty.',
   TranslationKeys.playbackSpeed: 'Playback speed',
   TranslationKeys.fullscreen: 'Fullscreen',
   TranslationKeys.pictureInPicture: 'Picture in picture',
@@ -59,6 +65,8 @@ const Map<String, String> enUs = {
 
   TranslationKeys.reactions: 'Reactions',
   TranslationKeys.chooseReactions: 'Pick 8 reactions for this room',
+  TranslationKeys.addEmoji: 'Add emoji',
+  TranslationKeys.addEmojiHint: 'Type or pick an emoji',
 
   TranslationKeys.holdToTalk: 'Hold to talk',
   TranslationKeys.speaking: 'speaking',
@@ -66,20 +74,24 @@ const Map<String, String> enUs = {
 
   TranslationKeys.addSubtitle: 'Add subtitle',
   TranslationKeys.subtitleAdded: 'Subtitle added.',
-  TranslationKeys.subtitleExternalOnly: 'Subtitles are only available for embed rooms.',
+  TranslationKeys.subtitleExternalOnly:
+      'Subtitles are only available for embed rooms.',
 
   TranslationKeys.createRoomTitle: 'Create a room',
   TranslationKeys.roomName: 'Room name',
   TranslationKeys.roomNameHint: 'e.g. Movie night',
   TranslationKeys.sourceType: 'Video source',
   TranslationKeys.typeExternal: 'Embed link',
-  TranslationKeys.typeExternalDesc: 'Play a third-party stream inside the room.',
+  TranslationKeys.typeExternalDesc:
+      'Play a third-party stream inside the room.',
   TranslationKeys.typeDownload: 'Download from link',
-  TranslationKeys.typeDownloadDesc: 'The server fetches the video file for you.',
+  TranslationKeys.typeDownloadDesc:
+      'The server fetches the video file for you.',
   TranslationKeys.typeUpload: 'Upload a file',
   TranslationKeys.typeUploadDesc: 'Upload a video from this device.',
   TranslationKeys.typeTorrent: 'Magnet / Torrent',
-  TranslationKeys.typeTorrentDesc: 'Stream a video from a magnet link — no full download.',
+  TranslationKeys.typeTorrentDesc:
+      'Stream a video from a magnet link — no full download.',
   TranslationKeys.externalUrl: 'Embed URL',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'Video link',
@@ -88,7 +100,8 @@ const Map<String, String> enUs = {
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
   TranslationKeys.pickVideo: 'Choose a video',
   TranslationKeys.password: 'Password',
-  TranslationKeys.passwordOptionalHint: 'Optional — leave blank for an open room',
+  TranslationKeys.passwordOptionalHint:
+      'Optional — leave blank for an open room',
   TranslationKeys.creatingRoom: 'Creating room…',
   TranslationKeys.downloadingVideo: 'Downloading video…',
   TranslationKeys.preparingTorrent: 'Finding peers & preparing stream…',

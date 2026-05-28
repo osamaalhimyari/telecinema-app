@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -18,6 +19,7 @@ import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/repositories/watch_repository.dart';
+import '../../data/datasources/torrent_engine.dart';
 import 'watch_state.dart';
 
 /// The synchronized-room brain. Owns the libmpv-backed [Player] for file rooms,
@@ -33,6 +35,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._deleteRoom,
     this._uploadSubtitle,
     this._storage,
+    this._torrentEngine,
   ) : super(const WatchState());
 
   final WatchRepository _repo;
@@ -41,6 +44,7 @@ class WatchCubit extends Cubit<WatchState> {
   final DeleteRoomUseCase _deleteRoom;
   final UploadSubtitleUseCase _uploadSubtitle;
   final KeyValueStorage _storage;
+  final TorrentEngine _torrentEngine;
 
   Player? _player;
 
@@ -112,9 +116,38 @@ class WatchCubit extends Cubit<WatchState> {
   void _enterRoom() {
     emit(state.copyWith(phase: WatchPhase.ready, unlockBusy: false, clearUnlockError: true));
     _subscribe();
-    _repo.join(state.room!.slug);
-    final videoUrl = state.room!.videoUrl;
-    if (!state.isExternal && videoUrl != null) _initVideo(videoUrl);
+    final room = state.room!;
+    _repo.join(room.slug);
+    if (state.isExternal) return;
+
+    // Torrent rooms stream on-device: each client adds the magnet to its own
+    // embedded librqbit engine and plays the resulting local 127.0.0.1 URL.
+    // Sync (play/pause/seek/chat/reactions) still flows over the server socket
+    // exactly like file rooms — only the *source* differs. Web has no native
+    // engine, so it falls back to the server stream (room.videoUrl).
+    final magnet = room.magnet;
+    if (!kIsWeb && room.roomType.isTorrent && magnet != null && magnet.isNotEmpty) {
+      _initTorrentVideo(magnet);
+      return;
+    }
+    final videoUrl = room.videoUrl;
+    if (videoUrl != null) _initVideo(videoUrl);
+  }
+
+  /// Resolves a torrent magnet to a local stream URL via the embedded engine,
+  /// then opens the player on it. Shows a "preparing" state while the swarm
+  /// metadata is fetched, and surfaces a video error if it can't be resolved.
+  Future<void> _initTorrentVideo(String magnet) async {
+    emit(state.copyWith(preparingTorrent: true, videoError: false));
+    try {
+      final url = await _torrentEngine.resolve(magnet);
+      if (isClosed) return;
+      emit(state.copyWith(preparingTorrent: false));
+      await _initVideo(url);
+    } catch (_) {
+      if (isClosed) return;
+      emit(state.copyWith(preparingTorrent: false, videoError: true));
+    }
   }
 
   void _subscribe() {

@@ -20,7 +20,9 @@ class AppConfig {
   // real public URL. HTTP (not HTTPS) is permitted on Android/iOS via the
   // cleartext flags already set in the native manifests.
   // ===========================================================================
-  static const String baseUrl = 'https://telecinema.up.railway.app';
+  // static const String baseUrl = 'https://telecinema.up.railway.app';
+  static const String baseUrl = 'https://telecinema.onrender.com';
+  // static const String baseUrl = 'https://telecinema.runasp.net';
 
   /// REST API root. Matches the `/api` prefix registered in `start/routes.ts`.
   static String get baseApiUrl => '$baseUrl/api';

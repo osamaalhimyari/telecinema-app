@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/injections/injection.dart';
@@ -12,16 +13,16 @@ import '../../domain/entities/room_type.dart';
 import '../bloc/create_room/create_room_cubit.dart';
 import '../bloc/create_room/create_room_state.dart';
 
-/// Emoji the creator can choose from; the picked ones become the room's
-/// reaction palette.
-const _reactionPalette = <String>[
-  '😂', '❤️', '🔥', '👍', '👎', '😮',
-  '😢', '😡', '👏', '🎉', '💯', '🤔',
-  '😍', '😅', '😱', '🥳', '🤣', '💀',
-  '👀', '✨', '🙏', '🤯',
+const _defaultReactions = <String>[
+  '😂',
+  '❤️',
+  '🔥',
+  '👍',
+  '😮',
+  '😢',
+  '👏',
+  '🎉',
 ];
-
-const _defaultReactions = <String>['😂', '❤️', '🔥', '👍', '😮', '😢', '👏', '🎉'];
 
 const _maxReactions = 8;
 
@@ -88,7 +89,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         name: _name.text.trim(),
         type: _type,
         password: _password.text.trim().isEmpty ? null : _password.text.trim(),
-        externalUrl: _type == RoomType.external ? _externalUrl.text.trim() : null,
+        externalUrl: _type == RoomType.external
+            ? _externalUrl.text.trim()
+            : null,
         videoUrl: _type == RoomType.download ? _videoUrl.text.trim() : null,
         magnet: _type == RoomType.torrent ? _magnet.text.trim() : null,
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
@@ -103,13 +106,16 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
       appBar: AppBar(title: Text(context.tr(TranslationKeys.createRoomTitle))),
       body: BlocConsumer<CreateRoomCubit, CreateRoomState>(
         listener: (context, state) {
-          if (state.status == CreateRoomStatus.success && state.createdSlug != null) {
+          if (state.status == CreateRoomStatus.success &&
+              state.createdSlug != null) {
             context.pushReplacementNamed(
               RoutesNames.room,
               pathParameters: {'slug': state.createdSlug!},
             );
           } else if (state.status == CreateRoomStatus.failure) {
-            context.showSnack(context.tr(state.errorKey ?? TranslationKeys.errorUnknown));
+            context.showSnack(
+              context.tr(state.errorKey ?? TranslationKeys.errorUnknown),
+            );
             context.read<CreateRoomCubit>().reset();
           }
         },
@@ -130,8 +136,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                         decoration: InputDecoration(
                           hintText: context.tr(TranslationKeys.roomNameHint),
                         ),
-                        validator: (v) =>
-                            (v == null || v.trim().length < 2) ? context.tr(TranslationKeys.roomName) : null,
+                        validator: (v) => (v == null || v.trim().length < 2)
+                            ? context.tr(TranslationKeys.roomName)
+                            : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -147,7 +154,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                         controller: _password,
                         obscureText: true,
                         decoration: InputDecoration(
-                          hintText: context.tr(TranslationKeys.passwordOptionalHint),
+                          hintText: context.tr(
+                            TranslationKeys.passwordOptionalHint,
+                          ),
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                         ),
                       ),
@@ -180,32 +189,44 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
   );
 
   Widget _reactionsPicker(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _reactionPalette.map((emoji) {
-        final selected = _reactions.contains(emoji);
-        return GestureDetector(
-          onTap: () => _toggleReaction(emoji),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected
-                  ? context.colors.primary.withValues(alpha: 0.18)
-                  : context.colors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: selected ? context.colors.primary : context.colors.outline,
-                width: selected ? 2 : 1,
+    return Container(
+      height: 220,
+      decoration: BoxDecoration(
+        border: Border.all(color: context.colors.outline),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: SingleChildScrollView(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: kReactionEmojis.map((emoji) {
+            final selected = _reactions.contains(emoji);
+            return GestureDetector(
+              onTap: () => _toggleReaction(emoji),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? context.colors.primary.withValues(alpha: 0.18)
+                      : context.colors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? context.colors.primary
+                        : context.colors.outline,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Text(emoji, style: const TextStyle(fontSize: 20)),
               ),
-            ),
-            child: Text(emoji, style: const TextStyle(fontSize: 20)),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
@@ -250,7 +271,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.tr(TranslationKeys.typeTorrentDesc), style: context.text.bodySmall),
+            Text(
+              context.tr(TranslationKeys.typeTorrentDesc),
+              style: context.text.bodySmall,
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _magnet,
@@ -261,7 +285,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                 hintText: context.tr(TranslationKeys.magnetUrlHint),
                 prefixIcon: const Icon(Icons.stream_rounded),
               ),
-              validator: (v) => (_type == RoomType.torrent && (v == null || !v.trim().startsWith('magnet:')))
+              validator: (v) =>
+                  (_type == RoomType.torrent &&
+                      (v == null || !v.trim().startsWith('magnet:')))
                   ? context.tr(TranslationKeys.magnetUrlHint)
                   : null,
             ),
@@ -271,7 +297,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.tr(TranslationKeys.typeExternalDesc), style: context.text.bodySmall),
+            Text(
+              context.tr(TranslationKeys.typeExternalDesc),
+              style: context.text.bodySmall,
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _externalUrl,
@@ -281,7 +310,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                 hintText: context.tr(TranslationKeys.externalUrlHint),
                 prefixIcon: const Icon(Icons.public_rounded),
               ),
-              validator: (v) => (_type == RoomType.external && (v == null || !v.startsWith('http')))
+              validator: (v) =>
+                  (_type == RoomType.external &&
+                      (v == null || !v.startsWith('http')))
                   ? context.tr(TranslationKeys.externalUrlHint)
                   : null,
             ),
@@ -291,7 +322,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.tr(TranslationKeys.typeDownloadDesc), style: context.text.bodySmall),
+            Text(
+              context.tr(TranslationKeys.typeDownloadDesc),
+              style: context.text.bodySmall,
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _videoUrl,
@@ -301,7 +335,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                 hintText: context.tr(TranslationKeys.videoUrlHint),
                 prefixIcon: const Icon(Icons.download_rounded),
               ),
-              validator: (v) => (_type == RoomType.download && (v == null || !v.startsWith('http')))
+              validator: (v) =>
+                  (_type == RoomType.download &&
+                      (v == null || !v.startsWith('http')))
                   ? context.tr(TranslationKeys.videoUrlHint)
                   : null,
             ),
@@ -311,7 +347,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.tr(TranslationKeys.typeUploadDesc), style: context.text.bodySmall),
+            Text(
+              context.tr(TranslationKeys.typeUploadDesc),
+              style: context.text.bodySmall,
+            ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: _pickVideo,
@@ -325,13 +364,21 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
 
   Widget _submitButton(BuildContext context, CreateRoomState state) {
     if (state.status == CreateRoomStatus.uploading) {
-      return _progress(context, context.tr(TranslationKeys.uploadingVideo), state.uploadProgress);
+      return _progress(
+        context,
+        context.tr(TranslationKeys.uploadingVideo),
+        state.uploadProgress,
+      );
     }
     if (state.status == CreateRoomStatus.downloading) {
       // Torrent rooms reuse the same poll, but there is no download bar — the
       // room opens as soon as peers/metadata are found, so show a prep label.
       if (_type == RoomType.torrent) {
-        return _progress(context, context.tr(TranslationKeys.preparingTorrent), null);
+        return _progress(
+          context,
+          context.tr(TranslationKeys.preparingTorrent),
+          null,
+        );
       }
       final pct = state.downloadPercent;
       return _progress(
@@ -344,20 +391,30 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     return FilledButton.icon(
       onPressed: state.isBusy ? null : _submit,
       icon: state.isBusy
-          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : const Icon(Icons.check_rounded),
       label: Text(context.tr(TranslationKeys.create)),
     );
   }
 
-  Widget _progress(BuildContext context, String label, double? value, {String? trailing}) {
+  Widget _progress(
+    BuildContext context,
+    String label,
+    double? value, {
+    String? trailing,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(child: Text(label, style: context.text.bodyMedium)),
-            if (trailing != null) Text(trailing, style: context.text.titleSmall),
+            if (trailing != null)
+              Text(trailing, style: context.text.titleSmall),
           ],
         ),
         const SizedBox(height: 8),

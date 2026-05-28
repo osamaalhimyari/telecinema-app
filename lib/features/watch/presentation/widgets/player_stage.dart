@@ -32,6 +32,7 @@ class PlayerStage extends StatelessWidget {
             a.isExternal != b.isExternal ||
             a.videoReady != b.videoReady ||
             a.videoError != b.videoError ||
+            a.preparingTorrent != b.preparingTorrent ||
             a.externalUrl != b.externalUrl ||
             a.subtitleUrl != b.subtitleUrl ||
             a.resyncTick != b.resyncTick ||
@@ -59,12 +60,26 @@ class PlayerStage extends StatelessWidget {
 
   Widget _file(BuildContext context, WatchState state) {
     if (state.videoError) return _message(context, TranslationKeys.videoUnavailable);
+    if (state.preparingTorrent) return _loading(context, TranslationKeys.preparingTorrent);
     if (!state.videoReady || context.read<WatchCubit>().videoController == null) {
       return const Center(child: CircularProgressIndicator());
     }
     return VideoSurface(
       fullscreen: false,
       onToggleFullscreen: () => _openFullscreen(context),
+    );
+  }
+
+  Widget _loading(BuildContext context, String key) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 12),
+          Text(context.tr(key), style: const TextStyle(color: Colors.white70)),
+        ],
+      ),
     );
   }
 

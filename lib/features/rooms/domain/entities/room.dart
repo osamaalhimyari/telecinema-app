@@ -24,6 +24,7 @@ class Room extends Equatable {
     this.viewCountLabel,
     this.createdAgo,
     this.category,
+    this.magnet,
   });
 
   final int id;
@@ -47,6 +48,10 @@ class Room extends Equatable {
   final String? viewCountLabel;
   final String? createdAgo;
   final String? category;
+
+  /// Magnet URI for torrent rooms (exposed by the server only for this type).
+  /// Used to stream the torrent on-device; null for every other room type.
+  final String? magnet;
 
   bool get isExternal => roomType.isExternal;
 
@@ -79,6 +84,7 @@ class Room extends Equatable {
     viewCountLabel: viewCountLabel,
     createdAgo: createdAgo,
     category: category,
+    magnet: magnet,
   );
 
   @override

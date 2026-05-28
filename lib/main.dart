@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
+
+import 'src/rust/frb_generated.dart';
 
 import 'core/app_info.dart';
 import 'core/constants/app_constants.dart';
@@ -22,6 +25,8 @@ import 'routes/routers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized(); // libmpv backend for the video player
+  // Embedded librqbit torrent engine (native only — no wasm build for web).
+  if (!kIsWeb) await RustLib.init();
   HydratedBloc.storage = await HydratedStorage.build(
     storageDirectory: HydratedStorageDirectory(
       (await getApplicationDocumentsDirectory()).path,

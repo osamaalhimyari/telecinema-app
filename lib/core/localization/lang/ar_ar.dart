@@ -19,8 +19,10 @@ const Map<String, String> arAr = {
   TranslationKeys.errorUnknown: 'حدث خطأ ما.',
 
   TranslationKeys.torrentInvalidMagnet: 'لا يبدو أن هذا رابط مغناطيسي صالح.',
-  TranslationKeys.torrentTimeout: 'تعذّر العثور على مصادر لهذا الرابط. جرّب رابطاً آخر.',
-  TranslationKeys.torrentNoVideo: 'لم يُعثر على فيديو قابل للتشغيل في هذا التورنت.',
+  TranslationKeys.torrentTimeout:
+      'تعذّر العثور على مصادر لهذا الرابط. جرّب رابطاً آخر.',
+  TranslationKeys.torrentNoVideo:
+      'لم يُعثر على فيديو قابل للتشغيل في هذا التورنت.',
   TranslationKeys.torrentFailed: 'تعذّر فتح هذا التورنت.',
 
   TranslationKeys.roomsTitle: 'TeleCinema',
@@ -45,7 +47,8 @@ const Map<String, String> arAr = {
   TranslationKeys.leaveRoom: 'مغادرة الغرفة',
   TranslationKeys.deleteRoom: 'حذف الغرفة',
   TranslationKeys.roomDeleted: 'تم حذف هذه الغرفة.',
-  TranslationKeys.deleteRoomConfirm: 'حذف هذه الغرفة وفيديوها؟ لا يمكن التراجع.',
+  TranslationKeys.deleteRoomConfirm:
+      'حذف هذه الغرفة وفيديوها؟ لا يمكن التراجع.',
   TranslationKeys.roomNotEmpty: 'لا يزال أحدهم يشاهد — انتظر حتى تفرغ الغرفة.',
   TranslationKeys.playbackSpeed: 'سرعة التشغيل',
   TranslationKeys.fullscreen: 'ملء الشاشة',
@@ -59,6 +62,8 @@ const Map<String, String> arAr = {
 
   TranslationKeys.reactions: 'تفاعلات',
   TranslationKeys.chooseReactions: 'اختر 8 تفاعلات لهذه الغرفة',
+  TranslationKeys.addEmoji: 'أضف رمزًا تعبيريًا',
+  TranslationKeys.addEmojiHint: 'اكتب أو اختر رمزًا تعبيريًا',
 
   TranslationKeys.holdToTalk: 'اضغط مع الاستمرار للتحدث',
   TranslationKeys.speaking: 'يتحدث',
@@ -79,7 +84,8 @@ const Map<String, String> arAr = {
   TranslationKeys.typeUpload: 'رفع ملف',
   TranslationKeys.typeUploadDesc: 'ارفع فيديو من هذا الجهاز.',
   TranslationKeys.typeTorrent: 'مغناطيسي / تورنت',
-  TranslationKeys.typeTorrentDesc: 'بث فيديو من رابط مغناطيسي — بدون تنزيل كامل.',
+  TranslationKeys.typeTorrentDesc:
+      'بث فيديو من رابط مغناطيسي — بدون تنزيل كامل.',
   TranslationKeys.externalUrl: 'رابط التضمين',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'رابط الفيديو',
