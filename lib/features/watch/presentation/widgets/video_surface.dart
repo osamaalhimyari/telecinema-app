@@ -16,22 +16,41 @@ import '../bloc/watch_state.dart';
 ///
 /// [fullscreen] only swaps the toggle icon; [onToggleFullscreen] decides whether
 /// tapping it pushes the fullscreen route or pops back to the room.
+///
+/// [controlsVisibility] lets a parent share the controls' show/hide flag (the
+/// fullscreen page passes one so sibling overlays — e.g. the viewer count — can
+/// fade in and out together with the controls). When null, the surface keeps
+/// its own internal flag (the inline case).
 class VideoSurface extends StatefulWidget {
   const VideoSurface({
     super.key,
     required this.fullscreen,
     required this.onToggleFullscreen,
+    this.controlsVisibility,
   });
 
   final bool fullscreen;
   final VoidCallback onToggleFullscreen;
+  final ValueNotifier<bool>? controlsVisibility;
 
   @override
   State<VideoSurface> createState() => _VideoSurfaceState();
 }
 
 class _VideoSurfaceState extends State<VideoSurface> {
-  bool _controlsVisible = true;
+  /// Used only when no shared notifier is supplied by the parent.
+  ValueNotifier<bool>? _ownVisibility;
+
+  ValueNotifier<bool> get _visible =>
+      widget.controlsVisibility ?? (_ownVisibility ??= ValueNotifier<bool>(true));
+
+  void _toggleControls() => _visible.value = !_visible.value;
+
+  @override
+  void dispose() {
+    _ownVisibility?.dispose();
+    super.dispose();
+  }
 
   /// PiP is offered only inline (not in fullscreen) and only on Android.
   bool get _pipSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -52,19 +71,22 @@ class _VideoSurfaceState extends State<VideoSurface> {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: GestureDetector(
-        onTap: () => setState(() => _controlsVisible = !_controlsVisible),
+        onTap: _toggleControls,
         child: Stack(
           fit: StackFit.expand,
           children: [
             // The Video widget letterboxes to the real aspect ratio on black.
             Video(controller: controller, controls: NoVideoControls, fit: BoxFit.contain),
             if (state.isBuffering) const Center(child: CircularProgressIndicator()),
-            AnimatedOpacity(
-              opacity: _controlsVisible ? 1 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: _controls(context, state, cubit),
+            ValueListenableBuilder<bool>(
+              valueListenable: _visible,
+              builder: (context, visible, _) => AnimatedOpacity(
+                opacity: visible ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: IgnorePointer(
+                  ignoring: !visible,
+                  child: _controls(context, state, cubit),
+                ),
               ),
             ),
           ],

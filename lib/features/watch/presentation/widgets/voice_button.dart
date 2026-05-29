@@ -6,8 +6,8 @@ import '/core/localization/translation_keys.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/voice/voice_state.dart';
 
-/// Hold-to-talk push-to-talk control. Press and hold to transmit; release to
-/// send the burst to the room.
+/// Tap-to-talk control. Tap once to open the mic and start transmitting; tap
+/// again to close it and send the burst to the room.
 class VoiceButton extends StatelessWidget {
   const VoiceButton({super.key});
 
@@ -20,12 +20,9 @@ class VoiceButton extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<VoiceCubit>();
         final active = state.micActive;
-        // Listener (raw pointer events) instead of GestureDetector: a hold-to-
-        // talk shouldn't be cancelled just because the finger drifts a little.
-        return Listener(
-          onPointerDown: (_) => cubit.startTalking(),
-          onPointerUp: (_) => cubit.stopTalking(),
-          onPointerCancel: (_) => cubit.stopTalking(),
+        return GestureDetector(
+          onTap: () =>
+              cubit.state.micActive ? cubit.stopTalking() : cubit.startTalking(),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -46,7 +43,7 @@ class VoiceButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  context.tr(TranslationKeys.holdToTalk),
+                  context.tr(TranslationKeys.tapToTalk),
                   style: context.text.labelMedium?.copyWith(
                     color: active ? Colors.white : context.colors.onSurface,
                     fontWeight: FontWeight.w600,

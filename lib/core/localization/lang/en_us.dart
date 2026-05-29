@@ -62,6 +62,7 @@ const Map<String, String> enUs = {
   TranslationKeys.chatHint: 'Say something…',
   TranslationKeys.chatEmpty: 'No messages yet. Be the first to say hi 👋',
   TranslationKeys.chatThrottled: 'You\'re sending messages too fast.',
+  TranslationKeys.messages: 'Messages',
 
   TranslationKeys.reactions: 'Reactions',
   TranslationKeys.chooseReactions: 'Pick 8 reactions for this room',
@@ -69,6 +70,7 @@ const Map<String, String> enUs = {
   TranslationKeys.addEmojiHint: 'Type or pick an emoji',
 
   TranslationKeys.holdToTalk: 'Hold to talk',
+  TranslationKeys.tapToTalk: 'Tap to talk',
   TranslationKeys.speaking: 'speaking',
   TranslationKeys.micPermissionDenied: 'Microphone permission denied.',
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,112 +7,13 @@ import '/core/localization/translation_keys.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/voice/voice_state.dart';
 import '../bloc/watch_cubit.dart';
+import '../bloc/watch_state.dart';
 
-/// A round, dark control button matching the fullscreen overlay style.
-class _FsCircleButton extends StatelessWidget {
-  const _FsCircleButton({required this.icon, required this.onPressed, this.tooltip});
-
-  final IconData icon;
-  final VoidCallback onPressed;
-  final String? tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.45),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: IconButton(
-        color: Colors.white,
-        tooltip: tooltip,
-        icon: Icon(icon),
-        onPressed: onPressed,
-      ),
-    );
-  }
-}
-
-/// Fullscreen chat: a button that opens a compose sheet (keyboard) to send one
-/// message, then closes. Sends through the room's [WatchCubit].
-class FullscreenChatButton extends StatelessWidget {
-  const FullscreenChatButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return _FsCircleButton(
-      icon: Icons.chat_bubble_outline_rounded,
-      tooltip: context.tr(TranslationKeys.chatTab),
-      onPressed: () => _compose(context),
-    );
-  }
-
-  Future<void> _compose(BuildContext context) async {
-    final cubit = context.read<WatchCubit>();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _ChatComposer(onSend: cubit.sendChat),
-    );
-  }
-}
-
-class _ChatComposer extends StatefulWidget {
-  const _ChatComposer({required this.onSend});
-
-  final void Function(String text) onSend;
-
-  @override
-  State<_ChatComposer> createState() => _ChatComposerState();
-}
-
-class _ChatComposerState extends State<_ChatComposer> {
-  final _input = TextEditingController();
-
-  @override
-  void dispose() {
-    _input.dispose();
-    super.dispose();
-  }
-
-  void _send() {
-    final text = _input.text.trim();
-    if (text.isEmpty) return;
-    widget.onSend(text);
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _input,
-              autofocus: true,
-              textInputAction: TextInputAction.send,
-              decoration: InputDecoration(
-                hintText: context.tr(TranslationKeys.chatHint),
-                isDense: true,
-              ),
-              onSubmitted: (_) => _send(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton.filled(onPressed: _send, icon: const Icon(Icons.send_rounded)),
-        ],
-      ),
-    );
-  }
-}
-
-/// Hold-to-talk push-to-talk button for the fullscreen overlay (compact, dark).
+/// Tap-to-talk push-to-talk button for the fullscreen overlay (compact, dark).
+///
+/// Tapping opens the mic and starts transmitting; tapping again closes it and
+/// sends the burst to the room. (The room's audio is a record-then-relay clip,
+/// so everyone else hears it once you tap to close.)
 class FullscreenVoiceButton extends StatelessWidget {
   const FullscreenVoiceButton({super.key});
 
@@ -124,24 +26,70 @@ class FullscreenVoiceButton extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<VoiceCubit>();
         final active = state.micActive;
-        return Listener(
-          onPointerDown: (_) => cubit.startTalking(),
-          onPointerUp: (_) => cubit.stopTalking(),
-          onPointerCancel: (_) => cubit.stopTalking(),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: active ? context.semantic.success : Colors.black.withValues(alpha: 0.45),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              active ? Icons.mic_rounded : Icons.mic_none_rounded,
-              color: Colors.white,
+        return Tooltip(
+          message: context.tr(TranslationKeys.tapToTalk),
+          child: GestureDetector(
+            onTap: () => cubit.state.micActive ? cubit.stopTalking() : cubit.startTalking(),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: active ? context.semantic.success : Colors.black.withValues(alpha: 0.45),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                active ? Icons.mic_rounded : Icons.mic_none_rounded,
+                color: Colors.white,
+              ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Live viewer count over the fullscreen video. It shares the player's
+/// controls-visibility flag, so it fades in and out together with the playback
+/// controls. Ignores pointers so a tap still reaches the video to toggle them.
+class FullscreenViewerCount extends StatelessWidget {
+  const FullscreenViewerCount({super.key, required this.visibility});
+
+  final ValueListenable<bool> visibility;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ValueListenableBuilder<bool>(
+        valueListenable: visibility,
+        builder: (context, visible, child) => AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: child,
+        ),
+        child: BlocBuilder<WatchCubit, WatchState>(
+          buildWhen: (a, b) => a.viewerCount != b.viewerCount,
+          builder: (context, state) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.visibility_rounded, color: Colors.white, size: 15),
+                const SizedBox(width: 6),
+                Text(
+                  '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

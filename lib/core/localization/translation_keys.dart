@@ -65,6 +65,7 @@ class TranslationKeys {
   static const chatHint = 'chat_hint';
   static const chatEmpty = 'chat_empty';
   static const chatThrottled = 'chat_throttled';
+  static const messages = 'messages';
 
   // Reactions
   static const reactions = 'reactions';
@@ -72,8 +73,9 @@ class TranslationKeys {
   static const addEmoji = 'add_emoji';
   static const addEmojiHint = 'add_emoji_hint';
 
-  // Voice (push-to-talk)
+  // Voice (tap-to-talk)
   static const holdToTalk = 'hold_to_talk';
+  static const tapToTalk = 'tap_to_talk';
   static const speaking = 'speaking';
   static const micPermissionDenied = 'mic_permission_denied';
 

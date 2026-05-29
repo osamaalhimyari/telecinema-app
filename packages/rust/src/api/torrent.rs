@@ -135,10 +135,23 @@ pub fn add_torrent(magnet: String) -> Result<AddedTorrent> {
             .into_handle()
             .context("torrent was list-only; no handle returned")?;
 
+        // A magnet's metadata (file list, sizes) is fetched from the swarm
+        // asynchronously, so it is usually NOT ready the moment `add_torrent`
+        // returns. Wait for the torrent to finish initializing — bounded, so a
+        // dead magnet surfaces as an error rather than hanging — before reading
+        // the file list below; otherwise `metadata` is still empty and we'd
+        // build a stream URL for a file that hasn't been resolved yet.
+        tokio::time::timeout(
+            std::time::Duration::from_secs(60),
+            handle.wait_until_initialized(),
+        )
+        .await
+        .context("timed out resolving torrent metadata")?
+        .context("error resolving torrent metadata")?;
+
         let id = handle.id() as u32;
         let name = handle.name().unwrap_or_else(|| format!("torrent-{id}"));
 
-        // For a magnet, metadata is resolved by the time `add_torrent` returns.
         let mut files: Vec<TorrentFile> = Vec::new();
         if let Some(meta) = handle.metadata.load_full() {
             for (i, fi) in meta.file_infos.iter().enumerate() {

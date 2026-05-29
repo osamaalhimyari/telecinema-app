@@ -9,9 +9,10 @@ enum RoomType {
   /// A third-party embed URL rendered inside a WebView (no file of our own).
   external,
 
-  /// A magnet link the server streams from a BitTorrent swarm over
-  /// `/stream/:slug` — played like an ordinary file room (real player, full
-  /// sync/seek), not a WebView embed.
+  /// A magnet link. Native clients stream it on-device through the embedded
+  /// engine; if that can't reach the swarm (or on web), it falls back to the
+  /// server's `/stream/:slug`. Either way it plays like an ordinary file room
+  /// (real player, full sync/seek), not a WebView embed.
   torrent;
 
   static RoomType fromString(String? value) => switch (value) {

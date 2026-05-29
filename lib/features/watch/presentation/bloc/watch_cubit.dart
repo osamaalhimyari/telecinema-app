@@ -136,7 +136,12 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Resolves a torrent magnet to a local stream URL via the embedded engine,
   /// then opens the player on it. Shows a "preparing" state while the swarm
-  /// metadata is fetched, and surfaces a video error if it can't be resolved.
+  /// metadata is fetched.
+  ///
+  /// If the on-device engine can't stream the magnet — no reachable local
+  /// peers, an unresolved swarm, or simply no native engine on this platform —
+  /// it falls back to the server, which streams the same torrent over
+  /// `/stream/:slug`. A video error is surfaced only when neither path works.
   Future<void> _initTorrentVideo(String magnet) async {
     emit(state.copyWith(preparingTorrent: true, videoError: false));
     try {
@@ -146,7 +151,13 @@ class WatchCubit extends Cubit<WatchState> {
       await _initVideo(url);
     } catch (_) {
       if (isClosed) return;
-      emit(state.copyWith(preparingTorrent: false, videoError: true));
+      emit(state.copyWith(preparingTorrent: false));
+      final serverUrl = state.room?.videoUrl;
+      if (serverUrl != null && serverUrl.isNotEmpty) {
+        await _initVideo(serverUrl);
+      } else {
+        emit(state.copyWith(videoError: true));
+      }
     }
   }
 

@@ -59,6 +59,7 @@ const Map<String, String> arAr = {
   TranslationKeys.chatHint: 'اكتب شيئاً…',
   TranslationKeys.chatEmpty: 'لا رسائل بعد. كن أول من يلقي التحية 👋',
   TranslationKeys.chatThrottled: 'أنت ترسل الرسائل بسرعة كبيرة.',
+  TranslationKeys.messages: 'الرسائل',
 
   TranslationKeys.reactions: 'تفاعلات',
   TranslationKeys.chooseReactions: 'اختر 8 تفاعلات لهذه الغرفة',
@@ -66,6 +67,7 @@ const Map<String, String> arAr = {
   TranslationKeys.addEmojiHint: 'اكتب أو اختر رمزًا تعبيريًا',
 
   TranslationKeys.holdToTalk: 'اضغط مع الاستمرار للتحدث',
+  TranslationKeys.tapToTalk: 'اضغط للتحدث',
   TranslationKeys.speaking: 'يتحدث',
   TranslationKeys.micPermissionDenied: 'تم رفض إذن الميكروفون.',
 

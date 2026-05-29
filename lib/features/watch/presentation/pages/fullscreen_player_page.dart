@@ -6,6 +6,7 @@ import '../bloc/watch_cubit.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
+import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
 import '../widgets/video_surface.dart';
 
@@ -21,6 +22,13 @@ class FullscreenPlayerPage extends StatefulWidget {
 }
 
 class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
+  /// Shared with [VideoSurface]: the playback controls toggle this on tap, and
+  /// the viewer count overlay rides the same flag so it hides/appears with them.
+  final ValueNotifier<bool> _controlsVisible = ValueNotifier<bool>(true);
+
+  /// Whether the side messages panel is open.
+  bool _messagesOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +41,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
 
   @override
   void dispose() {
+    _controlsVisible.dispose();
     // Restore the app's portrait layout and the system bars.
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
@@ -52,49 +61,72 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
         children: [
           VideoSurface(
             fullscreen: true,
+            controlsVisibility: _controlsVisible,
             onToggleFullscreen: () => Navigator.of(context).maybePop(),
           ),
-          // Reactions + chat float over the video (the messages panel is hidden
-          // in fullscreen). Both ignore pointers so taps reach the player.
+          // Reactions + chat float over the video. Both ignore pointers so taps
+          // reach the player.
           FloatingReactions(stream: cubit.reactions),
           FloatingChatOverlay(stream: cubit.incomingChat),
-          // Reaction palette — a single tappable line of the room's emoji,
-          // pinned top-left.
-          const SafeArea(
+
+          // Top-left: the collapsible reaction palette, with the messages
+          // toggle stacked right beneath it.
+          SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
               child: Padding(
-                padding: EdgeInsets.all(8),
-                child: FullscreenReactionBar(),
-              ),
-            ),
-          ),
-          // Chat + push-to-talk, pinned top-right.
-          const SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: EdgeInsets.all(8),
-                child: Row(
+                padding: const EdgeInsets.all(8),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FullscreenChatButton(),
-                    SizedBox(width: 10),
-                    FullscreenVoiceButton(),
+                    const FullscreenReactionBar(),
+                    const SizedBox(height: 10),
+                    FullscreenMessagesButton(
+                      open: _messagesOpen,
+                      onTap: () => setState(() => _messagesOpen = !_messagesOpen),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-          // "<name> speaking" indicator, top-center.
-          const SafeArea(
+
+          // Top-center: viewer count (hides with the controls) above the
+          // "who's speaking" indicator (always visible).
+          SafeArea(
             child: Align(
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: FullscreenSpeakingIndicator(),
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FullscreenViewerCount(visibility: _controlsVisible),
+                    const SizedBox(height: 8),
+                    const FullscreenSpeakingIndicator(),
+                  ],
+                ),
               ),
             ),
+          ),
+
+          // Top-right: tap-to-talk microphone.
+          const SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.all(8),
+                child: FullscreenVoiceButton(),
+              ),
+            ),
+          ),
+
+          // The messages side panel sits above the overlays; it slides in from
+          // the right while the top-left toggle stays reachable to close it.
+          FullscreenMessagesPanel(
+            open: _messagesOpen,
+            onClose: () => setState(() => _messagesOpen = false),
           ),
         ],
       ),
