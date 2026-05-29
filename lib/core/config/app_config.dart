@@ -22,7 +22,7 @@ class AppConfig {
   // ===========================================================================
   /// The built-in server, used when the user hasn't overridden it. The "Reset
   /// to default" button in Settings restores this.
-  static const String defaultBaseUrl = 'https://telecinema.onrender.com';
+  static const String defaultBaseUrl = 'https://telecinema.runasp.net';
 
   /// The active server origin. Mutable so it can be overridden at runtime from
   /// Settings (persisted, then loaded at startup before the network layer is
