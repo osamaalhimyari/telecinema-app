@@ -35,6 +35,28 @@ const Map<String, String> arAr = {
   TranslationKeys.externalBadge: 'تضمين',
   TranslationKeys.createRoom: 'إنشاء غرفة',
 
+  TranslationKeys.searchRooms: 'ابحث عن غرفة',
+  TranslationKeys.roomsNoResults: 'لا توجد غرف مطابقة لبحثك.',
+  TranslationKeys.favorites: 'المفضلة',
+  TranslationKeys.recent: 'الأخيرة',
+  TranslationKeys.categoryAll: 'الكل',
+
+  TranslationKeys.category: 'الفئة',
+  TranslationKeys.categoryMovies: 'أفلام',
+  TranslationKeys.categorySeries: 'مسلسلات',
+  TranslationKeys.categoryAnime: 'أنمي',
+  TranslationKeys.categorySports: 'رياضة',
+  TranslationKeys.categoryMusic: 'موسيقى',
+  TranslationKeys.categoryGaming: 'ألعاب',
+  TranslationKeys.categoryNews: 'أخبار',
+  TranslationKeys.categoryOther: 'أخرى',
+
+  TranslationKeys.share: 'مشاركة',
+  TranslationKeys.shareRoom: 'مشاركة الغرفة',
+  TranslationKeys.copyLink: 'نسخ الرابط',
+  TranslationKeys.linkCopied: 'تم نسخ الرابط',
+  TranslationKeys.scanToJoin: 'امسح الرمز للانضمام',
+
   TranslationKeys.live: 'مباشر',
   TranslationKeys.connecting: 'جارٍ الاتصال…',
   TranslationKeys.reconnecting: 'إعادة الاتصال…',

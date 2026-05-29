@@ -37,6 +37,28 @@ const Map<String, String> enUs = {
   TranslationKeys.externalBadge: 'Embed',
   TranslationKeys.createRoom: 'Create room',
 
+  TranslationKeys.searchRooms: 'Search rooms',
+  TranslationKeys.roomsNoResults: 'No rooms match your search.',
+  TranslationKeys.favorites: 'Favorites',
+  TranslationKeys.recent: 'Recent',
+  TranslationKeys.categoryAll: 'All',
+
+  TranslationKeys.category: 'Category',
+  TranslationKeys.categoryMovies: 'Movies',
+  TranslationKeys.categorySeries: 'TV Shows',
+  TranslationKeys.categoryAnime: 'Anime',
+  TranslationKeys.categorySports: 'Sports',
+  TranslationKeys.categoryMusic: 'Music',
+  TranslationKeys.categoryGaming: 'Gaming',
+  TranslationKeys.categoryNews: 'News',
+  TranslationKeys.categoryOther: 'Other',
+
+  TranslationKeys.share: 'Share',
+  TranslationKeys.shareRoom: 'Share room',
+  TranslationKeys.copyLink: 'Copy link',
+  TranslationKeys.linkCopied: 'Link copied',
+  TranslationKeys.scanToJoin: 'Scan to join',
+
   TranslationKeys.live: 'LIVE',
   TranslationKeys.connecting: 'Connecting…',
   TranslationKeys.reconnecting: 'Reconnecting…',

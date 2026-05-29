@@ -20,6 +20,13 @@ class SharedPrefsStorage implements KeyValueStorage {
   Future<void> setBool(String key, bool value) => _prefs.setBool(key, value);
 
   @override
+  List<String>? getStringList(String key) => _prefs.getStringList(key);
+
+  @override
+  Future<void> setStringList(String key, List<String> value) =>
+      _prefs.setStringList(key, value);
+
+  @override
   Future<void> remove(String key) => _prefs.remove(key);
 }
 
@@ -28,5 +35,7 @@ class StorageKeys {
   StorageKeys._();
   static const displayName = 'display_name';
   static const serverBaseUrl = 'server_base_url';
+  static const favorites = 'favorites';
+  static const recentSlugs = 'recent_slugs';
   static String roomUnlocked(String slug) => 'room_unlocked_$slug';
 }

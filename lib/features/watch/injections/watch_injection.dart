@@ -4,6 +4,7 @@ import '/features/rooms/domain/usecases/delete_room_usecase.dart';
 import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
+import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
@@ -40,6 +41,7 @@ Future<void> injectWatchFactories(GetIt sl) async {
       sl<UploadSubtitleUseCase>(),
       sl<KeyValueStorage>(),
       sl<TorrentEngine>(),
+      sl<FavoritesCubit>(),
     ),
   );
   sl.registerFactory<VoiceCubit>(() => VoiceCubit(sl<WatchRepository>()));

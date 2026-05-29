@@ -13,6 +13,7 @@ import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
 import '/features/rooms/domain/entities/room.dart';
+import '/logic/favorites/favorites_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
 import '/logic/storage/shared_prefs_storage.dart';
 import '../../domain/entities/chat_message.dart';
@@ -36,6 +37,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._uploadSubtitle,
     this._storage,
     this._torrentEngine,
+    this._favorites,
   ) : super(const WatchState());
 
   final WatchRepository _repo;
@@ -45,6 +47,7 @@ class WatchCubit extends Cubit<WatchState> {
   final UploadSubtitleUseCase _uploadSubtitle;
   final KeyValueStorage _storage;
   final TorrentEngine _torrentEngine;
+  final FavoritesCubit _favorites;
 
   Player? _player;
 
@@ -84,6 +87,9 @@ class WatchCubit extends Cubit<WatchState> {
     }
 
     emit(state.copyWith(room: r, externalUrl: r.externalUrl, subtitleUrl: r.subtitleUrl));
+
+    // Opening a room (even a still-locked one) counts as recently watched.
+    _favorites.recordRecent(r.slug);
 
     final unlocked =
         !r.hasPassword || (_storage.getBool(StorageKeys.roomUnlocked(r.slug)) ?? false);
@@ -171,9 +177,13 @@ class WatchCubit extends Cubit<WatchState> {
       _repo.presence.listen((u) => emit(state.copyWith(presence: u))),
       _repo.waitState.listen((u) => emit(state.copyWith(waiting: u))),
       _repo.sourceChanged.listen(_onSourceChanged),
-      _repo.subtitleChanged.listen(
-        (f) => emit(state.copyWith(subtitleUrl: AppConfig.subtitleUrl(f))),
-      ),
+      _repo.subtitleChanged.listen((f) {
+        final url = AppConfig.subtitleUrl(f);
+        emit(state.copyWith(subtitleUrl: url));
+        // External rooms render their own overlay; file rooms hand the track
+        // straight to the player.
+        if (!state.isExternal) _applySubtitleToPlayer(url);
+      }),
       _repo.reaction.listen((r) {
         if (!_reactions.isClosed) _reactions.add(r);
       }),
@@ -217,8 +227,26 @@ class WatchCubit extends Cubit<WatchState> {
         await _applyToVideo(_pendingSync!);
         _pendingSync = null;
       }
+      // A subtitle the room already had (or one uploaded before the player was
+      // ready) is loaded once the media is open.
+      if (state.subtitleUrl != null) await _applySubtitleToPlayer(state.subtitleUrl);
     } catch (_) {
       emit(state.copyWith(videoError: true));
+    }
+  }
+
+  /// Loads an external subtitle track into the file-room player (libmpv via
+  /// media_kit); a null/empty url clears it. No-op when there is no player
+  /// (external/embed rooms render their own overlay instead).
+  Future<void> _applySubtitleToPlayer(String? url) async {
+    final p = _player;
+    if (p == null) return;
+    try {
+      await p.setSubtitleTrack(
+        (url == null || url.isEmpty) ? SubtitleTrack.no() : SubtitleTrack.uri(url),
+      );
+    } catch (_) {
+      /* platform without external-subtitle support — ignore */
     }
   }
 

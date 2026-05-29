@@ -17,6 +17,7 @@ class CreateRoomParams {
     this.magnet,
     this.localVideoPath,
     this.reactions,
+    this.category,
   });
 
   final String name;
@@ -27,6 +28,7 @@ class CreateRoomParams {
   final String? magnet;
   final String? localVideoPath;
   final List<String>? reactions;
+  final String? category;
 }
 
 /// The outcome of a create call: either the room is ready immediately

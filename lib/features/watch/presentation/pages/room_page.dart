@@ -4,14 +4,18 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:simple_pip_mode/actions/pip_action.dart';
 import 'package:simple_pip_mode/actions/pip_actions_layout.dart';
 import 'package:simple_pip_mode/pip_widget.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 
+import '/core/config/app_config.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/name_dialog.dart';
@@ -331,14 +335,24 @@ class _RoomMenu extends StatelessWidget {
               context.tr(TranslationKeys.changeSource),
             ),
           ),
+        ],
+        // Subtitles work for every room type (file rooms load it as a track,
+        // external rooms as an overlay).
+        PopupMenuItem(
+          value: 'subtitle',
+          child: _item(
+            Icons.subtitles_outlined,
+            context.tr(TranslationKeys.addSubtitle),
+          ),
+        ),
+        if ((room?.slug ?? '').isNotEmpty)
           PopupMenuItem(
-            value: 'subtitle',
+            value: 'share',
             child: _item(
-              Icons.subtitles_outlined,
-              context.tr(TranslationKeys.addSubtitle),
+              Icons.share_rounded,
+              context.tr(TranslationKeys.share),
             ),
           ),
-        ],
         if (room?.isUserCreated ?? false)
           PopupMenuItem(
             value: 'delete',
@@ -376,9 +390,89 @@ class _RoomMenu extends StatelessWidget {
         await _changeSource(context, cubit);
       case 'subtitle':
         await _pickSubtitle(context, cubit);
+      case 'share':
+        await _share(context, state.room);
       case 'delete':
         await _delete(context, cubit);
     }
+  }
+
+  /// Opens a share sheet for the room's deep link: a QR to scan, plus copy and
+  /// system-share actions. The link points at `/room/:slug`, which the router
+  /// deep-links straight into this page.
+  Future<void> _share(BuildContext context, Room? room) async {
+    final slug = room?.slug ?? '';
+    if (slug.isEmpty) return;
+    final url = AppConfig.roomUrl(slug);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                room?.name ?? ctx.tr(TranslationKeys.shareRoom),
+                style: ctx.text.titleMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: url,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(ctx.tr(TranslationKeys.scanToJoin), style: ctx.text.bodySmall),
+              const SizedBox(height: 4),
+              SelectableText(
+                url,
+                textAlign: TextAlign.center,
+                style: ctx.text.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: url));
+                      if (!ctx.mounted) return;
+                      Navigator.of(ctx).pop();
+                      if (context.mounted) {
+                        context.showSnack(context.tr(TranslationKeys.linkCopied));
+                      }
+                    },
+                    icon: const Icon(Icons.copy_rounded),
+                    label: Text(ctx.tr(TranslationKeys.copyLink)),
+                  ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      await SharePlus.instance.share(
+                        ShareParams(text: url, subject: room?.name),
+                      );
+                    },
+                    icon: const Icon(Icons.ios_share_rounded),
+                    label: Text(ctx.tr(TranslationKeys.share)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _changeSource(BuildContext context, WatchCubit cubit) async {

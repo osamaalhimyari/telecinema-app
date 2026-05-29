@@ -40,6 +40,31 @@ class TranslationKeys {
   static const externalBadge = 'external_badge';
   static const createRoom = 'create_room';
 
+  // Discovery (search / filters / favorites)
+  static const searchRooms = 'search_rooms';
+  static const roomsNoResults = 'rooms_no_results';
+  static const favorites = 'favorites';
+  static const recent = 'recent';
+  static const categoryAll = 'category_all';
+
+  // Categories
+  static const category = 'category';
+  static const categoryMovies = 'category_movies';
+  static const categorySeries = 'category_series';
+  static const categoryAnime = 'category_anime';
+  static const categorySports = 'category_sports';
+  static const categoryMusic = 'category_music';
+  static const categoryGaming = 'category_gaming';
+  static const categoryNews = 'category_news';
+  static const categoryOther = 'category_other';
+
+  // Share / invite
+  static const share = 'share';
+  static const shareRoom = 'share_room';
+  static const copyLink = 'copy_link';
+  static const linkCopied = 'link_copied';
+  static const scanToJoin = 'scan_to_join';
+
   // Room / watch screen
   static const live = 'live';
   static const connecting = 'connecting';

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '/logic/favorites/favorites_cubit.dart';
+import '/logic/favorites/favorites_state.dart';
 import '../../domain/entities/room.dart';
 import 'room_thumbnail.dart';
 
@@ -27,6 +30,7 @@ class RoomCard extends StatelessWidget {
                 children: [
                   RoomThumbnail(room: room),
                   Positioned(top: 8, left: 8, child: _viewerBadge(context)),
+                  Positioned(bottom: 8, left: 8, child: _FavoriteStar(slug: room.slug)),
                   if (room.hasPassword)
                     const Positioned(top: 8, right: 8, child: _Marker(icon: Icons.lock_rounded)),
                   if (room.isExternal)
@@ -91,6 +95,44 @@ class RoomCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A tappable star overlay that stars / un-stars the room. Lives on top of the
+/// card's [InkWell], so tapping it toggles the favorite without opening the room.
+class _FavoriteStar extends StatelessWidget {
+  const _FavoriteStar({required this.slug});
+  final String slug;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<FavoritesCubit, FavoritesState>(
+      buildWhen: (a, b) =>
+          a.favorites.contains(slug) != b.favorites.contains(slug),
+      builder: (context, state) {
+        final fav = state.favorites.contains(slug);
+        return Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => context.read<FavoritesCubit>().toggle(slug),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                fav ? Icons.star_rounded : Icons.star_outline_rounded,
+                size: 16,
+                color: fav ? Colors.amber : Colors.white,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

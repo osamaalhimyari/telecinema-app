@@ -77,4 +77,8 @@ class AppConfig {
       (filename == null || filename.isEmpty)
       ? null
       : '$baseUrl/subtitles/$filename';
+
+  /// Shareable deep link to a room (`/room/:slug`), matching the go_router
+  /// route. Used by the in-room Share action.
+  static String roomUrl(String slug) => '$baseUrl/room/$slug';
 }

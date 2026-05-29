@@ -14,6 +14,7 @@ import 'core/localization/app_localizations.dart';
 import 'core/services/locale_service.dart';
 import 'core/services/theme_service.dart';
 import 'injections/injection.dart';
+import 'logic/favorites/favorites_cubit.dart';
 import 'logic/identity/identity_cubit.dart';
 import 'logic/localization/locale_cubit.dart';
 import 'logic/localization/locale_state.dart';
@@ -48,6 +49,7 @@ class App extends StatelessWidget {
         BlocProvider<ThemeCubit>.value(value: sl<ThemeCubit>()),
         BlocProvider<SocketCubit>.value(value: sl<SocketCubit>()),
         BlocProvider<IdentityCubit>.value(value: sl<IdentityCubit>()),
+        BlocProvider<FavoritesCubit>.value(value: sl<FavoritesCubit>()),
       ],
       child: BlocBuilder<LocaleCubit, LocaleState>(
         builder: (context, localeState) {

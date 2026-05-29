@@ -8,6 +8,7 @@ import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
+import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/localization/locale_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
@@ -47,6 +48,9 @@ Future<void> injectSingletons(GetIt sl) async {
 
   // ===== Identity (display name → set_name) =====
   sl.registerSingleton<IdentityCubit>(IdentityCubit(sl<KeyValueStorage>(), sl<SocketCubit>()));
+
+  // ===== Favorites + recently-watched (local, slug-keyed) =====
+  sl.registerSingleton<FavoritesCubit>(FavoritesCubit(sl<KeyValueStorage>()));
 
   // ===== Feature singletons =====
   await injectRoomsSingletons(sl);

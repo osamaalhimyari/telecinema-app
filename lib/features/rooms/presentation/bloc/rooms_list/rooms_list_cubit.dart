@@ -28,13 +28,30 @@ class RoomsListCubit extends Cubit<RoomsListState> {
         state.copyWith(status: RoomsListStatus.failure, errorKey: failure.message),
       ),
       (rooms) {
-        emit(state.copyWith(status: RoomsListStatus.success, rooms: rooms, clearError: true));
+        // Drop a category filter the refreshed catalogue no longer contains,
+        // otherwise it would strand the grid empty with no chip to reset it.
+        final keepCategory = state.categoryFilter == null ||
+            rooms.any((r) => r.category == state.categoryFilter);
+        emit(state.copyWith(
+          status: RoomsListStatus.success,
+          rooms: rooms,
+          clearError: true,
+          clearCategory: !keepCategory,
+        ));
         _startLiveCounts();
       },
     );
   }
 
   Future<void> refresh() => load();
+
+  /// Updates the free-text search. Filtering happens in [RoomsListState.visibleRooms];
+  /// the full [RoomsListState.rooms] list (and its live counts) is untouched.
+  void setQuery(String query) => emit(state.copyWith(query: query));
+
+  /// Selects a category key, or null to clear the filter ("all categories").
+  void setCategory(String? category) =>
+      emit(state.copyWith(categoryFilter: category, clearCategory: category == null));
 
   void _startLiveCounts() {
     _home.start();

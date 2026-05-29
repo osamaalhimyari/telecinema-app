@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '/core/constants/categories.dart';
 import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -56,6 +57,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
   RoomType _type = RoomType.torrent;
   String? _videoPath;
   String? _videoName;
+  String? _category;
   final List<String> _reactions = [..._defaultReactions];
 
   @override
@@ -96,6 +98,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         magnet: _type == RoomType.torrent ? _magnet.text.trim() : null,
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
         reactions: _reactions.isEmpty ? null : List.of(_reactions),
+        category: _category,
       ),
     );
   }
@@ -160,6 +163,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      _label(context, TranslationKeys.category),
+                      _categorySelector(context),
                       const SizedBox(height: 20),
 
                       Padding(
@@ -227,6 +234,23 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
           }).toList(),
         ),
       ),
+    );
+  }
+
+  /// Single-select category chips. Tapping the active chip clears the choice
+  /// (category is optional), so the param is sent only when one is picked.
+  Widget _categorySelector(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: kCategories.map((c) {
+        final selected = _category == c;
+        return ChoiceChip(
+          label: Text(context.tr(categoryLabelKey(c))),
+          selected: selected,
+          onSelected: (_) => setState(() => _category = selected ? null : c),
+        );
+      }).toList(),
     );
   }
 

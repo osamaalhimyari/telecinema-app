@@ -6,5 +6,7 @@ abstract class KeyValueStorage {
   Future<void> setString(String key, String value);
   bool? getBool(String key);
   Future<void> setBool(String key, bool value);
+  List<String>? getStringList(String key);
+  Future<void> setStringList(String key, List<String> value);
   Future<void> remove(String key);
 }
