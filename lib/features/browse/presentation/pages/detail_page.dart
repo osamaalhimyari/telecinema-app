@@ -234,18 +234,21 @@ class _DetailView extends StatelessWidget {
 
   Widget _bottomBar(BuildContext context, DetailState state) {
     final searching = state.torrentStatus == TorrentStatus.searching;
-    final canPick = state.hasSources;
+    // A series can be opened as soon as Cinemeta knows its episodes — even when
+    // the IMDB-id torrent search found only packs (each episode resolves on
+    // tap). Movies need an actual torrent result.
+    final hasEpisodes = state.isSeries && (state.detail?.episodes.isNotEmpty ?? false);
+    final canPick = !searching && (state.hasSources || hasEpisodes);
 
-    final label = switch (state.torrentStatus) {
-      TorrentStatus.searching => context.tr(TranslationKeys.torrentSearching),
-      TorrentStatus.found => context.tr(
-          state.isSeries
-              ? TranslationKeys.chooseEpisode
-              : TranslationKeys.chooseQuality,
-        ),
-      TorrentStatus.notFound ||
-      TorrentStatus.failure => context.tr(TranslationKeys.torrentNotAvailable),
-    };
+    final label = searching
+        ? context.tr(TranslationKeys.torrentSearching)
+        : canPick
+            ? context.tr(
+                state.isSeries
+                    ? TranslationKeys.chooseEpisode
+                    : TranslationKeys.chooseQuality,
+              )
+            : context.tr(TranslationKeys.torrentNotAvailable);
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
