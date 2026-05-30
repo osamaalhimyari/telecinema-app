@@ -18,8 +18,18 @@ class SubtitlesRepositoryImpl implements SubtitlesRepository {
   Future<Either<Failure, List<SubtitleResult>>> search({
     String? imdbId,
     String? query,
+    int? season,
+    int? episode,
     required String langId,
-  }) => _guard(() => _datasource.search(imdbId: imdbId, query: query, langId: langId));
+  }) => _guard(
+    () => _datasource.search(
+      imdbId: imdbId,
+      query: query,
+      season: season,
+      episode: episode,
+      langId: langId,
+    ),
+  );
 
   @override
   Future<Either<Failure, String>> download(SubtitleResult result) =>

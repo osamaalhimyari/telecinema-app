@@ -207,7 +207,7 @@ class WatchCubit extends Cubit<WatchState> {
     _player = player;
     _videoController = controller;
 
-    _enableCache(player);
+    _tuneNativePlayer(player);
 
     _subs.addAll([
       player.stream.position.listen((p) => emit(state.copyWith(position: p))),
@@ -250,12 +250,22 @@ class WatchCubit extends Cubit<WatchState> {
     }
   }
 
-  /// Best-effort: enable libmpv's read cache + a generous back-buffer so
-  /// re-seeks within a video don't re-download. No-op on web (no [NativePlayer]).
-  Future<void> _enableCache(Player player) async {
+  /// Best-effort libmpv tuning for streamed file/torrent playback. No-op on web
+  /// (no [NativePlayer]).
+  ///
+  /// * `hwdec=auto-safe` — decode on the GPU when a known-safe path exists, so
+  ///   heavy codecs (H.265/HEVC) and 4K/2160p play smoothly instead of pegging
+  ///   the CPU; libmpv falls back to software decoding automatically when the
+  ///   hardware can't handle the stream, rather than surfacing "no video". (A
+  ///   device whose decoder truly can't do the format still can't play it — the
+  ///   real fix there is a 1080p/H.264 source.)
+  /// * `cache` + `demuxer-max-back-bytes` — keep a read cache and a generous
+  ///   back-buffer so re-seeks within a video don't re-download.
+  Future<void> _tuneNativePlayer(Player player) async {
     final platform = player.platform;
     if (platform is! NativePlayer) return;
     try {
+      await platform.setProperty('hwdec', 'auto-safe');
       await platform.setProperty('cache', 'yes');
       await platform.setProperty('demuxer-max-back-bytes', '${48 * 1024 * 1024}');
     } catch (_) {

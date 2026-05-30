@@ -83,6 +83,8 @@ final router = GoRouter(
           slug: state.pathParameters['slug'] ?? '',
           imdbId: extra['imdbId'] as String?,
           title: extra['title'] as String?,
+          release: extra['release'] as String?,
+          magnet: extra['magnet'] as String?,
         );
       },
     ),

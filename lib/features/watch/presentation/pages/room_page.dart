@@ -524,7 +524,15 @@ class _RoomMenu extends StatelessWidget {
     context.pushNamed(
       RoutesNames.subtitles,
       pathParameters: {'slug': room.slug},
-      extra: {'imdbId': room.imdbId, 'title': room.name},
+      // `videoFilename` is the torrent/file release name (carries the `SxxExx`
+      // the subtitle search needs); `magnet` is the fallback name source when no
+      // file has been resolved yet.
+      extra: {
+        'imdbId': room.imdbId,
+        'title': room.name,
+        'release': room.videoFilename,
+        'magnet': room.magnet,
+      },
     );
   }
 

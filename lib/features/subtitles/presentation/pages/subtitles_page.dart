@@ -20,18 +20,35 @@ class SubtitlesPage extends StatelessWidget {
     required this.slug,
     this.imdbId,
     this.title,
+    this.release,
+    this.magnet,
   });
 
   final String slug;
   final String? imdbId;
   final String? title;
 
+  /// The torrent/file name for this room (e.g. `Breaking.Bad.S01E07…`). Carries
+  /// the season/episode the search uses to target the exact episode.
+  final String? release;
+
+  /// The room's magnet URI, if any — its `dn=` name is parsed as a fallback
+  /// release name when no resolved file name is available.
+  final String? magnet;
+
   @override
   Widget build(BuildContext context) {
     final langId = defaultSubtitleLanguageId(Localizations.localeOf(context).languageCode);
     return BlocProvider<SubtitlesCubit>(
       create: (_) => sl<SubtitlesCubit>()
-        ..init(slug: slug, imdbId: imdbId, title: title, langId: langId),
+        ..init(
+          slug: slug,
+          imdbId: imdbId,
+          title: title,
+          release: release,
+          magnet: magnet,
+          langId: langId,
+        ),
       child: _SubtitlesView(hasImdb: imdbId != null, title: title),
     );
   }

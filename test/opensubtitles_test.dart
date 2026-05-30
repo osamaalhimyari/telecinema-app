@@ -34,6 +34,94 @@ void main() {
     test('null when neither key is usable', () {
       expect(buildOpenSubtitlesSearchUrl(imdbId: null, query: '  ', langId: 'eng'), isNull);
     });
+
+    test('appends season/episode segments to an imdb id search', () {
+      expect(
+        buildOpenSubtitlesSearchUrl(
+          imdbId: 'tt0903747',
+          season: 1,
+          episode: 7,
+          langId: 'eng',
+        ),
+        'https://rest.opensubtitles.org/search/imdbid-903747/season-1/episode-7/sublanguageid-eng',
+      );
+    });
+
+    test('appends season/episode segments to a query search', () {
+      expect(
+        buildOpenSubtitlesSearchUrl(
+          query: 'Breaking Bad',
+          season: 1,
+          episode: 7,
+          langId: 'ara',
+        ),
+        'https://rest.opensubtitles.org/search/query-Breaking%20Bad/season-1/episode-7/sublanguageid-ara',
+      );
+    });
+
+    test('season without episode (whole-season pack)', () {
+      expect(
+        buildOpenSubtitlesSearchUrl(imdbId: 'tt0903747', season: 1, langId: 'eng'),
+        'https://rest.opensubtitles.org/search/imdbid-903747/season-1/sublanguageid-eng',
+      );
+    });
+  });
+
+  group('showTitleFromRelease', () {
+    test('cuts at SxxExx', () {
+      expect(
+        showTitleFromRelease('Breaking.Bad.S01E07.A.No-Rough-Stuff.2160p.NF.WEB-DL.H.265'),
+        'Breaking Bad',
+      );
+    });
+    test('cuts at the movie year', () {
+      expect(showTitleFromRelease('The.Matrix.1999.1080p.BluRay.x264'), 'The Matrix');
+    });
+    test('cuts at the resolution when nothing else marks the title', () {
+      expect(showTitleFromRelease('Some.Show.1080p.WEB.H264'), 'Some Show');
+    });
+    test('a plain typed title passes through cleaned', () {
+      expect(showTitleFromRelease('Breaking Bad'), 'Breaking Bad');
+    });
+  });
+
+  group('magnetDisplayName', () {
+    test('decodes the dn parameter (+ → space)', () {
+      const magnet =
+          'magnet:?xt=urn:btih:3657CB8325781402EB40BC572F918E5C455A9200'
+          '&dn=Breaking+Bad+S01E07+2160p+NF+WEB-DL+H+265'
+          '&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce';
+      expect(magnetDisplayName(magnet), 'Breaking Bad S01E07 2160p NF WEB-DL H 265');
+    });
+    test('null when no dn', () {
+      expect(magnetDisplayName('magnet:?xt=urn:btih:ABC123'), isNull);
+    });
+    test('null for empty/garbage', () {
+      expect(magnetDisplayName(''), isNull);
+      expect(magnetDisplayName(null), isNull);
+    });
+    test('feeds subtitleSearchTerms to the right episode', () {
+      const magnet = 'magnet:?xt=urn:btih:ABC&dn=Breaking+Bad+S01E07+2160p+H+265';
+      final terms = subtitleSearchTerms(magnetDisplayName(magnet)!);
+      expect(terms.query, 'Breaking Bad');
+      expect(terms.season, 1);
+      expect(terms.episode, 7);
+    });
+  });
+
+  group('subtitleSearchTerms', () {
+    test('extracts a clean title plus season/episode from a release name', () {
+      final terms = subtitleSearchTerms('Hacks.S01E01.1080p.WEB.H264-GLHF[TGx]');
+      expect(terms.query, 'Hacks');
+      expect(terms.season, 1);
+      expect(terms.episode, 1);
+    });
+    test('a movie has no season/episode', () {
+      final terms = subtitleSearchTerms('Dune.Part.Two.2024.2160p');
+      expect(terms.query, 'Dune Part Two');
+      expect(terms.season, isNull);
+      expect(terms.episode, isNull);
+    });
   });
 
   group('parseSubtitleResults', () {
