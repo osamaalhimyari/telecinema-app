@@ -131,6 +131,14 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
       context.showSnack(context.tr(TranslationKeys.pickVideo));
       return;
     }
+
+    // The "Download (server fetches)" field accepts either an http(s) link or a
+    // magnet — the server downloads either to a file. A magnet pasted here is
+    // routed to the `magnet` param (server full-download); a magnet in the
+    // dedicated Torrent field streams on-device instead.
+    final downloadText = _videoUrl.text.trim();
+    final downloadIsMagnet = downloadText.startsWith('magnet:');
+
     context.read<CreateRoomCubit>().submit(
       CreateRoomParams(
         name: _name.text.trim(),
@@ -139,8 +147,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         externalUrl: _type == RoomType.external
             ? _externalUrl.text.trim()
             : null,
-        videoUrl: _type == RoomType.download ? _videoUrl.text.trim() : null,
-        magnet: _type == RoomType.torrent ? _magnet.text.trim() : null,
+        videoUrl: _type == RoomType.download && !downloadIsMagnet ? downloadText : null,
+        magnet: _type == RoomType.torrent
+            ? _magnet.text.trim()
+            : (_type == RoomType.download && downloadIsMagnet ? downloadText : null),
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
         reactions: _reactions.isEmpty ? null : List.of(_reactions),
         category: _category,
@@ -222,6 +232,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                           style: context.text.titleSmall,
                         ),
                       ),
+                      _selectedReactionsRow(context),
                       _reactionsPicker(context),
                     ],
                   ),
@@ -240,6 +251,49 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(context.tr(key), style: context.text.titleSmall),
   );
+
+  /// A live preview of the currently-chosen reactions, shown above the full
+  /// picker. Tapping a chip removes that emoji from the selection ("changeable
+  /// by pressing").
+  Widget _selectedReactionsRow(BuildContext context) {
+    if (_reactions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(
+          context.tr(TranslationKeys.chooseReactions),
+          style: context.text.bodySmall?.copyWith(color: context.colors.outline),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: _reactions.map((emoji) {
+          return GestureDetector(
+            onTap: () => setState(() => _reactions.remove(emoji)),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
+              decoration: BoxDecoration(
+                color: context.colors.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(color: context.colors.primary),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.close_rounded, size: 14, color: context.colors.primary),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   Widget _reactionsPicker(BuildContext context) {
     return Container(
@@ -405,11 +459,15 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
                 hintText: context.tr(TranslationKeys.videoUrlHint),
                 prefixIcon: const Icon(Icons.download_rounded),
               ),
-              validator: (v) =>
-                  (_type == RoomType.download &&
-                      (v == null || !v.startsWith('http')))
-                  ? context.tr(TranslationKeys.videoUrlHint)
-                  : null,
+              validator: (v) {
+                if (_type != RoomType.download) return null;
+                final t = v?.trim() ?? '';
+                // Accept a direct http(s) link or a magnet — the server fetches
+                // either to a file.
+                return (t.startsWith('http') || t.startsWith('magnet:'))
+                    ? null
+                    : context.tr(TranslationKeys.videoUrlHint);
+              },
             ),
           ],
         );

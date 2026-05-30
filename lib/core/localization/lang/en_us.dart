@@ -144,7 +144,7 @@ const Map<String, String> enUs = {
   TranslationKeys.externalUrl: 'Embed URL',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'Video link',
-  TranslationKeys.videoUrlHint: 'Direct link to an .mp4 / .webm file',
+  TranslationKeys.videoUrlHint: 'Direct video link or a magnet — the server downloads it',
   TranslationKeys.magnetUrl: 'Magnet link',
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
   TranslationKeys.pickVideo: 'Choose a video',

@@ -435,6 +435,15 @@ class WatchCubit extends Cubit<WatchState> {
     }
   }
 
+  /// Adds a custom emoji to this session's reaction palette (shared by the
+  /// portrait and fullscreen bars). No-op if it's already present. A new list
+  /// instance is emitted so both bars rebuild.
+  void addSessionReaction(String emoji) {
+    final e = emoji.trim();
+    if (e.isEmpty || state.sessionReactions.contains(e)) return;
+    emit(state.copyWith(sessionReactions: [...state.sessionReactions, e]));
+  }
+
   void requestResync() => _repo.requestResync();
 
   void changeSource(String url) {

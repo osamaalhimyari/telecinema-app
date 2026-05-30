@@ -81,7 +81,7 @@ class _ChatPanelState extends State<ChatPanel> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       constraints: const BoxConstraints(maxWidth: 280),
                       decoration: BoxDecoration(
-                        color: mine ? context.colors.primary.withValues(alpha: 0.18) : context.colors.surface,
+                        color: mine ? context.colors.primary.withValues(alpha: 0.38) : context.colors.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: context.colors.outline),
                       ),

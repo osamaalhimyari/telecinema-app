@@ -26,6 +26,7 @@ class WatchState extends Equatable {
     this.presence = const [],
     this.waiting = const [],
     this.messages = const [],
+    this.sessionReactions = const [],
     this.externalUrl,
     this.resyncTick = 0,
     this.subtitleUrl,
@@ -61,6 +62,12 @@ class WatchState extends Equatable {
   final List<PresenceUser> waiting;
   final List<ChatMessage> messages;
 
+  /// Custom emoji added via the reaction bar's `+` this session (on top of the
+  /// room's server-defined palette). Lives in shared state so the portrait and
+  /// fullscreen reaction bars show the same list — adding one in either appears
+  /// in both.
+  final List<String> sessionReactions;
+
   // External (embed) rooms
   final String? externalUrl;
 
@@ -95,6 +102,7 @@ class WatchState extends Equatable {
     List<PresenceUser>? presence,
     List<PresenceUser>? waiting,
     List<ChatMessage>? messages,
+    List<String>? sessionReactions,
     String? externalUrl,
     int? resyncTick,
     String? subtitleUrl,
@@ -118,6 +126,7 @@ class WatchState extends Equatable {
       presence: presence ?? this.presence,
       waiting: waiting ?? this.waiting,
       messages: messages ?? this.messages,
+      sessionReactions: sessionReactions ?? this.sessionReactions,
       externalUrl: externalUrl ?? this.externalUrl,
       resyncTick: resyncTick ?? this.resyncTick,
       subtitleUrl: subtitleUrl ?? this.subtitleUrl,
@@ -144,6 +153,7 @@ class WatchState extends Equatable {
     presence,
     waiting,
     messages,
+    sessionReactions,
     externalUrl,
     resyncTick,
     subtitleUrl,

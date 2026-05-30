@@ -23,10 +23,6 @@ class _FullscreenReactionBarState extends State<FullscreenReactionBar> {
   /// Whether the emoji strip is shown. Starts hidden behind the single icon.
   bool _expanded = false;
 
-  /// Custom emoji added via the `+` button this session (not part of the
-  /// server-defined room palette). Mirrors [ReactionBar].
-  final List<String> _extra = [];
-
   void _toggle() => setState(() => _expanded = !_expanded);
 
   void _send(String emoji) => context.read<WatchCubit>().sendReaction(emoji);
@@ -34,24 +30,29 @@ class _FullscreenReactionBarState extends State<FullscreenReactionBar> {
   Future<void> _addCustom() async {
     final emoji = await pickEmojiFromKeyboard(context);
     if (emoji == null || emoji.isEmpty || !mounted) return;
-    if (!_extra.contains(emoji)) setState(() => _extra.add(emoji));
-    _send(emoji);
+    final cubit = context.read<WatchCubit>();
+    // Shared session palette so the portrait bar shows it too.
+    cubit.addSessionReaction(emoji);
+    cubit.sendReaction(emoji);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WatchCubit, WatchState>(
-      buildWhen: (a, b) => a.room?.reactions != b.room?.reactions,
+      buildWhen: (a, b) =>
+          a.room?.reactions != b.room?.reactions || a.sessionReactions != b.sessionReactions,
       builder: (context, state) {
         final roomReactions = state.room?.reactions ?? const [];
-        if (roomReactions.isEmpty && _extra.isEmpty) return const SizedBox.shrink();
+        if (roomReactions.isEmpty && state.sessionReactions.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
         // Room palette first, then any session-added custom emoji, de-duplicated.
         final seen = <String>{};
         final emojis = <String>[
           for (final e in roomReactions)
             if (e.isNotEmpty && seen.add(e)) e,
-          for (final e in _extra)
+          for (final e in state.sessionReactions)
             if (seen.add(e)) e,
         ];
 

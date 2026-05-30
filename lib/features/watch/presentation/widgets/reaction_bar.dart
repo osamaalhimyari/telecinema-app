@@ -18,30 +18,27 @@ class ReactionBar extends StatefulWidget {
 }
 
 class _ReactionBarState extends State<ReactionBar> {
-  /// Custom emoji added via the `+` button this session (not part of the
-  /// server-defined room palette).
-  final List<String> _extra = [];
-
   Future<void> _addCustom() async {
     final emoji = await pickEmojiFromKeyboard(context);
     if (emoji == null || emoji.isEmpty || !mounted) return;
-    if (!_extra.contains(emoji)) {
-      setState(() => _extra.add(emoji));
-    }
-    context.read<WatchCubit>().sendReaction(emoji);
+    final cubit = context.read<WatchCubit>();
+    // Shared session palette so the fullscreen bar shows it too.
+    cubit.addSessionReaction(emoji);
+    cubit.sendReaction(emoji);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WatchCubit, WatchState>(
-      buildWhen: (a, b) => a.room?.reactions != b.room?.reactions,
+      buildWhen: (a, b) =>
+          a.room?.reactions != b.room?.reactions || a.sessionReactions != b.sessionReactions,
       builder: (context, state) {
         final roomReactions = state.room?.reactions ?? const [];
         final seen = <String>{};
         final emojis = <String>[
           for (final e in roomReactions)
             if (e.isNotEmpty && seen.add(e)) e,
-          for (final e in _extra)
+          for (final e in state.sessionReactions)
             if (seen.add(e)) e,
         ];
 

@@ -138,7 +138,7 @@ const Map<String, String> arAr = {
   TranslationKeys.externalUrl: 'رابط التضمين',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'رابط الفيديو',
-  TranslationKeys.videoUrlHint: 'رابط مباشر لملف .mp4 / .webm',
+  TranslationKeys.videoUrlHint: 'رابط مباشر للفيديو أو رابط مغناطيسي — يقوم الخادم بتنزيله',
   TranslationKeys.magnetUrl: 'رابط مغناطيسي',
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
   TranslationKeys.pickVideo: 'اختر فيديو',
