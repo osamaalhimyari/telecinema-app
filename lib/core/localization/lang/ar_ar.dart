@@ -41,6 +41,17 @@ const Map<String, String> arAr = {
   TranslationKeys.recent: 'الأخيرة',
   TranslationKeys.categoryAll: 'الكل',
 
+  TranslationKeys.roomsTab: 'الغرف',
+  TranslationKeys.browseTab: 'استكشاف',
+
+  TranslationKeys.browseTitle: 'استكشاف',
+  TranslationKeys.browseSearchHint: 'ابحث عن أفلام ومسلسلات',
+  TranslationKeys.allGenres: 'كل التصنيفات',
+  TranslationKeys.browseNoResults: 'لا توجد نتائج',
+  TranslationKeys.browseNoResultsHint: 'جرّب عنواناً أو فئة أو تصنيفاً آخر.',
+  TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
+  TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
+
   TranslationKeys.category: 'الفئة',
   TranslationKeys.categoryMovies: 'أفلام',
   TranslationKeys.categorySeries: 'مسلسلات',

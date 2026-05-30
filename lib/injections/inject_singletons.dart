@@ -6,6 +6,7 @@ import '/core/network/api_client.dart';
 import '/core/network/dio_api_client.dart';
 import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
+import '/features/browse/injections/browse_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 import '/logic/favorites/favorites_cubit.dart';
@@ -55,4 +56,5 @@ Future<void> injectSingletons(GetIt sl) async {
   // ===== Feature singletons =====
   await injectRoomsSingletons(sl);
   await injectWatchSingletons(sl);
+  await injectBrowseSingletons(sl);
 }

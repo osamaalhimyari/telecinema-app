@@ -1,5 +1,11 @@
 {
   "permissions": {
+    "allow": [
+      "WebFetch(domain:v3-cinemeta.strem.io)",
+      "WebFetch(domain:apibay.org)",
+      "WebFetch(domain:magnetz.eu)",
+      "WebFetch(domain:cinemeta-catalogs.strem.io)"
+    ],
     "additionalDirectories": [
       "C:\\xampp\\htdocs\\projects\\mine\\watch-party"
     ]

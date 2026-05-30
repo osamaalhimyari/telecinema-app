@@ -43,6 +43,17 @@ const Map<String, String> enUs = {
   TranslationKeys.recent: 'Recent',
   TranslationKeys.categoryAll: 'All',
 
+  TranslationKeys.roomsTab: 'Rooms',
+  TranslationKeys.browseTab: 'Browse',
+
+  TranslationKeys.browseTitle: 'Browse',
+  TranslationKeys.browseSearchHint: 'Search movies & series',
+  TranslationKeys.allGenres: 'All genres',
+  TranslationKeys.browseNoResults: 'Nothing found',
+  TranslationKeys.browseNoResultsHint: 'Try a different title, category or genre.',
+  TranslationKeys.torrentSearching: 'Looking for a torrent…',
+  TranslationKeys.torrentNotAvailable: 'Not available currently',
+
   TranslationKeys.category: 'Category',
   TranslationKeys.categoryMovies: 'Movies',
   TranslationKeys.categorySeries: 'TV Shows',

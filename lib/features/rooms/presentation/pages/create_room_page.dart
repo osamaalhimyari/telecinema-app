@@ -28,19 +28,30 @@ const _defaultReactions = <String>[
 const _maxReactions = 8;
 
 class CreateRoomPage extends StatelessWidget {
-  const CreateRoomPage({super.key});
+  const CreateRoomPage({super.key, this.initialName, this.initialMagnet});
+
+  /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
+  /// torrent). When [initialMagnet] is set the form opens on the torrent type.
+  final String? initialName;
+  final String? initialMagnet;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<CreateRoomCubit>(
       create: (_) => sl<CreateRoomCubit>(),
-      child: const _CreateRoomView(),
+      child: _CreateRoomView(
+        initialName: initialName,
+        initialMagnet: initialMagnet,
+      ),
     );
   }
 }
 
 class _CreateRoomView extends StatefulWidget {
-  const _CreateRoomView();
+  const _CreateRoomView({this.initialName, this.initialMagnet});
+
+  final String? initialName;
+  final String? initialMagnet;
 
   @override
   State<_CreateRoomView> createState() => _CreateRoomViewState();
@@ -59,6 +70,16 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
   String? _videoName;
   String? _category;
   final List<String> _reactions = [..._defaultReactions];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialName != null) _name.text = widget.initialName!;
+    if (widget.initialMagnet != null) {
+      _magnet.text = widget.initialMagnet!;
+      _type = RoomType.torrent;
+    }
+  }
 
   @override
   void dispose() {

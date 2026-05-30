@@ -47,6 +47,19 @@ class TranslationKeys {
   static const recent = 'recent';
   static const categoryAll = 'category_all';
 
+  // Bottom navigation tabs
+  static const roomsTab = 'rooms_tab';
+  static const browseTab = 'browse_tab';
+
+  // Browse (catalogue)
+  static const browseTitle = 'browse_title';
+  static const browseSearchHint = 'browse_search_hint';
+  static const allGenres = 'all_genres';
+  static const browseNoResults = 'browse_no_results';
+  static const browseNoResultsHint = 'browse_no_results_hint';
+  static const torrentSearching = 'torrent_searching';
+  static const torrentNotAvailable = 'torrent_not_available';
+
   // Categories
   static const category = 'category';
   static const categoryMovies = 'category_movies';
