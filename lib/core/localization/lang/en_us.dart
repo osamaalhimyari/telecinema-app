@@ -54,6 +54,13 @@ const Map<String, String> enUs = {
   TranslationKeys.torrentSearching: 'Looking for a torrent…',
   TranslationKeys.torrentNotAvailable: 'Not available currently',
 
+  TranslationKeys.chooseEpisode: 'Choose an episode',
+  TranslationKeys.chooseQuality: 'Choose a version',
+  TranslationKeys.season: 'Season',
+  TranslationKeys.fullSeason: 'Full season',
+  TranslationKeys.collectionsPacks: 'Collections & packs',
+  TranslationKeys.otherSources: 'Other',
+
   TranslationKeys.category: 'Category',
   TranslationKeys.categoryMovies: 'Movies',
   TranslationKeys.categorySeries: 'TV Shows',

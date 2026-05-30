@@ -1,28 +1,28 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/usecases/find_torrent_usecase.dart';
+import '../../../domain/usecases/find_torrents_usecase.dart';
 import '../../../domain/usecases/get_meta_detail_usecase.dart';
 import 'detail_state.dart';
 
-/// Loads a title's full metadata and, in parallel, hunts for a torrent. The two
+/// Loads a title's full metadata and, in parallel, hunts for torrents. The two
 /// run independently so the page can render immediately while the (slower)
-/// torrent lookup resolves the Create Room button.
+/// torrent lookup resolves the source picker.
 class DetailCubit extends Cubit<DetailState> {
-  DetailCubit(this._getDetail, this._findTorrent) : super(const DetailState());
+  DetailCubit(this._getDetail, this._findTorrents) : super(const DetailState());
 
   final GetMetaDetailUseCase _getDetail;
-  final FindTorrentUseCase _findTorrent;
+  final FindTorrentsUseCase _findTorrents;
 
   Future<void> load({
     required String type,
     required String id,
     required String title,
   }) async {
-    emit(const DetailState());
+    emit(DetailState(type: type));
 
     // Fire both before awaiting either, so they overlap.
     final detailFuture = _getDetail(DetailParams(type: type, id: id));
-    final torrentFuture = _findTorrent(FindTorrentParams(imdbId: id, title: title));
+    final torrentFuture = _findTorrents(FindTorrentsParams(imdbId: id, title: title));
 
     final detailRes = await detailFuture;
     detailRes.fold(
@@ -33,10 +33,10 @@ class DetailCubit extends Cubit<DetailState> {
     final torrentRes = await torrentFuture;
     torrentRes.fold(
       (_) => emit(state.copyWith(torrentStatus: TorrentStatus.failure)),
-      (torrent) => emit(
-        torrent == null
+      (torrents) => emit(
+        torrents.isEmpty
             ? state.copyWith(torrentStatus: TorrentStatus.notFound)
-            : state.copyWith(torrentStatus: TorrentStatus.found, torrent: torrent),
+            : state.copyWith(torrentStatus: TorrentStatus.found, torrents: torrents),
       ),
     );
   }

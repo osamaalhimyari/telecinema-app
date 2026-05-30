@@ -29,9 +29,9 @@ abstract class BrowseRepository {
     required String id,
   });
 
-  /// The best (most-seeded) video torrent for [imdbId], or `null` when the
-  /// swarm has nothing — a successful result, not a failure.
-  Future<Either<Failure, TorrentOption?>> findTorrent({
+  /// Every video torrent for [imdbId], most-seeded first. An empty list means
+  /// the swarm has nothing — a successful result, not a failure.
+  Future<Either<Failure, List<TorrentOption>>> findTorrents({
     required String imdbId,
     required String title,
   });

@@ -6,15 +6,18 @@ import 'package:http/http.dart' as http;
 import '/core/errors/exceptions.dart';
 import '../../domain/entities/torrent_option.dart';
 import '../json_parse.dart';
+import '../torrent_classifier.dart';
 
-/// Finds a magnet for a title by querying apibay (The Pirate Bay's JSON API) by
-/// IMDB id. The magnet is assembled locally from the result's `info_hash` plus
+/// Finds magnets for a title by querying apibay (The Pirate Bay's JSON API) by
+/// IMDB id. The magnet is assembled locally from each result's `info_hash` plus
 /// a set of public trackers, so no second (CORS-prone) lookup is needed.
 ///
 /// Throws [ServerException] with a stable error key on transport failure.
 abstract class TorrentDataSource {
-  /// The most-seeded *video* torrent for [imdbId], or `null` when there is none.
-  Future<TorrentOption?> findBest({required String imdbId, required String title});
+  /// Every *video* torrent for [imdbId], most-seeded first. Empty when the
+  /// swarm has nothing. Each option is classified (season/episode, quality,
+  /// pack) so the caller can group them into episodes or qualities.
+  Future<List<TorrentOption>> findAll({required String imdbId, required String title});
 }
 
 class TorrentDataSourceImpl implements TorrentDataSource {
@@ -47,12 +50,12 @@ class TorrentDataSourceImpl implements TorrentDataSource {
   ];
 
   @override
-  Future<TorrentOption?> findBest({required String imdbId, required String title}) async {
+  Future<List<TorrentOption>> findAll({required String imdbId, required String title}) async {
     final results = await _query(imdbId);
-    if (results.isEmpty) return null;
-    // Most seeders first; ties are arbitrary but stable enough.
+    // Most seeders first; the picker selects the best within each group by
+    // taking the first, so this ordering carries through grouping.
     results.sort((a, b) => b.seeders.compareTo(a.seeders));
-    return results.first;
+    return results;
   }
 
   Future<List<TorrentOption>> _query(String query) async {
@@ -74,6 +77,7 @@ class TorrentDataSourceImpl implements TorrentDataSource {
         if (hash.toLowerCase() == _zeroHash) continue; // "No results returned"
         if (!_isVideo(name, asString(m['category']))) continue;
 
+        final se = parseSeasonEpisode(name);
         out.add(
           TorrentOption(
             name: name,
@@ -82,6 +86,10 @@ class TorrentDataSourceImpl implements TorrentDataSource {
             seeders: asInt(m['seeders']),
             leechers: asInt(m['leechers']),
             sizeBytes: asInt(m['size']),
+            season: se.season,
+            episode: se.episode,
+            quality: parseQuality(name),
+            isPack: isPackName(name),
           ),
         );
       }

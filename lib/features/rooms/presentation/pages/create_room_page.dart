@@ -28,12 +28,19 @@ const _defaultReactions = <String>[
 const _maxReactions = 8;
 
 class CreateRoomPage extends StatelessWidget {
-  const CreateRoomPage({super.key, this.initialName, this.initialMagnet});
+  const CreateRoomPage({
+    super.key,
+    this.initialName,
+    this.initialMagnet,
+    this.initialCategory,
+  });
 
   /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
-  /// torrent). When [initialMagnet] is set the form opens on the torrent type.
+  /// torrent). When [initialMagnet] is set the form opens on the torrent type;
+  /// [initialCategory] pre-selects a category chip (`movies` / `series`).
   final String? initialName;
   final String? initialMagnet;
+  final String? initialCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -42,16 +49,22 @@ class CreateRoomPage extends StatelessWidget {
       child: _CreateRoomView(
         initialName: initialName,
         initialMagnet: initialMagnet,
+        initialCategory: initialCategory,
       ),
     );
   }
 }
 
 class _CreateRoomView extends StatefulWidget {
-  const _CreateRoomView({this.initialName, this.initialMagnet});
+  const _CreateRoomView({
+    this.initialName,
+    this.initialMagnet,
+    this.initialCategory,
+  });
 
   final String? initialName;
   final String? initialMagnet;
+  final String? initialCategory;
 
   @override
   State<_CreateRoomView> createState() => _CreateRoomViewState();
@@ -78,6 +91,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     if (widget.initialMagnet != null) {
       _magnet.text = widget.initialMagnet!;
       _type = RoomType.torrent;
+    }
+    if (widget.initialCategory != null &&
+        kCategories.contains(widget.initialCategory)) {
+      _category = widget.initialCategory;
     }
   }
 

@@ -52,6 +52,13 @@ const Map<String, String> arAr = {
   TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
   TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
 
+  TranslationKeys.chooseEpisode: 'اختر حلقة',
+  TranslationKeys.chooseQuality: 'اختر نسخة',
+  TranslationKeys.season: 'الموسم',
+  TranslationKeys.fullSeason: 'الموسم كامل',
+  TranslationKeys.collectionsPacks: 'المجموعات والحزم',
+  TranslationKeys.otherSources: 'أخرى',
+
   TranslationKeys.category: 'الفئة',
   TranslationKeys.categoryMovies: 'أفلام',
   TranslationKeys.categorySeries: 'مسلسلات',

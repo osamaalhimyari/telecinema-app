@@ -37,10 +37,10 @@ class BrowseRepositoryImpl implements BrowseRepository {
   }) => _guard(() => _cinemeta.detail(type: type, id: id));
 
   @override
-  Future<Either<Failure, TorrentOption?>> findTorrent({
+  Future<Either<Failure, List<TorrentOption>>> findTorrents({
     required String imdbId,
     required String title,
-  }) => _guard(() => _torrents.findBest(imdbId: imdbId, title: title));
+  }) => _guard(() => _torrents.findAll(imdbId: imdbId, title: title));
 
   Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) async {
     try {

@@ -4,7 +4,7 @@ import '../data/datasources/cinemeta_datasource.dart';
 import '../data/datasources/torrent_datasource.dart';
 import '../data/repositories/browse_repository_impl.dart';
 import '../domain/repositories/browse_repository.dart';
-import '../domain/usecases/find_torrent_usecase.dart';
+import '../domain/usecases/find_torrents_usecase.dart';
 import '../domain/usecases/get_catalog_usecase.dart';
 import '../domain/usecases/get_meta_detail_usecase.dart';
 import '../domain/usecases/search_catalog_usecase.dart';
@@ -31,8 +31,8 @@ Future<void> injectBrowseSingletons(GetIt sl) async {
   sl.registerLazySingleton<GetMetaDetailUseCase>(
     () => GetMetaDetailUseCase(sl<BrowseRepository>()),
   );
-  sl.registerLazySingleton<FindTorrentUseCase>(
-    () => FindTorrentUseCase(sl<BrowseRepository>()),
+  sl.registerLazySingleton<FindTorrentsUseCase>(
+    () => FindTorrentsUseCase(sl<BrowseRepository>()),
   );
 }
 
@@ -42,6 +42,6 @@ Future<void> injectBrowseFactories(GetIt sl) async {
     () => BrowseCubit(sl<GetCatalogUseCase>(), sl<SearchCatalogUseCase>()),
   );
   sl.registerFactory<DetailCubit>(
-    () => DetailCubit(sl<GetMetaDetailUseCase>(), sl<FindTorrentUseCase>()),
+    () => DetailCubit(sl<GetMetaDetailUseCase>(), sl<FindTorrentsUseCase>()),
   );
 }

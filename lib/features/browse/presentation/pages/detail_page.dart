@@ -12,6 +12,7 @@ import '../../domain/entities/catalog_item.dart';
 import '../../domain/entities/meta_detail.dart';
 import '../bloc/detail/detail_cubit.dart';
 import '../bloc/detail/detail_state.dart';
+import '../widgets/source_picker_sheet.dart';
 
 /// Full title page: background, poster, metadata and description, with a sticky
 /// Create Room button that appears once a torrent has been found.
@@ -230,11 +231,15 @@ class _DetailView extends StatelessWidget {
 
   Widget _bottomBar(BuildContext context, DetailState state) {
     final searching = state.torrentStatus == TorrentStatus.searching;
-    final canCreate = state.canCreateRoom;
+    final canPick = state.hasSources;
 
     final label = switch (state.torrentStatus) {
       TorrentStatus.searching => context.tr(TranslationKeys.torrentSearching),
-      TorrentStatus.found => context.tr(TranslationKeys.createRoom),
+      TorrentStatus.found => context.tr(
+          state.isSeries
+              ? TranslationKeys.chooseEpisode
+              : TranslationKeys.chooseQuality,
+        ),
       TorrentStatus.notFound ||
       TorrentStatus.failure => context.tr(TranslationKeys.torrentNotAvailable),
     };
@@ -242,14 +247,14 @@ class _DetailView extends StatelessWidget {
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: FilledButton.icon(
-        onPressed: canCreate ? () => _createRoom(context, state) : null,
+        onPressed: canPick ? () => _openPicker(context, state) : null,
         icon: searching
             ? const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Icon(canCreate ? Icons.add_rounded : Icons.block_rounded),
+            : Icon(canPick ? Icons.playlist_play_rounded : Icons.block_rounded),
         label: Text(label),
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(50),
@@ -258,13 +263,23 @@ class _DetailView extends StatelessWidget {
     );
   }
 
-  void _createRoom(BuildContext context, DetailState state) {
-    final torrent = state.torrent;
-    if (torrent == null) return;
+  void _openPicker(BuildContext context, DetailState state) {
     final name = state.detail?.name ?? initial?.name ?? '';
-    context.pushNamed(
-      RoutesNames.createRoom,
-      extra: {'name': name, 'magnet': torrent.magnet},
+    showSourcePicker(
+      context,
+      title: name,
+      isSeries: state.isSeries,
+      torrents: state.torrents,
+      onSelected: (magnet, roomName) {
+        context.pushNamed(
+          RoutesNames.createRoom,
+          extra: {
+            'name': roomName,
+            'magnet': magnet,
+            'category': state.isSeries ? 'series' : 'movies',
+          },
+        );
+      },
     );
   }
 }
