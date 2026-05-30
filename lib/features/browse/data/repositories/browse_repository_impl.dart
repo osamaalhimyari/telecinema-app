@@ -42,6 +42,11 @@ class BrowseRepositoryImpl implements BrowseRepository {
     required String title,
   }) => _guard(() => _torrents.findAll(imdbId: imdbId, title: title));
 
+  @override
+  Future<Either<Failure, List<TorrentOption>>> searchTorrents({
+    required String query,
+  }) => _guard(() => _torrents.searchByQuery(query));
+
   Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) async {
     try {
       return Right(await action());

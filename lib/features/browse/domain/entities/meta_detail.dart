@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'episode_info.dart';
+
 /// The full metadata for a single title, parsed from the Cinemeta `meta`
 /// object (`/meta/{type}/{id}.json`). Drives the Browse detail page.
 class MetaDetail extends Equatable {
@@ -15,6 +17,7 @@ class MetaDetail extends Equatable {
     this.runtime,
     this.genres = const [],
     this.cast = const [],
+    this.episodes = const [],
   });
 
   final String id;
@@ -29,6 +32,9 @@ class MetaDetail extends Equatable {
   final List<String> genres;
   final List<String> cast;
 
+  /// Every episode of a series (from Cinemeta `videos`); empty for movies.
+  final List<EpisodeInfo> episodes;
+
   @override
   List<Object?> get props => [
     id,
@@ -42,5 +48,6 @@ class MetaDetail extends Equatable {
     runtime,
     genres,
     cast,
+    episodes,
   ];
 }

@@ -35,4 +35,9 @@ abstract class BrowseRepository {
     required String imdbId,
     required String title,
   });
+
+  /// Free-text torrent search (e.g. a single `Show SxxExx`), most-seeded first.
+  Future<Either<Failure, List<TorrentOption>>> searchTorrents({
+    required String query,
+  });
 }

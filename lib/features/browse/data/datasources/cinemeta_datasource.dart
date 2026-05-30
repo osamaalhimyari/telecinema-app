@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '/core/errors/exceptions.dart';
 import '../../domain/entities/catalog_item.dart';
+import '../../domain/entities/episode_info.dart';
 import '../../domain/entities/meta_detail.dart';
 import '../json_parse.dart';
 
@@ -61,7 +62,31 @@ class CinemetaDataSourceImpl implements CinemetaDataSource {
       runtime: asString(m['runtime']),
       genres: asStringList(m['genres'] ?? m['genre']),
       cast: asStringList(m['cast']),
+      episodes: _episodes(m['videos']),
     );
+  }
+
+  /// Parses Cinemeta's `videos[]` into a sorted episode list. Skips specials
+  /// (season 0) and malformed entries, and de-duplicates by season+episode.
+  List<EpisodeInfo> _episodes(dynamic videos) {
+    if (videos is! List) return const [];
+    final seen = <String>{};
+    final out = <EpisodeInfo>[];
+    for (final raw in videos.whereType<Map>()) {
+      final v = Map<String, dynamic>.from(raw);
+      final season = asInt(v['season']);
+      final episode = asInt(v['episode'] ?? v['number']);
+      if (season < 1 || episode < 1) continue;
+      if (!seen.add('${season}x$episode')) continue;
+      out.add(EpisodeInfo(
+        season: season,
+        episode: episode,
+        name: asString(v['name'] ?? v['title']),
+      ));
+    }
+    out.sort((a, b) =>
+        a.season != b.season ? a.season.compareTo(b.season) : a.episode.compareTo(b.episode));
+    return out;
   }
 
   Future<List<CatalogItem>> _metas(String url, String fallbackType) async {

@@ -8,6 +8,7 @@ import '../domain/usecases/find_torrents_usecase.dart';
 import '../domain/usecases/get_catalog_usecase.dart';
 import '../domain/usecases/get_meta_detail_usecase.dart';
 import '../domain/usecases/search_catalog_usecase.dart';
+import '../domain/usecases/search_torrents_usecase.dart';
 import '../presentation/bloc/browse/browse_cubit.dart';
 import '../presentation/bloc/detail/detail_cubit.dart';
 

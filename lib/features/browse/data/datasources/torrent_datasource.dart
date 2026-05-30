@@ -18,6 +18,10 @@ abstract class TorrentDataSource {
   /// swarm has nothing. Each option is classified (season/episode, quality,
   /// pack) so the caller can group them into episodes or qualities.
   Future<List<TorrentOption>> findAll({required String imdbId, required String title});
+
+  /// Free-text apibay search (e.g. `The Boys S01E01`), most-seeded first. Used
+  /// to resolve a single episode that the IMDB-id search only had as a pack.
+  Future<List<TorrentOption>> searchByQuery(String query);
 }
 
 class TorrentDataSourceImpl implements TorrentDataSource {
@@ -54,6 +58,13 @@ class TorrentDataSourceImpl implements TorrentDataSource {
     final results = await _query(imdbId);
     // Most seeders first; the picker selects the best within each group by
     // taking the first, so this ordering carries through grouping.
+    results.sort((a, b) => b.seeders.compareTo(a.seeders));
+    return results;
+  }
+
+  @override
+  Future<List<TorrentOption>> searchByQuery(String query) async {
+    final results = await _query(query);
     results.sort((a, b) => b.seeders.compareTo(a.seeders));
     return results;
   }
