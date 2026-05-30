@@ -1,0 +1,84 @@
+import 'package:flutter/widgets.dart';
+import 'package:go_router/go_router.dart';
+
+import '/features/browse/domain/entities/catalog_item.dart';
+import '/features/browse/presentation/pages/browse_page.dart';
+import '/features/browse/presentation/pages/detail_page.dart';
+import '/features/shell/main_shell.dart';
+import '../features/rooms/domain/entities/room.dart';
+import '../features/rooms/presentation/pages/create_room_page.dart';
+import '../features/rooms/presentation/pages/rooms_page.dart';
+import '../features/watch/presentation/pages/room_page.dart';
+import 'routes_names.dart';
+
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Single [GoRouter] for the app. The two tabs (Rooms / Browse) live inside a
+/// [StatefulShellRoute] under [MainShell]; create-room, the player and title
+/// details are pushed on the root navigator, full-screen above the bottom bar.
+/// No auth gate — every room is public, and password rooms use an in-page
+/// unlock overlay.
+final router = GoRouter(
+  navigatorKey: _rootNavigatorKey,
+  initialLocation: '/',
+  routes: [
+    StatefulShellRoute.indexedStack(
+      builder: (_, _, navigationShell) =>
+          MainShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: RoutesNames.rooms,
+              path: '/',
+              builder: (_, _) => const RoomsPage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: RoutesNames.browse,
+              path: '/browse',
+              builder: (_, _) => const BrowsePage(),
+            ),
+          ],
+        ),
+      ],
+    ),
+
+    // ----- Full-screen routes (root navigator, above the shell) -----
+    GoRoute(
+      name: RoutesNames.createRoom,
+      path: '/create',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) {
+        final extra = state.extra;
+        final prefill = extra is Map ? extra : const {};
+        return CreateRoomPage(
+          initialName: prefill['name'] as String?,
+          initialMagnet: prefill['magnet'] as String?,
+        );
+      },
+    ),
+    GoRoute(
+      name: RoutesNames.room,
+      path: '/room/:slug',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => RoomPage(
+        slug: state.pathParameters['slug'] ?? '',
+        initialRoom: state.extra is Room ? state.extra as Room : null,
+      ),
+    ),
+    GoRoute(
+      name: RoutesNames.browseDetail,
+      path: '/title/:type/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => DetailPage(
+        type: state.pathParameters['type'] ?? 'movie',
+        id: state.pathParameters['id'] ?? '',
+        initial: state.extra is CatalogItem ? state.extra as CatalogItem : null,
+      ),
+    ),
+  ],
+);
