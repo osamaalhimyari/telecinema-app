@@ -8,6 +8,7 @@ import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
+import '/features/subtitles/injections/subtitles_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
@@ -57,4 +58,5 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectRoomsSingletons(sl);
   await injectWatchSingletons(sl);
   await injectBrowseSingletons(sl);
+  await injectSubtitlesSingletons(sl);
 }

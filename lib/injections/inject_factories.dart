@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import '/features/browse/injections/browse_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
+import '/features/subtitles/injections/subtitles_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 
 /// Short-lived bloc/cubit factories — a fresh instance every time a page opens.
@@ -9,4 +10,5 @@ Future<void> initFactories(GetIt sl) async {
   await injectRoomsFactories(sl);
   await injectWatchFactories(sl);
   await injectBrowseFactories(sl);
+  await injectSubtitlesFactories(sl);
 }

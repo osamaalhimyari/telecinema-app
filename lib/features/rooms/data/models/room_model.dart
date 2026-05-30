@@ -31,6 +31,7 @@ class RoomModel {
         createdAgo: _nullableString(json['createdAgo']),
         category: _nullableString(json['category']),
         magnet: _nullableString(json['magnetUri']),
+        imdbId: _nullableString(json['imdbId']),
       ),
     );
   }

@@ -119,6 +119,13 @@ const Map<String, String> enUs = {
   TranslationKeys.subtitleExternalOnly:
       'Subtitles are only available for embed rooms.',
 
+  TranslationKeys.downloadSubtitle: 'Download subtitle',
+  TranslationKeys.subtitleLanguage: 'Subtitle language',
+  TranslationKeys.subtitlesSearching: 'Searching subtitles…',
+  TranslationKeys.subtitlesNoResults: 'No subtitles found for this language.',
+  TranslationKeys.subtitleTitleHint: 'Title to search',
+  TranslationKeys.subtitleApplyFailed: 'That subtitle could not be applied.',
+
   TranslationKeys.createRoomTitle: 'Create a room',
   TranslationKeys.roomName: 'Room name',
   TranslationKeys.roomNameHint: 'e.g. Movie night',

@@ -86,6 +86,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
         'roomType': type,
         if (params.password != null && params.password!.isNotEmpty) 'password': params.password,
         if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
+        if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
         if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
         'video': await MultipartFile.fromFile(params.localVideoPath!),
       });
@@ -106,6 +107,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.videoUrl != null) 'videoUrl': params.videoUrl,
       if (params.magnet != null) 'magnet': params.magnet,
       if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
+      if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
       if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
     });
     if (!res.success) throw ServerException(res.message ?? 'room_create_failed');

@@ -25,6 +25,7 @@ class Room extends Equatable {
     this.createdAgo,
     this.category,
     this.magnet,
+    this.imdbId,
   });
 
   final int id;
@@ -52,6 +53,11 @@ class Room extends Equatable {
   /// Magnet URI for torrent rooms (exposed by the server only for this type).
   /// Used to stream the torrent on-device; null for every other room type.
   final String? magnet;
+
+  /// IMDB id of the title this room plays (e.g. `tt1190634`), set when the room
+  /// was created from the Browse catalogue. Drives the in-room "Download
+  /// subtitle" search; null for manually created rooms (title search fallback).
+  final String? imdbId;
 
   bool get isExternal => roomType.isExternal;
 
@@ -85,6 +91,7 @@ class Room extends Equatable {
     createdAgo: createdAgo,
     category: category,
     magnet: magnet,
+    imdbId: imdbId,
   );
 
   @override

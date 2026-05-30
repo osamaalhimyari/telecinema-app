@@ -8,6 +8,7 @@ import '/features/shell/main_shell.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
 import '../features/rooms/presentation/pages/rooms_page.dart';
+import '../features/subtitles/presentation/pages/subtitles_page.dart';
 import '../features/watch/presentation/pages/room_page.dart';
 import 'routes_names.dart';
 
@@ -59,6 +60,7 @@ final router = GoRouter(
           initialName: prefill['name'] as String?,
           initialMagnet: prefill['magnet'] as String?,
           initialCategory: prefill['category'] as String?,
+          initialImdbId: prefill['imdbId'] as String?,
         );
       },
     ),
@@ -70,6 +72,19 @@ final router = GoRouter(
         slug: state.pathParameters['slug'] ?? '',
         initialRoom: state.extra is Room ? state.extra as Room : null,
       ),
+    ),
+    GoRoute(
+      name: RoutesNames.subtitles,
+      path: '/room/:slug/subtitles',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) {
+        final extra = state.extra is Map ? state.extra as Map : const {};
+        return SubtitlesPage(
+          slug: state.pathParameters['slug'] ?? '',
+          imdbId: extra['imdbId'] as String?,
+          title: extra['title'] as String?,
+        );
+      },
     ),
     GoRoute(
       name: RoutesNames.browseDetail,

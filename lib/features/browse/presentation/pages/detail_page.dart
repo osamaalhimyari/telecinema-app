@@ -36,14 +36,17 @@ class DetailPage extends StatelessWidget {
     return BlocProvider<DetailCubit>(
       create: (_) => sl<DetailCubit>()
         ..load(type: type, id: id, title: initial?.name ?? ''),
-      child: _DetailView(initial: initial),
+      child: _DetailView(id: id, initial: initial),
     );
   }
 }
 
 class _DetailView extends StatelessWidget {
-  const _DetailView({this.initial});
+  const _DetailView({required this.id, this.initial});
 
+  /// IMDB id of this title (the route param) — carried into the created room so
+  /// it can later search subtitles by IMDB id.
+  final String id;
   final CatalogItem? initial;
 
   @override
@@ -277,6 +280,7 @@ class _DetailView extends StatelessWidget {
             'name': roomName,
             'magnet': magnet,
             'category': state.isSeries ? 'series' : 'movies',
+            'imdbId': id,
           },
         );
       },

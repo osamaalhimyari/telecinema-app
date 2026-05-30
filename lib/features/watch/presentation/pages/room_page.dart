@@ -24,6 +24,7 @@ import '/features/rooms/domain/entities/room.dart';
 import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
+import '/routes/routes_names.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
@@ -345,6 +346,14 @@ class _RoomMenu extends StatelessWidget {
             context.tr(TranslationKeys.addSubtitle),
           ),
         ),
+        // Find a subtitle online (OpenSubtitles) instead of uploading a file.
+        PopupMenuItem(
+          value: 'online_subtitle',
+          child: _item(
+            Icons.translate_rounded,
+            context.tr(TranslationKeys.downloadSubtitle),
+          ),
+        ),
         if ((room?.slug ?? '').isNotEmpty)
           PopupMenuItem(
             value: 'share',
@@ -390,6 +399,8 @@ class _RoomMenu extends StatelessWidget {
         await _changeSource(context, cubit);
       case 'subtitle':
         await _pickSubtitle(context, cubit);
+      case 'online_subtitle':
+        _openOnlineSubtitles(context);
       case 'share':
         await _share(context, state.room);
       case 'delete':
@@ -502,6 +513,19 @@ class _RoomMenu extends StatelessWidget {
       ),
     );
     if (url != null && url.isNotEmpty) cubit.changeSource(url);
+  }
+
+  /// Opens the OpenSubtitles search page for this room. The chosen subtitle is
+  /// uploaded there and arrives back through the room's `subtitle_changed`
+  /// listener — so no result needs to flow back to this page.
+  void _openOnlineSubtitles(BuildContext context) {
+    final room = state.room;
+    if (room == null || room.slug.isEmpty) return;
+    context.pushNamed(
+      RoutesNames.subtitles,
+      pathParameters: {'slug': room.slug},
+      extra: {'imdbId': room.imdbId, 'title': room.name},
+    );
   }
 
   Future<void> _pickSubtitle(BuildContext context, WatchCubit cubit) async {

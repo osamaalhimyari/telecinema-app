@@ -4,7 +4,8 @@
       "WebFetch(domain:v3-cinemeta.strem.io)",
       "WebFetch(domain:apibay.org)",
       "WebFetch(domain:magnetz.eu)",
-      "WebFetch(domain:cinemeta-catalogs.strem.io)"
+      "WebFetch(domain:cinemeta-catalogs.strem.io)",
+      "Bash(flutter test *)"
     ],
     "additionalDirectories": [
       "C:\\xampp\\htdocs\\projects\\mine\\watch-party"

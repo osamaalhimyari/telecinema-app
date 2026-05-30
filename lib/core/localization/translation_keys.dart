@@ -130,6 +130,14 @@ class TranslationKeys {
   static const subtitleAdded = 'subtitle_added';
   static const subtitleExternalOnly = 'subtitle_external_only';
 
+  // Online subtitles (OpenSubtitles search)
+  static const downloadSubtitle = 'download_subtitle';
+  static const subtitleLanguage = 'subtitle_language';
+  static const subtitlesSearching = 'subtitles_searching';
+  static const subtitlesNoResults = 'subtitles_no_results';
+  static const subtitleTitleHint = 'subtitle_title_hint';
+  static const subtitleApplyFailed = 'subtitle_apply_failed';
+
   // Create room
   static const createRoomTitle = 'create_room_title';
   static const roomName = 'room_name';

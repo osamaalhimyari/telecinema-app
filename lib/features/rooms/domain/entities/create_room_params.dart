@@ -18,6 +18,7 @@ class CreateRoomParams {
     this.localVideoPath,
     this.reactions,
     this.category,
+    this.imdbId,
   });
 
   final String name;
@@ -29,6 +30,11 @@ class CreateRoomParams {
   final String? localVideoPath;
   final List<String>? reactions;
   final String? category;
+
+  /// IMDB id of the source title (e.g. `tt1190634`) when the room is created
+  /// from the Browse catalogue; null otherwise. Persisted so the room can later
+  /// search OpenSubtitles by IMDB id.
+  final String? imdbId;
 }
 
 /// The outcome of a create call: either the room is ready immediately

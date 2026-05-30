@@ -115,6 +115,13 @@ const Map<String, String> arAr = {
   TranslationKeys.subtitleAdded: 'تمت إضافة الترجمة.',
   TranslationKeys.subtitleExternalOnly: 'الترجمة متاحة لغرف التضمين فقط.',
 
+  TranslationKeys.downloadSubtitle: 'تنزيل ترجمة',
+  TranslationKeys.subtitleLanguage: 'لغة الترجمة',
+  TranslationKeys.subtitlesSearching: 'جارٍ البحث عن الترجمات…',
+  TranslationKeys.subtitlesNoResults: 'لا توجد ترجمات لهذه اللغة.',
+  TranslationKeys.subtitleTitleHint: 'العنوان المراد البحث عنه',
+  TranslationKeys.subtitleApplyFailed: 'تعذّر تطبيق هذه الترجمة.',
+
   TranslationKeys.createRoomTitle: 'إنشاء غرفة',
   TranslationKeys.roomName: 'اسم الغرفة',
   TranslationKeys.roomNameHint: 'مثال: ليلة أفلام',

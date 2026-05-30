@@ -33,14 +33,18 @@ class CreateRoomPage extends StatelessWidget {
     this.initialName,
     this.initialMagnet,
     this.initialCategory,
+    this.initialImdbId,
   });
 
   /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
   /// torrent). When [initialMagnet] is set the form opens on the torrent type;
-  /// [initialCategory] pre-selects a category chip (`movies` / `series`).
+  /// [initialCategory] pre-selects a category chip (`movies` / `series`);
+  /// [initialImdbId] is carried through so the room can later search subtitles
+  /// by IMDB id.
   final String? initialName;
   final String? initialMagnet;
   final String? initialCategory;
+  final String? initialImdbId;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,7 @@ class CreateRoomPage extends StatelessWidget {
         initialName: initialName,
         initialMagnet: initialMagnet,
         initialCategory: initialCategory,
+        initialImdbId: initialImdbId,
       ),
     );
   }
@@ -60,11 +65,13 @@ class _CreateRoomView extends StatefulWidget {
     this.initialName,
     this.initialMagnet,
     this.initialCategory,
+    this.initialImdbId,
   });
 
   final String? initialName;
   final String? initialMagnet;
   final String? initialCategory;
+  final String? initialImdbId;
 
   @override
   State<_CreateRoomView> createState() => _CreateRoomViewState();
@@ -137,6 +144,7 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         localVideoPath: _type == RoomType.upload ? _videoPath : null,
         reactions: _reactions.isEmpty ? null : List.of(_reactions),
         category: _category,
+        imdbId: widget.initialImdbId,
       ),
     );
   }

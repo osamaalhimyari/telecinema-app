@@ -16,4 +16,7 @@ class RoutesNames {
   /// The synchronized player for a single room. Carries the slug as a path
   /// param so deep links survive a cold start.
   static const room = 'room';
+
+  /// In-room "Download subtitle" search (OpenSubtitles), pushed above the room.
+  static const subtitles = 'subtitles';
 }
