@@ -35,6 +35,9 @@ Future<void> injectBrowseSingletons(GetIt sl) async {
   sl.registerLazySingleton<FindTorrentsUseCase>(
     () => FindTorrentsUseCase(sl<BrowseRepository>()),
   );
+  sl.registerLazySingleton<SearchTorrentsUseCase>(
+    () => SearchTorrentsUseCase(sl<BrowseRepository>()),
+  );
 }
 
 /// Page-scoped BLoCs — fresh each time a Browse page opens.
@@ -43,6 +46,10 @@ Future<void> injectBrowseFactories(GetIt sl) async {
     () => BrowseCubit(sl<GetCatalogUseCase>(), sl<SearchCatalogUseCase>()),
   );
   sl.registerFactory<DetailCubit>(
-    () => DetailCubit(sl<GetMetaDetailUseCase>(), sl<FindTorrentsUseCase>()),
+    () => DetailCubit(
+      sl<GetMetaDetailUseCase>(),
+      sl<FindTorrentsUseCase>(),
+      sl<SearchTorrentsUseCase>(),
+    ),
   );
 }

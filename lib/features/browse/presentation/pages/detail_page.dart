@@ -268,11 +268,15 @@ class _DetailView extends StatelessWidget {
 
   void _openPicker(BuildContext context, DetailState state) {
     final name = state.detail?.name ?? initial?.name ?? '';
+    final cubit = context.read<DetailCubit>();
     showSourcePicker(
       context,
       title: name,
       isSeries: state.isSeries,
       torrents: state.torrents,
+      episodes: state.detail?.episodes ?? const [],
+      onResolveEpisode: (season, episode) =>
+          cubit.resolveEpisode(seriesName: name, season: season, episode: episode),
       onSelected: (magnet, roomName) {
         context.pushNamed(
           RoutesNames.createRoom,

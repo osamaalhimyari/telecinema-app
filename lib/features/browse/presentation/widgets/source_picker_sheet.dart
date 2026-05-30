@@ -2,24 +2,33 @@ import 'package:flutter/material.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '../../domain/entities/episode_info.dart';
 import '../../domain/entities/torrent_option.dart';
 
-/// Opens the source picker for a title. The list of [torrents] is grouped two
-/// different ways depending on [isSeries]:
+/// Resolves the torrent for a single episode (best copy), or null when none is
+/// available anywhere. Lets the picker show every episode up-front and fetch
+/// its torrent only when tapped.
+typedef EpisodeResolver = Future<TorrentOption?> Function(int season, int episode);
+
+/// Opens the source picker for a title:
 ///
-///  * **Series** — by season, with one button per episode (best-seeded copy)
-///    plus a "Full season" button when a season pack exists.
-///  * **Movie** — by resolution (`4K`, `1080p`, …), with the multi-film
-///    collections peeled into their own group.
+///  * **Series** — one button per episode (from the [episodes] list, so every
+///    season shows even when the torrent side only had a pack). Tapping an
+///    episode resolves its individual torrent via [onResolveEpisode]. There is
+///    deliberately no "full season" option.
+///  * **Movie** — grouped by resolution (`4K`, `1080p`, …), with multi-film
+///    collections in their own group.
 ///
-/// Picking any option pops the sheet and calls [onSelected] with that option's
-/// magnet and a pre-built room name (e.g. `The Boys — S05E06`).
+/// Picking pops the sheet and calls [onSelected] with the magnet and a built
+/// room name (e.g. `The Boys — S05E06`).
 Future<void> showSourcePicker(
   BuildContext context, {
   required String title,
   required bool isSeries,
   required List<TorrentOption> torrents,
   required void Function(String magnet, String roomName) onSelected,
+  List<EpisodeInfo> episodes = const [],
+  EpisodeResolver? onResolveEpisode,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -29,6 +38,8 @@ Future<void> showSourcePicker(
       title: title,
       isSeries: isSeries,
       torrents: torrents,
+      episodes: episodes,
+      onResolveEpisode: onResolveEpisode,
       onSelected: onSelected,
     ),
   );
@@ -40,22 +51,59 @@ const int _maxPerQuality = 6;
 const int _maxPacks = 8;
 const List<String> _qualityOrder = ['4K', '1080p', '720p', '480p', 'SD'];
 
-class _SourcePickerSheet extends StatelessWidget {
+class _SourcePickerSheet extends StatefulWidget {
   const _SourcePickerSheet({
     required this.title,
     required this.isSeries,
     required this.torrents,
+    required this.episodes,
+    required this.onResolveEpisode,
     required this.onSelected,
   });
 
   final String title;
   final bool isSeries;
   final List<TorrentOption> torrents;
+  final List<EpisodeInfo> episodes;
+  final EpisodeResolver? onResolveEpisode;
   final void Function(String magnet, String roomName) onSelected;
 
-  void _pick(BuildContext context, TorrentOption option, String roomName) {
+  @override
+  State<_SourcePickerSheet> createState() => _SourcePickerSheetState();
+}
+
+class _SourcePickerSheetState extends State<_SourcePickerSheet> {
+  /// `season x episode` key of the episode currently being resolved, or null.
+  String? _loadingEp;
+
+  void _pickMovie(TorrentOption option, String roomName) {
     Navigator.of(context).pop();
-    onSelected(option.magnet, roomName);
+    widget.onSelected(option.magnet, roomName);
+  }
+
+  Future<void> _onEpisodeTap(int season, int episode) async {
+    if (_loadingEp != null) return;
+    final resolver = widget.onResolveEpisode;
+    if (resolver == null) return;
+
+    setState(() => _loadingEp = '${season}x$episode');
+    final option = await resolver(season, episode);
+    if (!mounted) return;
+    setState(() => _loadingEp = null);
+
+    if (option == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(context.tr(TranslationKeys.torrentNotAvailable))),
+        );
+      return;
+    }
+    Navigator.of(context).pop();
+    widget.onSelected(
+      option.magnet,
+      '${widget.title} — S${_pad(season)}E${_pad(episode)}',
+    );
   }
 
   @override
@@ -74,7 +122,7 @@ class _SourcePickerSheet extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 context.tr(
-                  isSeries
+                  widget.isSeries
                       ? TranslationKeys.chooseEpisode
                       : TranslationKeys.chooseQuality,
                 ),
@@ -84,110 +132,72 @@ class _SourcePickerSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                title,
+                widget.title,
                 style: context.text.bodyMedium?.copyWith(
                   color: context.colors.onSurfaceVariant,
                 ),
               ),
             ),
-            ...isSeries ? _seriesGroups(context) : _movieGroups(context),
+            ...widget.isSeries ? _seriesGroups(context) : _movieGroups(context),
           ],
         );
       },
     );
   }
 
-  // ----- Series: season → episodes -----
+  // ----- Series: every episode, grouped by season -----
 
   List<Widget> _seriesGroups(BuildContext context) {
-    final episodes = torrents.where((t) => t.isEpisode);
-    final packs = torrents.where((t) => t.isSeasonPack);
-    final others = torrents.where((t) => !t.isEpisode && !t.isSeasonPack).toList();
-
-    // season → episode → best torrent (list is seeders-desc, so first wins).
-    final bySeason = <int, Map<int, TorrentOption>>{};
-    for (final t in episodes) {
-      (bySeason[t.season!] ??= <int, TorrentOption>{}).putIfAbsent(t.episode!, () => t);
+    // season → sorted episode numbers. Prefer the authoritative Cinemeta list;
+    // fall back to whatever individual episodes the torrent search returned.
+    final bySeason = <int, List<int>>{};
+    if (widget.episodes.isNotEmpty) {
+      for (final e in widget.episodes) {
+        (bySeason[e.season] ??= <int>[]).add(e.episode);
+      }
+    } else {
+      for (final t in widget.torrents.where((t) => t.isEpisode)) {
+        (bySeason[t.season!] ??= <int>[]).add(t.episode!);
+      }
     }
-    // season → best season pack.
-    final packBySeason = <int, TorrentOption>{};
-    for (final t in packs) {
-      packBySeason.putIfAbsent(t.season!, () => t);
+    if (bySeason.isEmpty) {
+      return [
+        _header(context, context.tr(TranslationKeys.torrentNotAvailable)),
+      ];
     }
 
-    final seasons = {...bySeason.keys, ...packBySeason.keys}.toList()..sort();
-
+    final seasons = bySeason.keys.toList()..sort();
     final widgets = <Widget>[];
     for (final s in seasons) {
-      final seasonLabel = '${context.tr(TranslationKeys.season)} $s';
-      widgets.add(_header(context, seasonLabel));
-
-      final pack = packBySeason[s];
-      if (pack != null) {
-        widgets.add(_tile(
-          context,
-          leading: _badge(context, context.tr(TranslationKeys.fullSeason)),
-          title: '${context.tr(TranslationKeys.fullSeason)} · ${pack.quality}',
-          subtitle: _meta(pack),
-          onTap: () => _pick(context, pack, '$title — ${context.tr(TranslationKeys.season)} $s'),
-        ));
-      }
-
-      final eps = bySeason[s];
-      if (eps != null && eps.isNotEmpty) {
-        final epNumbers = eps.keys.toList()..sort();
-        widgets.add(_episodeWrap(context, s, epNumbers, eps));
-      }
+      final eps = bySeason[s]!.toSet().toList()..sort();
+      widgets.add(_header(context, '${context.tr(TranslationKeys.season)} $s'));
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final e in eps)
+                _EpisodeButton(
+                  label: 'E${_pad(e)}',
+                  loading: _loadingEp == '${s}x$e',
+                  // Block taps on other episodes while one is resolving.
+                  onTap: _loadingEp == null ? () => _onEpisodeTap(s, e) : null,
+                ),
+            ],
+          ),
+        ),
+      );
     }
-
-    if (others.isNotEmpty) {
-      widgets.add(_header(context, context.tr(TranslationKeys.otherSources)));
-      for (final t in others.take(_maxPacks)) {
-        widgets.add(_tile(
-          context,
-          leading: _badge(context, t.quality),
-          title: t.name.replaceAll('.', ' '),
-          subtitle: _meta(t),
-          onTap: () => _pick(context, t, '$title — ${t.quality}'),
-        ));
-      }
-    }
-
     return widgets;
-  }
-
-  Widget _episodeWrap(
-    BuildContext context,
-    int season,
-    List<int> epNumbers,
-    Map<int, TorrentOption> eps,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final e in epNumbers)
-            _EpisodeButton(
-              label: 'E${_pad(e)}',
-              quality: eps[e]!.quality,
-              onTap: () => _pick(
-                context,
-                eps[e]!,
-                '$title — S${_pad(season)}E${_pad(e)}',
-              ),
-            ),
-        ],
-      ),
-    );
   }
 
   // ----- Movie: quality buckets + collections -----
 
   List<Widget> _movieGroups(BuildContext context) {
-    final singles = torrents.where((t) => !t.isPack).toList();
-    final packs = torrents.where((t) => t.isPack).toList();
+    final singles = widget.torrents.where((t) => !t.isPack).toList();
+    final packs = widget.torrents.where((t) => t.isPack).toList();
 
     final byQuality = <String, List<TorrentOption>>{};
     for (final t in singles) {
@@ -205,7 +215,7 @@ class _SourcePickerSheet extends StatelessWidget {
           leading: _badge(context, q),
           title: t.name.replaceAll('.', ' '),
           subtitle: _meta(t),
-          onTap: () => _pick(context, t, '$title — $q'),
+          onTap: () => _pickMovie(t, '${widget.title} — $q'),
         ));
       }
     }
@@ -218,7 +228,7 @@ class _SourcePickerSheet extends StatelessWidget {
           leading: _badge(context, t.quality),
           title: t.name.replaceAll('.', ' '),
           subtitle: _meta(t),
-          onTap: () => _pick(context, t, '$title — ${t.quality}'),
+          onTap: () => _pickMovie(t, '${widget.title} — ${t.quality}'),
         ));
       }
     }
@@ -291,17 +301,18 @@ class _SourcePickerSheet extends StatelessWidget {
   static String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
-/// A compact season-grid button for a single episode: big `E01`, tiny quality.
+/// A compact season-grid button for a single episode: `E01`, with a spinner
+/// while its torrent is being resolved.
 class _EpisodeButton extends StatelessWidget {
   const _EpisodeButton({
     required this.label,
-    required this.quality,
+    required this.loading,
     required this.onTap,
   });
 
   final String label;
-  final String quality;
-  final VoidCallback onTap;
+  final bool loading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -310,24 +321,19 @@ class _EpisodeButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            Text(
-              quality,
-              style: context.text.labelSmall?.copyWith(
-                color: context.colors.onSurfaceVariant,
+        child: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                label,
+                style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
