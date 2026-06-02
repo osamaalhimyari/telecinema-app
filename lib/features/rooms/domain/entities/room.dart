@@ -1,0 +1,109 @@
+import 'package:equatable/equatable.dart';
+
+import '/core/config/app_config.dart';
+import 'room_type.dart';
+
+/// A single watch-party room. Streamable URLs are derived on the fly from the
+/// stored filenames + [AppConfig.baseUrl], so the entity stays decoupled from
+/// the deployment host.
+class Room extends Equatable {
+  const Room({
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.roomType,
+    required this.hasPassword,
+    required this.isUserCreated,
+    required this.viewCount,
+    required this.viewerCount,
+    required this.reactions,
+    this.externalUrl,
+    this.videoFilename,
+    this.thumbnailFilename,
+    this.subtitleFilename,
+    this.viewCountLabel,
+    this.createdAgo,
+    this.category,
+    this.magnet,
+    this.imdbId,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+  final RoomType roomType;
+  final bool hasPassword;
+  final bool isUserCreated;
+  final int viewCount;
+
+  /// Live count of people currently inside the room (from the socket layer).
+  final int viewerCount;
+
+  /// The emoji palette this room offers for reactions.
+  final List<String> reactions;
+
+  final String? externalUrl;
+  final String? videoFilename;
+  final String? thumbnailFilename;
+  final String? subtitleFilename;
+  final String? viewCountLabel;
+  final String? createdAgo;
+  final String? category;
+
+  /// Magnet URI for torrent rooms (exposed by the server only for this type).
+  /// Used to stream the torrent on-device; null for every other room type.
+  final String? magnet;
+
+  /// IMDB id of the title this room plays (e.g. `tt1190634`), set when the room
+  /// was created from the Browse catalogue. Drives the in-room "Download
+  /// subtitle" search; null for manually created rooms (title search fallback).
+  final String? imdbId;
+
+  bool get isExternal => roomType.isExternal;
+
+  /// Streamable video URL: the swarm stream for torrent rooms, the stored file
+  /// for upload/download rooms, null for external (WebView) rooms.
+  String? get videoUrl {
+    if (isExternal) return null;
+    if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
+    return AppConfig.videoUrl(videoFilename);
+  }
+
+  String? get thumbnailUrl => AppConfig.thumbnailUrl(thumbnailFilename);
+
+  String? get subtitleUrl => AppConfig.subtitleUrl(subtitleFilename);
+
+  Room copyWith({int? viewerCount, String? externalUrl, String? subtitleFilename}) => Room(
+    id: id,
+    name: name,
+    slug: slug,
+    roomType: roomType,
+    hasPassword: hasPassword,
+    isUserCreated: isUserCreated,
+    viewCount: viewCount,
+    viewerCount: viewerCount ?? this.viewerCount,
+    reactions: reactions,
+    externalUrl: externalUrl ?? this.externalUrl,
+    videoFilename: videoFilename,
+    thumbnailFilename: thumbnailFilename,
+    subtitleFilename: subtitleFilename ?? this.subtitleFilename,
+    viewCountLabel: viewCountLabel,
+    createdAgo: createdAgo,
+    category: category,
+    magnet: magnet,
+    imdbId: imdbId,
+  );
+
+  @override
+  List<Object?> get props => [
+    id,
+    slug,
+    name,
+    roomType,
+    hasPassword,
+    viewerCount,
+    externalUrl,
+    subtitleFilename,
+    reactions,
+  ];
+}
