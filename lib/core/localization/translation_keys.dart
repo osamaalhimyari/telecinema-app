@@ -76,6 +76,7 @@ class TranslationKeys {
 
   // Source picker (episodes for series, qualities for movies)
   static const chooseEpisode = 'choose_episode';
+  static const chooseSeason = 'choose_season';
   static const chooseQuality = 'choose_quality';
   static const season = 'season';
   static const fullSeason = 'full_season';

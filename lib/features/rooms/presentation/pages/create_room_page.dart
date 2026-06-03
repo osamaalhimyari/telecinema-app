@@ -32,17 +32,20 @@ class CreateRoomPage extends StatelessWidget {
     super.key,
     this.initialName,
     this.initialMagnet,
+    this.initialVideoUrl,
     this.initialCategory,
     this.initialImdbId,
   });
 
   /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
-  /// torrent). When [initialMagnet] is set the form opens on the torrent type;
-  /// [initialCategory] pre-selects a category chip (`movies` / `series`);
-  /// [initialImdbId] is carried through so the room can later search subtitles
-  /// by IMDB id.
+  /// torrent, or from the topcinema direct-download flow). When [initialMagnet]
+  /// is set the form opens on the torrent type; when [initialVideoUrl] is set it
+  /// opens on the download type with the link filled in; [initialCategory]
+  /// pre-selects a category chip (`movies` / `series`); [initialImdbId] is
+  /// carried through so the room can later search subtitles by IMDB id.
   final String? initialName;
   final String? initialMagnet;
+  final String? initialVideoUrl;
   final String? initialCategory;
   final String? initialImdbId;
 
@@ -53,6 +56,7 @@ class CreateRoomPage extends StatelessWidget {
       child: _CreateRoomView(
         initialName: initialName,
         initialMagnet: initialMagnet,
+        initialVideoUrl: initialVideoUrl,
         initialCategory: initialCategory,
         initialImdbId: initialImdbId,
       ),
@@ -64,12 +68,14 @@ class _CreateRoomView extends StatefulWidget {
   const _CreateRoomView({
     this.initialName,
     this.initialMagnet,
+    this.initialVideoUrl,
     this.initialCategory,
     this.initialImdbId,
   });
 
   final String? initialName;
   final String? initialMagnet;
+  final String? initialVideoUrl;
   final String? initialCategory;
   final String? initialImdbId;
 
@@ -98,6 +104,10 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
     if (widget.initialMagnet != null) {
       _magnet.text = widget.initialMagnet!;
       _type = RoomType.torrent;
+    }
+    if (widget.initialVideoUrl != null) {
+      _videoUrl.text = widget.initialVideoUrl!;
+      _type = RoomType.download;
     }
     if (widget.initialCategory != null &&
         kCategories.contains(widget.initialCategory)) {

@@ -68,6 +68,7 @@ const Map<String, String> enUs = {
   TranslationKeys.torrentNotAvailable: 'Not available currently',
 
   TranslationKeys.chooseEpisode: 'Choose an episode',
+  TranslationKeys.chooseSeason: 'Choose a season',
   TranslationKeys.chooseQuality: 'Choose a version',
   TranslationKeys.season: 'Season',
   TranslationKeys.fullSeason: 'Full season',

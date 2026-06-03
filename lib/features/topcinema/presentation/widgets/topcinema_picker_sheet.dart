@@ -44,17 +44,18 @@ Future<void> showTopcinemaPicker(
   }
   if (choice == null || !context.mounted) return;
 
-  final slug = await _runDownload(
-    context,
-    datasource,
-    name: choice.roomName,
-    videoUrl: choice.source.url,
-    category: category,
-    imdbId: imdbId,
+  // Hand off to the existing Create Room screen with the resolved link in the
+  // download field, so the user can review the name / password / category
+  // before creating. That screen owns the actual download + room creation.
+  context.pushNamed(
+    RoutesNames.createRoom,
+    extra: {
+      'name': choice.roomName,
+      'videoUrl': choice.source.url,
+      'category': category,
+      'imdbId': imdbId,
+    },
   );
-  if (slug != null && context.mounted) {
-    context.pushNamed(RoutesNames.room, pathParameters: {'slug': slug});
-  }
 }
 
 /// The chosen source plus the room name to create (carries the episode label).
@@ -174,16 +175,20 @@ class _SeasonsSheet extends StatefulWidget {
   State<_SeasonsSheet> createState() => _SeasonsSheetState();
 }
 
+/// The drill-down step currently shown in the sheet.
+enum _Step { seasons, episodes, qualities }
+
 class _SeasonsSheetState extends State<_SeasonsSheet> {
-  TopcinemaSeries? _series;
+  _Step _step = _Step.seasons;
   bool _loading = true;
   String? _errorKey;
 
-  /// Currently shown season number, for highlighting the chip.
-  int? _currentSeason;
+  List<TopcinemaSeason> _seasons = const [];
+  List<TopcinemaEpisode> _episodes = const [];
+  List<TopcinemaSource> _sources = const [];
 
-  /// `season x episode` of the episode being resolved, or null.
-  String? _loadingEp;
+  TopcinemaSeason? _season;
+  TopcinemaEpisode? _episode;
 
   @override
   void initState() {
@@ -199,35 +204,43 @@ class _SeasonsSheetState extends State<_SeasonsSheet> {
     });
   }
 
+  /// Step 1: load the title → its seasons (and the entry season's episodes). A
+  /// single-season title skips straight to the episodes step.
   Future<void> _loadByName() async {
     try {
       final s = await widget.datasource.series(name: widget.name);
       if (!mounted) return;
       setState(() {
-        _series = s;
+        _seasons = s.seasons;
+        _errorKey = null;
+        if (s.seasons.length <= 1) {
+          _episodes = s.episodes;
+          _season = s.seasons.isNotEmpty ? s.seasons.first : null;
+          _step = _Step.episodes;
+        } else {
+          _step = _Step.seasons;
+        }
         _loading = false;
-        _currentSeason = _seasonOfPage(s);
       });
     } catch (e) {
       _setError(e);
     }
   }
 
-  Future<void> _loadSeason(TopcinemaSeason season) async {
+  /// Step 2: a season was tapped → load and show its episodes.
+  Future<void> _openSeason(TopcinemaSeason season) async {
     setState(() {
       _loading = true;
-      _currentSeason = season.number;
+      _errorKey = null;
+      _season = season;
+      _step = _Step.episodes;
     });
     try {
       final s = await widget.datasource.series(url: season.url);
       if (!mounted) return;
-      // Keep the full seasons list (a single-season page may omit it).
       setState(() {
-        _series = TopcinemaSeries(
-          page: s.page,
-          seasons: s.seasons.isNotEmpty ? s.seasons : (_series?.seasons ?? const []),
-          episodes: s.episodes,
-        );
+        _episodes = s.episodes;
+        if (s.seasons.isNotEmpty) _seasons = s.seasons;
         _loading = false;
       });
     } catch (e) {
@@ -235,49 +248,54 @@ class _SeasonsSheetState extends State<_SeasonsSheet> {
     }
   }
 
-  /// Which season the parsed [page] represents, by matching its ordinal.
-  int? _seasonOfPage(TopcinemaSeries s) {
-    final page = Uri.decodeFull(s.page);
-    for (final season in s.seasons) {
-      final ord = season.title.replaceFirst('الموسم ', '').trim();
-      if (ord.isNotEmpty && page.contains(ord)) return season.number;
-    }
-    return s.seasons.isNotEmpty ? s.seasons.first.number : null;
-  }
-
-  Future<void> _onEpisodeTap(TopcinemaEpisode ep) async {
-    if (_loadingEp != null) return;
-    setState(() => _loadingEp = '${_currentSeason}x${ep.number}');
-
-    List<TopcinemaSource> sources;
+  /// Step 3: an episode was tapped → resolve and show its qualities.
+  Future<void> _openEpisode(TopcinemaEpisode ep) async {
+    setState(() {
+      _loading = true;
+      _errorKey = null;
+      _episode = ep;
+      _step = _Step.qualities;
+    });
     try {
-      sources = await widget.datasource.resolveEpisode(ep.url);
-    } on ServerException catch (e) {
+      final sources = await widget.datasource.resolveEpisode(ep.url);
       if (!mounted) return;
-      setState(() => _loadingEp = null);
-      context.showSnack(context.tr(e.message));
-      return;
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingEp = null);
-      context.showSnack(context.tr(TranslationKeys.topcinemaUnavailable));
-      return;
+      setState(() {
+        _sources = sources;
+        _loading = false;
+        if (sources.isEmpty) _errorKey = 'topcinema_not_found';
+      });
+    } catch (e) {
+      _setError(e);
     }
-    if (!mounted) return;
-    setState(() => _loadingEp = null);
-
-    if (sources.isEmpty) {
-      context.showSnack(context.tr(TranslationKeys.topcinemaNotFound));
-      return;
-    }
-
-    final label = _currentSeason != null
-        ? 'S${_pad(_currentSeason!)}E${_pad(ep.number)}'
-        : 'E${_pad(ep.number)}';
-    final chosen = await _showQualityDialog(context, '${widget.title} — $label', sources);
-    if (chosen == null || !mounted) return;
-    Navigator.of(context).pop(_TopcinemaChoice(chosen, '${widget.title} — $label'));
   }
+
+  /// Final: a quality was chosen → return it so a download room is created.
+  void _pickQuality(TopcinemaSource source) {
+    final label = _episode != null
+        ? (_season != null
+              ? 'S${_pad(_season!.number)}E${_pad(_episode!.number)}'
+              : 'E${_pad(_episode!.number)}')
+        : '';
+    final roomName = label.isEmpty ? widget.title : '${widget.title} — $label';
+    Navigator.of(context).pop(_TopcinemaChoice(source, roomName));
+  }
+
+  void _back() {
+    setState(() {
+      _errorKey = null;
+      switch (_step) {
+        case _Step.qualities:
+          _step = _Step.episodes;
+        case _Step.episodes:
+          _step = _seasons.length > 1 ? _Step.seasons : _Step.episodes;
+        case _Step.seasons:
+          break;
+      }
+    });
+  }
+
+  bool get _canGoBack =>
+      _step == _Step.qualities || (_step == _Step.episodes && _seasons.length > 1);
 
   @override
   Widget build(BuildContext context) {
@@ -291,14 +309,23 @@ class _SeasonsSheetState extends State<_SeasonsSheet> {
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(context.tr(TranslationKeys.topcinemaTitle), style: context.text.titleLarge),
+            Row(
+              children: [
+                if (_canGoBack)
+                  IconButton(
+                    onPressed: _loading ? null : _back,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                Expanded(
+                  child: Text(_heading(context), style: context.text.titleLarge),
+                ),
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
-                widget.title,
+                _subtitle(),
                 style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
               ),
             ),
@@ -309,80 +336,96 @@ class _SeasonsSheetState extends State<_SeasonsSheet> {
     );
   }
 
+  String _heading(BuildContext context) => switch (_step) {
+    _Step.seasons => context.tr(TranslationKeys.chooseSeason),
+    _Step.episodes => context.tr(TranslationKeys.chooseEpisode),
+    _Step.qualities => context.tr(TranslationKeys.chooseQuality),
+  };
+
+  /// Breadcrumb under the heading: title › season › episode.
+  String _subtitle() {
+    final parts = <String>[widget.title];
+    if (_step != _Step.seasons && _season != null) {
+      parts.add(_season!.title);
+    }
+    if (_step == _Step.qualities && _episode != null) {
+      parts.add(_episode!.title);
+    }
+    return parts.join('  ›  ');
+  }
+
   List<Widget> _body(BuildContext context) {
-    final series = _series;
-    if (_errorKey != null && series == null) {
+    if (_loading) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+    if (_errorKey != null) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
+          padding: const EdgeInsets.symmetric(vertical: 36),
           child: Center(child: Text(context.tr(_errorKey!))),
         ),
       ];
     }
-    final widgets = <Widget>[];
+    return switch (_step) {
+      _Step.seasons => _seasonsView(context),
+      _Step.episodes => _episodesView(context),
+      _Step.qualities => _qualitiesView(context),
+    };
+  }
 
-    if (series != null && series.seasons.length > 1) {
-      widgets.add(_seasonChips(context, series.seasons));
-    }
-
-    if (_loading) {
-      widgets.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: CircularProgressIndicator()),
+  List<Widget> _seasonsView(BuildContext context) {
+    if (_seasons.isEmpty) return _empty(context);
+    return [
+      for (final s in _seasons)
+        Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: const Icon(Icons.live_tv_rounded),
+            title: Text('${context.tr(TranslationKeys.season)} ${s.number}'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _openSeason(s),
+          ),
         ),
-      );
-      return widgets;
-    }
+    ];
+  }
 
-    final eps = series?.episodes ?? const [];
-    if (eps.isEmpty) {
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: Text(context.tr(TranslationKeys.topcinemaNotFound))),
-        ),
-      );
-      return widgets;
-    }
-
-    widgets.add(_header(context, context.tr(TranslationKeys.chooseEpisode)));
-    widgets.add(
+  List<Widget> _episodesView(BuildContext context) {
+    if (_episodes.isEmpty) return _empty(context);
+    return [
       Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
-          for (final e in eps)
+          for (final e in _episodes)
             _EpisodeButton(
               label: 'E${_pad(e.number)}',
-              loading: _loadingEp == '${_currentSeason}x${e.number}',
-              onTap: _loadingEp == null ? () => _onEpisodeTap(e) : null,
+              loading: false,
+              onTap: () => _openEpisode(e),
             ),
         ],
       ),
-    );
-    return widgets;
+    ];
   }
 
-  Widget _seasonChips(BuildContext context, List<TopcinemaSeason> seasons) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final s in seasons)
-            ChoiceChip(
-              label: Text('${context.tr(TranslationKeys.season)} ${s.number}'),
-              selected: _currentSeason == s.number,
-              onSelected: _loading || _currentSeason == s.number
-                  ? null
-                  : (_) => _loadSeason(s),
-            ),
-        ],
-      ),
-    );
+  List<Widget> _qualitiesView(BuildContext context) {
+    if (_sources.isEmpty) return _empty(context);
+    return [
+      for (final s in _sources) _qualityTile(context, s, () => _pickQuality(s)),
+    ];
   }
+
+  List<Widget> _empty(BuildContext context) => [
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: 36),
+      child: Center(child: Text(context.tr(TranslationKeys.topcinemaNotFound))),
+    ),
+  ];
 }
 
 // ===========================================================================
@@ -460,17 +503,6 @@ Widget _qualityTile(BuildContext context, TopcinemaSource s, VoidCallback onTap)
   );
 }
 
-Widget _header(BuildContext context, String label) => Padding(
-  padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
-  child: Text(
-    label,
-    style: context.text.titleSmall?.copyWith(
-      color: context.colors.primary,
-      fontWeight: FontWeight.w700,
-    ),
-  ),
-);
-
 /// Compact `E01` button with a spinner while its sources resolve.
 class _EpisodeButton extends StatelessWidget {
   const _EpisodeButton({required this.label, required this.loading, required this.onTap});
@@ -500,165 +532,6 @@ class _EpisodeButton extends StatelessWidget {
                 style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
       ),
-    );
-  }
-}
-
-// ===========================================================================
-// Download room creation + progress
-// ===========================================================================
-
-/// Creates the download room and polls its progress in a blocking dialog.
-/// Returns the room slug on success, or null on failure/cancel.
-Future<String?> _runDownload(
-  BuildContext context,
-  TopcinemaRemoteDataSource datasource, {
-  required String name,
-  required String videoUrl,
-  String? category,
-  String? imdbId,
-}) {
-  return showDialog<String>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => _TopcinemaDownloadDialog(
-      datasource: datasource,
-      name: name,
-      videoUrl: videoUrl,
-      category: category,
-      imdbId: imdbId,
-    ),
-  );
-}
-
-class _TopcinemaDownloadDialog extends StatefulWidget {
-  const _TopcinemaDownloadDialog({
-    required this.datasource,
-    required this.name,
-    required this.videoUrl,
-    this.category,
-    this.imdbId,
-  });
-
-  final TopcinemaRemoteDataSource datasource;
-  final String name;
-  final String videoUrl;
-  final String? category;
-  final String? imdbId;
-
-  @override
-  State<_TopcinemaDownloadDialog> createState() => _TopcinemaDownloadDialogState();
-}
-
-class _TopcinemaDownloadDialogState extends State<_TopcinemaDownloadDialog> {
-  int? _percent;
-  String? _errorKey;
-  Timer? _poll;
-  bool _closed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _start();
-  }
-
-  @override
-  void dispose() {
-    _poll?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _start() async {
-    String jobId;
-    try {
-      jobId = await widget.datasource.createDownloadRoom(
-        name: widget.name,
-        videoUrl: widget.videoUrl,
-        category: widget.category,
-        imdbId: widget.imdbId,
-      );
-    } on ServerException catch (e) {
-      return _fail(e.message);
-    } catch (_) {
-      return _fail('error_unknown');
-    }
-
-    _poll = Timer.periodic(const Duration(milliseconds: 1500), (_) async {
-      if (_closed) return;
-      try {
-        final p = await widget.datasource.downloadProgress(jobId);
-        if (!mounted || _closed) return;
-        if (p.isError) return _fail(p.error ?? 'error_unknown');
-        if (p.isDone && p.slug != null) {
-          _closed = true;
-          _poll?.cancel();
-          Navigator.of(context).pop(p.slug);
-          return;
-        }
-        setState(() => _percent = p.percent);
-      } catch (_) {
-        /* transient poll error — keep trying */
-      }
-    });
-  }
-
-  void _fail(String key) {
-    if (_closed) return;
-    _closed = true;
-    _poll?.cancel();
-    if (!mounted) return;
-    setState(() => _errorKey = key);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final error = _errorKey;
-    return AlertDialog(
-      title: Text(context.tr(TranslationKeys.topcinemaTitle)),
-      content: error != null
-          ? Text(context.tr(error))
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        context.tr(TranslationKeys.downloadingVideo),
-                        style: context.text.bodyMedium,
-                      ),
-                    ),
-                    if (_percent != null) Text('$_percent%', style: context.text.titleSmall),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: _percent == null ? null : _percent! / 100,
-                    minHeight: 8,
-                  ),
-                ),
-              ],
-            ),
-      actions: error != null
-          ? [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(context.tr(TranslationKeys.close)),
-              ),
-            ]
-          : [
-              TextButton(
-                onPressed: () {
-                  _closed = true;
-                  _poll?.cancel();
-                  Navigator.of(context).pop();
-                },
-                child: Text(context.tr(TranslationKeys.cancel)),
-              ),
-            ],
     );
   }
 }

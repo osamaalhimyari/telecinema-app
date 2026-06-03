@@ -66,6 +66,7 @@ const Map<String, String> arAr = {
   TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
 
   TranslationKeys.chooseEpisode: 'اختر حلقة',
+  TranslationKeys.chooseSeason: 'اختر موسماً',
   TranslationKeys.chooseQuality: 'اختر نسخة',
   TranslationKeys.season: 'الموسم',
   TranslationKeys.fullSeason: 'الموسم كامل',
