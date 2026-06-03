@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 
-/// App shell hosting the two persistent bottom-nav tabs (Rooms / Browse). Each
-/// tab keeps its own navigation state via [StatefulNavigationShell]; full-screen
-/// routes (create room, the player, title details) are pushed above this shell.
+/// App shell hosting the three persistent bottom-nav tabs (Rooms / Browse /
+/// Favorites). Each tab keeps its own navigation state via
+/// [StatefulNavigationShell]; full-screen routes (create room, the player,
+/// title details) are pushed above this shell.
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -37,6 +38,11 @@ class MainShell extends StatelessWidget {
             icon: const Icon(Icons.movie_outlined),
             selectedIcon: const Icon(Icons.movie_rounded),
             label: context.tr(TranslationKeys.browseTab),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.favorite_outline_rounded),
+            selectedIcon: const Icon(Icons.favorite_rounded),
+            label: context.tr(TranslationKeys.favoritesTab),
           ),
         ],
       ),

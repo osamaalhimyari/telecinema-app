@@ -43,6 +43,19 @@ const Map<String, String> arAr = {
 
   TranslationKeys.roomsTab: 'الغرف',
   TranslationKeys.browseTab: 'استكشاف',
+  TranslationKeys.favoritesTab: 'المفضلة',
+
+  TranslationKeys.favoritesTitle: 'المفضلة',
+  TranslationKeys.favoritesEmpty: 'لا توجد مفضلة بعد',
+  TranslationKeys.favoritesEmptyHint:
+      'اضغط على القلب في فيلم أو مسلسل داخل الاستكشاف لحفظه هنا.',
+
+  TranslationKeys.topcinemaButton: 'تحميل مباشر',
+  TranslationKeys.topcinemaTitle: 'تحميل مباشر',
+  TranslationKeys.topcinemaNameHint: 'عدّل الاسم إذا لزم (مثال: widows-bay).',
+  TranslationKeys.topcinemaGo: 'بحث',
+  TranslationKeys.topcinemaNotFound: 'لا يوجد مصدر مباشر لهذا العنوان.',
+  TranslationKeys.topcinemaUnavailable: 'المصدر المباشر غير متاح حالياً.',
 
   TranslationKeys.browseTitle: 'استكشاف',
   TranslationKeys.browseSearchHint: 'ابحث عن أفلام ومسلسلات',

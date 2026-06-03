@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
+import '/features/topcinema/data/datasources/topcinema_remote_datasource.dart';
+import '/features/topcinema/presentation/widgets/topcinema_picker_sheet.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/catalog_item.dart';
@@ -252,20 +254,51 @@ class _DetailView extends StatelessWidget {
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: FilledButton.icon(
-        onPressed: canPick ? () => _openPicker(context, state) : null,
-        icon: searching
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(canPick ? Icons.playlist_play_rounded : Icons.block_rounded),
-        label: Text(label),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FilledButton.icon(
+            onPressed: canPick ? () => _openPicker(context, state) : null,
+            icon: searching
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(canPick ? Icons.playlist_play_rounded : Icons.block_rounded),
+            label: Text(label),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Isolated "second way": resolve a direct download from topcinema.
+          // Always available (it runs its own search), independent of torrents.
+          OutlinedButton.icon(
+            onPressed: () => _openTopcinema(context, state),
+            icon: const Icon(Icons.download_rounded),
+            label: Text(context.tr(TranslationKeys.topcinemaButton)),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  /// Opens the standalone topcinema picker — completely separate from the
+  /// torrent flow above. Resolves a direct CDN link and creates a download room.
+  void _openTopcinema(BuildContext context, DetailState state) {
+    final name = state.detail?.name ?? initial?.name ?? '';
+    if (name.isEmpty) return;
+    showTopcinemaPicker(
+      context,
+      title: name,
+      isSeries: state.isSeries,
+      datasource: sl<TopcinemaRemoteDataSource>(),
+      category: state.isSeries ? 'series' : 'movies',
+      imdbId: id,
     );
   }
 

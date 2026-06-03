@@ -1,3 +1,5 @@
+import '/core/config/endpoints.dart';
+
 /// Central configuration for the watch-party client.
 ///
 /// The app talks to the AdonisJS backend two ways:
@@ -22,7 +24,7 @@ class AppConfig {
   // ===========================================================================
   /// The built-in server, used when the user hasn't overridden it. The "Reset
   /// to default" button in Settings restores this.
-  static const String defaultBaseUrl = 'https://telecinema.runasp.net';
+  static const String defaultBaseUrl = Endpoints.defaultBaseUrl;
 
   /// The active server origin. Mutable so it can be overridden at runtime from
   /// Settings (persisted, then loaded at startup before the network layer is

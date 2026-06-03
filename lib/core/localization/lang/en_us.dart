@@ -45,6 +45,19 @@ const Map<String, String> enUs = {
 
   TranslationKeys.roomsTab: 'Rooms',
   TranslationKeys.browseTab: 'Browse',
+  TranslationKeys.favoritesTab: 'Favorites',
+
+  TranslationKeys.favoritesTitle: 'Favorites',
+  TranslationKeys.favoritesEmpty: 'No favorites yet',
+  TranslationKeys.favoritesEmptyHint:
+      'Tap the heart on a movie or series in Browse to save it here.',
+
+  TranslationKeys.topcinemaButton: 'Direct download',
+  TranslationKeys.topcinemaTitle: 'Direct download',
+  TranslationKeys.topcinemaNameHint: 'Edit the name if needed (e.g. widows-bay).',
+  TranslationKeys.topcinemaGo: 'Find',
+  TranslationKeys.topcinemaNotFound: 'No direct source found for this title.',
+  TranslationKeys.topcinemaUnavailable: 'The direct source is unavailable right now.',
 
   TranslationKeys.browseTitle: 'Browse',
   TranslationKeys.browseSearchHint: 'Search movies & series',

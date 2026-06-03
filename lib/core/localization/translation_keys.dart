@@ -50,6 +50,20 @@ class TranslationKeys {
   // Bottom navigation tabs
   static const roomsTab = 'rooms_tab';
   static const browseTab = 'browse_tab';
+  static const favoritesTab = 'favorites_tab';
+
+  // Favorites (saved movies/series)
+  static const favoritesTitle = 'favorites_title';
+  static const favoritesEmpty = 'favorites_empty';
+  static const favoritesEmptyHint = 'favorites_empty_hint';
+
+  // TopCinema (isolated direct-download "second way")
+  static const topcinemaButton = 'topcinema_button';
+  static const topcinemaTitle = 'topcinema_title';
+  static const topcinemaNameHint = 'topcinema_name_hint';
+  static const topcinemaGo = 'topcinema_go';
+  static const topcinemaNotFound = 'topcinema_not_found';
+  static const topcinemaUnavailable = 'topcinema_unavailable';
 
   // Browse (catalogue)
   static const browseTitle = 'browse_title';

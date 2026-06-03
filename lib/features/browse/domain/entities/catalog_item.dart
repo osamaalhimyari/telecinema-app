@@ -30,6 +30,42 @@ class CatalogItem extends Equatable {
 
   bool get isSeries => type == 'series';
 
+  /// Serializes the tile to the JSON saved as a server favorite (and rebuilt
+  /// from it via [CatalogItem.fromJson]). Mirrors the catalogue shape.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'type': type,
+    if (poster != null) 'poster': poster,
+    if (imdbRating != null) 'imdbRating': imdbRating,
+    if (releaseInfo != null) 'releaseInfo': releaseInfo,
+    'genres': genres,
+  };
+
+  /// Rebuilds a tile from saved favorite JSON. Tolerant of missing/loosely
+  /// typed fields, matching what the catalogue itself can omit.
+  factory CatalogItem.fromJson(Map<String, dynamic> json) {
+    String? str(dynamic v) {
+      final s = v?.toString().trim();
+      return (s == null || s.isEmpty) ? null : s;
+    }
+
+    return CatalogItem(
+      id: str(json['id'] ?? json['imdb_id']) ?? '',
+      name: str(json['name']) ?? '',
+      type: str(json['type']) ?? 'movie',
+      poster: str(json['poster']),
+      imdbRating: str(json['imdbRating']),
+      releaseInfo: str(json['releaseInfo'] ?? json['year']),
+      genres: json['genres'] is List
+          ? (json['genres'] as List)
+                .map((e) => e?.toString().trim() ?? '')
+                .where((s) => s.isNotEmpty)
+                .toList(growable: false)
+          : const [],
+    );
+  }
+
   @override
   List<Object?> get props => [id, name, type, poster, imdbRating, releaseInfo, genres];
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '/features/browse/domain/entities/catalog_item.dart';
 import '/features/browse/presentation/pages/browse_page.dart';
 import '/features/browse/presentation/pages/detail_page.dart';
+import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
@@ -14,9 +15,9 @@ import 'routes_names.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Single [GoRouter] for the app. The two tabs (Rooms / Browse) live inside a
-/// [StatefulShellRoute] under [MainShell]; create-room, the player and title
-/// details are pushed on the root navigator, full-screen above the bottom bar.
+/// Single [GoRouter] for the app. The three tabs (Rooms / Browse / Favorites)
+/// live inside a [StatefulShellRoute] under [MainShell]; create-room, the player
+/// and title details are pushed on the root navigator, above the bottom bar.
 /// No auth gate — every room is public, and password rooms use an in-page
 /// unlock overlay.
 final router = GoRouter(
@@ -42,6 +43,15 @@ final router = GoRouter(
               name: RoutesNames.browse,
               path: '/browse',
               builder: (_, _) => const BrowsePage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: RoutesNames.favorites,
+              path: '/favorites',
+              builder: (_, _) => const FavoritesPage(),
             ),
           ],
         ),

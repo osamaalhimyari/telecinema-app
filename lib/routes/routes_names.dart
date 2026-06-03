@@ -7,6 +7,9 @@ class RoutesNames {
   /// Browse catalogue (second bottom-nav tab).
   static const browse = 'browse';
 
+  /// Saved movies/series (third bottom-nav tab).
+  static const favorites = 'favorites';
+
   /// A title's detail page in the Browse catalogue.
   static const browseDetail = 'browse-detail';
 
