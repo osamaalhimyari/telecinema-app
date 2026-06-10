@@ -1,16 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '/features/browse/data/torrent_classifier.dart' show parseSeasonEpisode;
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
-import '../../data/datasources/opensubtitles_datasource.dart'
-    show subtitleSearchTerms, magnetDisplayName;
+import '../../data/datasources/opensubtitles_datasource.dart' show magnetDisplayName;
 import '../../domain/entities/subtitle_result.dart';
 import '../../domain/usecases/download_subtitle_usecase.dart';
 import '../../domain/usecases/search_subtitles_usecase.dart';
 import 'subtitles_state.dart';
 
-/// Drives the "Download subtitle" page: searches OpenSubtitles for the room's
-/// title in the chosen language, then — when a result is tapped — downloads it
-/// and reuses the room's existing subtitle upload so it broadcasts to everyone.
+/// Drives the "Download subtitle" page: searches OpenSubtitles by the room's
+/// IMDB id (plus season/episode for TV) in the chosen language, then — when a
+/// result is tapped — downloads it and reuses the room's existing subtitle
+/// upload so it broadcasts to everyone.
 class SubtitlesCubit extends Cubit<SubtitlesState> {
   SubtitlesCubit(this._search, this._download, this._upload) : super(const SubtitlesState());
 
@@ -20,14 +21,12 @@ class SubtitlesCubit extends Cubit<SubtitlesState> {
 
   late String _slug;
   String? _imdbId;
-  String? _query;
-  int? _season;
-  int? _episode;
 
-  /// Binds the page's room context and runs the first search. [imdbId] is
-  /// preferred; otherwise the search term is parsed from the richest name
-  /// available — the resolved [release] file name, else the [magnet]'s display
-  /// name, else the room [title] — so a TV search targets the exact episode.
+  /// Binds the page's room context and runs the first search. The search is by
+  /// [imdbId]; any season/episode is seeded from the richest name available —
+  /// the resolved [release] file name, else the [magnet]'s display name, else
+  /// the room [title] — so a TV search targets the exact episode. The user can
+  /// override the id, season, and episode from the page.
   void init({
     required String slug,
     String? imdbId,
@@ -45,11 +44,8 @@ class SubtitlesCubit extends Cubit<SubtitlesState> {
     final source = release0.isNotEmpty
         ? release0
         : (magnetDisplayName(magnet) ?? (title ?? ''));
-    final terms = subtitleSearchTerms(source);
-    _query = terms.query.isNotEmpty ? terms.query : title;
-    _season = terms.season;
-    _episode = terms.episode;
-    emit(state.copyWith(langId: langId));
+    final se = parseSeasonEpisode(source);
+    emit(state.copyWith(langId: langId, season: se.season, episode: se.episode));
     search();
   }
 
@@ -59,30 +55,28 @@ class SubtitlesCubit extends Cubit<SubtitlesState> {
     await search();
   }
 
-  /// Re-search after the user edits the title (fallback path for rooms with no
-  /// IMDB id). Re-parses any `SxxExx` the user typed so e.g. "Breaking Bad
-  /// S01E07" targets the episode. No-op for empty input.
-  Future<void> searchByTitle(String title) async {
-    final raw = title.trim();
-    if (raw.isEmpty) return;
-    final terms = subtitleSearchTerms(raw);
-    _query = terms.query.isNotEmpty ? terms.query : raw;
-    _season = terms.season;
-    _episode = terms.episode;
-    // An explicit title search wins over any IMDB id (the datasource prefers an
-    // id when present), so drop it — otherwise the typed title would be ignored.
-    _imdbId = null;
-    await search();
-  }
-
-  /// Re-search by a manually-entered IMDB id — for rooms created from an
-  /// outside torrent/link that carry no id, where a precise id beats a fuzzy
-  /// title match. Accepts `tt1190634`, bare digits, or an IMDB URL (the
-  /// datasource extracts the digits). An empty value clears it and falls back
-  /// to the title query.
+  /// Re-search by a manually-entered IMDB id. Accepts `tt1190634`, bare digits,
+  /// or an IMDB URL (the datasource extracts the digits). An empty value clears
+  /// it (nothing to search on).
   Future<void> searchByImdb(String imdbId) async {
     final raw = imdbId.trim();
     _imdbId = raw.isEmpty ? null : raw;
+    await search();
+  }
+
+  /// Re-search after the user edits the season. An empty/non-numeric value
+  /// clears it (search the whole title).
+  Future<void> searchBySeason(String season) async {
+    final n = int.tryParse(season.trim());
+    emit(n == null ? state.copyWith(clearSeason: true) : state.copyWith(season: n));
+    await search();
+  }
+
+  /// Re-search after the user edits the episode. An empty/non-numeric value
+  /// clears it.
+  Future<void> searchByEpisode(String episode) async {
+    final n = int.tryParse(episode.trim());
+    emit(n == null ? state.copyWith(clearEpisode: true) : state.copyWith(episode: n));
     await search();
   }
 
@@ -91,9 +85,8 @@ class SubtitlesCubit extends Cubit<SubtitlesState> {
     final res = await _search(
       SearchSubtitlesParams(
         imdbId: _imdbId,
-        query: _query,
-        season: _season,
-        episode: _episode,
+        season: state.season,
+        episode: state.episode,
         langId: state.langId,
       ),
     );

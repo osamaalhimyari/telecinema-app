@@ -152,6 +152,8 @@ const Map<String, String> enUs = {
   TranslationKeys.subtitlesNoResults: 'No subtitles found for this language.',
   TranslationKeys.subtitleTitleHint: 'Title to search',
   TranslationKeys.subtitleImdbHint: 'IMDb ID (e.g. tt1190634)',
+  TranslationKeys.subtitleSeasonHint: 'Season',
+  TranslationKeys.subtitleEpisodeHint: 'Episode',
   TranslationKeys.subtitleApplyFailed: 'That subtitle could not be applied.',
 
   TranslationKeys.createRoomTitle: 'Create a room',

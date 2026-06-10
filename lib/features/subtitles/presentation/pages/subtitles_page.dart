@@ -49,16 +49,15 @@ class SubtitlesPage extends StatelessWidget {
           magnet: magnet,
           langId: langId,
         ),
-      child: _SubtitlesView(imdbId: imdbId, title: title),
+      child: _SubtitlesView(imdbId: imdbId),
     );
   }
 }
 
 class _SubtitlesView extends StatelessWidget {
-  const _SubtitlesView({this.imdbId, this.title});
+  const _SubtitlesView({this.imdbId});
 
   final String? imdbId;
-  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +97,7 @@ class _SubtitlesView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Manual IMDB id — a precise alternative to the title search, for
-          // rooms created from an outside torrent/link that carry no id.
-          // Submitting it re-runs the search by id (overrides the title).
+          // Manual IMDB id — the search key. Submitting it re-runs the search.
           TextFormField(
             initialValue: imdbId,
             textInputAction: TextInputAction.search,
@@ -111,6 +108,43 @@ class _SubtitlesView extends StatelessWidget {
               border: const OutlineInputBorder(),
             ),
             onFieldSubmitted: cubit.searchByImdb,
+          ),
+          // Season + episode narrow the search to one TV episode. Leave blank
+          // for a movie. Submitting either re-runs the search.
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: state.season?.toString(),
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.search,
+                  enabled: !state.isApplying,
+                  decoration: InputDecoration(
+                    labelText: context.tr(TranslationKeys.subtitleSeasonHint),
+                    prefixIcon: const Icon(Icons.tv_rounded),
+                    border: const OutlineInputBorder(),
+                  ),
+                  onFieldSubmitted: cubit.searchBySeason,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  initialValue: state.episode?.toString(),
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.search,
+                  enabled: !state.isApplying,
+                  decoration: InputDecoration(
+                    labelText: context.tr(TranslationKeys.subtitleEpisodeHint),
+                    prefixIcon: const Icon(Icons.theaters_rounded),
+                    border: const OutlineInputBorder(),
+                  ),
+                  onFieldSubmitted: cubit.searchByEpisode,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -130,19 +164,6 @@ class _SubtitlesView extends StatelessWidget {
                 : (id) {
                     if (id != null) cubit.selectLanguage(id);
                   },
-          ),
-          // Title text search — the fuzzy fallback when no IMDB id is given.
-          const SizedBox(height: 12),
-          TextFormField(
-            initialValue: title,
-            textInputAction: TextInputAction.search,
-            enabled: !state.isApplying,
-            decoration: InputDecoration(
-              labelText: context.tr(TranslationKeys.subtitleTitleHint),
-              prefixIcon: const Icon(Icons.search_rounded),
-              border: const OutlineInputBorder(),
-            ),
-            onFieldSubmitted: cubit.searchByTitle,
           ),
         ],
       ),

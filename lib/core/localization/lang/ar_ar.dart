@@ -147,6 +147,8 @@ const Map<String, String> arAr = {
   TranslationKeys.subtitlesNoResults: 'لا توجد ترجمات لهذه اللغة.',
   TranslationKeys.subtitleTitleHint: 'العنوان المراد البحث عنه',
   TranslationKeys.subtitleImdbHint: 'معرّف IMDb (مثال tt1190634)',
+  TranslationKeys.subtitleSeasonHint: 'الموسم',
+  TranslationKeys.subtitleEpisodeHint: 'الحلقة',
   TranslationKeys.subtitleApplyFailed: 'تعذّر تطبيق هذه الترجمة.',
 
   TranslationKeys.createRoomTitle: 'إنشاء غرفة',

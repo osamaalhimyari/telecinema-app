@@ -8,6 +8,8 @@ enum SubtitlesStatus { idle, loading, success, failure }
 class SubtitlesState extends Equatable {
   const SubtitlesState({
     this.langId = 'eng',
+    this.season,
+    this.episode,
     this.status = SubtitlesStatus.idle,
     this.results = const [],
     this.errorKey,
@@ -17,6 +19,11 @@ class SubtitlesState extends Equatable {
 
   /// Selected OpenSubtitles language id (ISO 639-2).
   final String langId;
+
+  /// Season / episode narrowing the search (TV titles). Null for a movie or
+  /// when not yet known.
+  final int? season;
+  final int? episode;
   final SubtitlesStatus status;
   final List<SubtitleResult> results;
 
@@ -35,6 +42,10 @@ class SubtitlesState extends Equatable {
 
   SubtitlesState copyWith({
     String? langId,
+    int? season,
+    bool clearSeason = false,
+    int? episode,
+    bool clearEpisode = false,
     SubtitlesStatus? status,
     List<SubtitleResult>? results,
     String? errorKey,
@@ -45,6 +56,8 @@ class SubtitlesState extends Equatable {
   }) {
     return SubtitlesState(
       langId: langId ?? this.langId,
+      season: clearSeason ? null : (season ?? this.season),
+      episode: clearEpisode ? null : (episode ?? this.episode),
       status: status ?? this.status,
       results: results ?? this.results,
       errorKey: clearError ? null : (errorKey ?? this.errorKey),
@@ -54,5 +67,5 @@ class SubtitlesState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [langId, status, results, errorKey, applyingId, appliedOk];
+  List<Object?> get props => [langId, season, episode, status, results, errorKey, applyingId, appliedOk];
 }
