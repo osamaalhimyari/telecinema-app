@@ -174,7 +174,6 @@ class TranslationKeys {
   static const subtitleLanguage = 'subtitle_language';
   static const subtitlesSearching = 'subtitles_searching';
   static const subtitlesNoResults = 'subtitles_no_results';
-  static const subtitleTitleHint = 'subtitle_title_hint';
   static const subtitleImdbHint = 'subtitle_imdb_hint';
   static const subtitleSeasonHint = 'subtitle_season_hint';
   static const subtitleEpisodeHint = 'subtitle_episode_hint';

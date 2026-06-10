@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import '/core/config/endpoints.dart';
 import '/core/errors/exceptions.dart';
 import '/features/browse/data/json_parse.dart';
-import '/features/browse/data/torrent_classifier.dart';
 import '../../domain/entities/subtitle_result.dart';
 
 /// Talks to the OpenSubtitles **legacy REST API** (`rest.opensubtitles.org`) —
@@ -18,12 +17,11 @@ import '../../domain/entities/subtitle_result.dart';
 ///
 /// Throws [ServerException] with a stable error key on transport failure.
 abstract class OpenSubtitlesDataSource {
-  /// Subtitles for [imdbId] (preferred) or a free-text [query], in [langId]
-  /// (ISO 639-2, e.g. `ara`). [season]/[episode] narrow a TV search to a single
-  /// episode. Most-downloaded first. Empty when none match.
+  /// Subtitles for [imdbId] in [langId] (ISO 639-2, e.g. `ara`).
+  /// [season]/[episode] narrow a TV search to a single episode. Most-downloaded
+  /// first. Empty when none match (or when no [imdbId] is given).
   Future<List<SubtitleResult>> search({
     String? imdbId,
-    String? query,
     int? season,
     int? episode,
     required String langId,
@@ -51,14 +49,12 @@ class OpenSubtitlesDataSourceImpl implements OpenSubtitlesDataSource {
   @override
   Future<List<SubtitleResult>> search({
     String? imdbId,
-    String? query,
     int? season,
     int? episode,
     required String langId,
   }) async {
     final url = buildOpenSubtitlesSearchUrl(
       imdbId: imdbId,
-      query: query,
       season: season,
       episode: episode,
       langId: langId,
@@ -133,49 +129,31 @@ String imdbDigits(String raw) {
   return int.parse(digits).toString();
 }
 
-/// Builds the legacy search URL. Prefers `imdbid-…` when a usable IMDB id is
-/// given, otherwise `query-…` from the title. When [season]/[episode] are
-/// present they are added as `season-`/`episode-` segments, which is what
-/// narrows a TV search to one episode — an `imdbid-`(series) or `query-`(show)
-/// search *without* them returns series-wide noise (or nothing for the specific
-/// episode). Returns null when neither a key nor a query is usable.
+/// Builds the legacy search URL from a usable IMDB id, with [season]/[episode]
+/// added as `season-`/`episode-` segments to narrow a TV search to one episode
+/// (an `imdbid-` series search *without* them returns series-wide noise).
+/// Returns null when [imdbId] has no usable digits — there's nothing to search.
 ///
 /// IMPORTANT: the legacy REST API is order-sensitive — the path segments must be
-/// in **alphabetical** order by key (`episode` < `imdbid`/`query` < `season` <
-/// `sublanguageid`). A movie search (just `imdbid`/`query` + `sublanguageid`) is
-/// already in order, but an episode search built in a natural
-/// imdbid→season→episode order returns no results. So the segments are sorted.
+/// in **alphabetical** order by key (`episode` < `imdbid` < `season` <
+/// `sublanguageid`). A movie search (just `imdbid` + `sublanguageid`) is already
+/// in order, but an episode search built in a natural imdbid→season→episode
+/// order returns no results. So the segments are sorted.
 String? buildOpenSubtitlesSearchUrl({
   String? imdbId,
-  String? query,
   int? season,
   int? episode,
   required String langId,
 }) {
   final digits = imdbId == null ? '' : imdbDigits(imdbId);
-  final String segment;
-  if (digits.isNotEmpty) {
-    segment = 'imdbid-$digits';
-  } else {
-    final q = (query ?? '').trim();
-    if (q.isEmpty) return null;
-    segment = 'query-${Uri.encodeComponent(q)}';
-  }
+  if (digits.isEmpty) return null;
   final segments = <String>[
-    segment,
+    'imdbid-$digits',
     if (season != null) 'season-$season',
     if (episode != null) 'episode-$episode',
     'sublanguageid-$langId',
   ]..sort(); // alphabetical order is required by the API (see doc above)
   return '$kOpenSubtitlesBase/search/${segments.join('/')}';
-}
-
-/// Search inputs derived from a torrent/release name (or a plain room title):
-/// a clean show/movie title for `query-`, plus any season/episode it carries.
-/// Centralises the parsing so the room context and the manual search box agree.
-({String query, int? season, int? episode}) subtitleSearchTerms(String release) {
-  final se = parseSeasonEpisode(release);
-  return (query: showTitleFromRelease(release), season: se.season, episode: se.episode);
 }
 
 /// The human-readable name from a magnet URI's `dn` (display name) parameter,
@@ -192,28 +170,6 @@ String? magnetDisplayName(String? magnet) {
     return null;
   }
 }
-
-/// A clean, searchable show/movie title from a release name:
-/// `Breaking.Bad.S01E07.A.Deal.2160p.NF.WEB-DL` → `Breaking Bad`. Cuts at the
-/// first `SxxExx` / `Season N` / year / resolution marker — everything past it
-/// is release metadata, not the title — then normalises `.`/`_`/`-` to spaces.
-/// Returns the whole cleaned string when no marker is present (e.g. a plain
-/// room name the user typed).
-String showTitleFromRelease(String release) {
-  final cut = _titleCutRe.firstMatch(release);
-  final head = cut != null ? release.substring(0, cut.start) : release;
-  return head.replaceAll(RegExp(r'[._\-]+'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
-}
-
-/// Marks where a release name stops being the title and starts being metadata:
-/// `S01E07`, `Season 1`, a 19xx/20xx year, or a `1080p`-style resolution.
-final RegExp _titleCutRe = RegExp(
-  r's\d{1,2}[ ._-]?[ex]\d{1,2}'
-  r'|season[ ._-]?\d{1,2}'
-  r'|\b(?:19|20)\d{2}\b'
-  r'|\b\d{3,4}p\b',
-  caseSensitive: false,
-);
 
 /// Maps the OpenSubtitles JSON array into [SubtitleResult]s: keeps only rows
 /// with a download link, de-duplicates by file id, and sorts most-downloaded

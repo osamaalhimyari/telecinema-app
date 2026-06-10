@@ -23,6 +23,10 @@ class OperationsCubit extends Cubit<OperationsState> {
   Timer? _timer;
   bool _started = false;
 
+  /// Guards against overlapping polls — `refresh()` and the scheduled tick must
+  /// not run `_ds.list()` concurrently (last writer would win a needless race).
+  bool _polling = false;
+
   /// Server operations from the last successful poll.
   List<ServerOperation> _server = const [];
 
@@ -41,9 +45,12 @@ class OperationsCubit extends Cubit<OperationsState> {
   static const _fastInterval = Duration(seconds: 3);
   static const _idleInterval = Duration(seconds: 15);
 
-  /// Begin polling. Safe to call more than once (no-op after the first).
+  /// Begin (or resume) polling. Safe to call repeatedly — a no-op while already
+  /// polling, and the wake-up after polling went idle. Call it whenever a new
+  /// transfer might exist (app launch, an upload begins, a download/torrent is
+  /// kicked off).
   void start() {
-    if (_started) return;
+    if (_started || isClosed) return;
     _started = true;
     _poll();
   }
@@ -52,10 +59,21 @@ class OperationsCubit extends Cubit<OperationsState> {
 
   void _schedule() {
     _timer?.cancel();
+    if (isClosed) return;
+    // Demand-driven: keep ticking only while there are operations to track
+    // (active, or recently-finished still listed by the server). With nothing to
+    // watch, stop entirely so an idle app isn't polling forever — start()/
+    // refresh() wakes it again when something new happens.
+    if (_server.isEmpty && _local.isEmpty) {
+      _started = false;
+      return;
+    }
     _timer = Timer(_interval, _poll);
   }
 
   Future<void> _poll() async {
+    if (_polling || isClosed) return;
+    _polling = true;
     try {
       _server = await _ds.list();
       // Drop dismissed ids the server no longer lists, so the set tracks only
@@ -67,14 +85,20 @@ class OperationsCubit extends Cubit<OperationsState> {
       // the next tick retries. This is exactly the "disconnected for a second"
       // case the panel exists to survive.
     } finally {
+      _polling = false;
       _schedule();
     }
   }
 
-  /// Force an immediate refresh (pull-to-refresh / after creating a room).
-  Future<void> refresh() => _poll();
+  /// Force an immediate refresh (pull-to-refresh / after creating a room). Also
+  /// resumes the ticker if it had gone idle.
+  Future<void> refresh() {
+    _started = true;
+    return _poll();
+  }
 
   void _emitMerged() {
+    if (isClosed) return;
     // Local uploads first (they're happening on this screen right now), then the
     // server list (already newest-first), minus any the user dismissed.
     final merged = <ServerOperation>[

@@ -46,7 +46,8 @@ Future<void> injectSingletons(GetIt sl) async {
   // Built and its id published to the holder *before* the network layer, so the
   // Dio interceptor always has it to stamp on requests.
   final deviceIdentity = DeviceIdentity(sl<KeyValueStorage>());
-  DeviceIdHolder.current = deviceIdentity.id;
+  // Await the persist so the id is durably on disk before any request uses it.
+  DeviceIdHolder.current = await deviceIdentity.ensure();
   sl.registerSingleton<DeviceIdentity>(deviceIdentity);
 
   // Apply a user-overridden server URL (set in Settings) before the network

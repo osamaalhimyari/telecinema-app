@@ -143,10 +143,17 @@ class _RoomViewState extends State<_RoomView> {
   @override
   Widget build(BuildContext context) {
     final content = BlocListener<WatchCubit, WatchState>(
-      listenWhen: (a, b) => a.phase != b.phase && b.phase == WatchPhase.deleted,
-      listener: (context, _) {
-        context.showSnack(context.tr(TranslationKeys.roomDeleted));
-        if (context.canPop()) context.pop();
+      listenWhen: (a, b) => a.phase != b.phase,
+      listener: (context, state) {
+        if (state.phase == WatchPhase.deleted) {
+          context.showSnack(context.tr(TranslationKeys.roomDeleted));
+          if (context.canPop()) context.pop();
+        } else if (state.phase == WatchPhase.ready) {
+          // Re-arm auto-PiP now that the video surface exists — the initState
+          // post-frame call runs while the room is still initializing, which on
+          // some devices is too early for the system to honor auto-enter.
+          _enableAutoPip();
+        }
       },
       child: BlocBuilder<WatchCubit, WatchState>(
         buildWhen: (a, b) => a.phase != b.phase || a.room != b.room,

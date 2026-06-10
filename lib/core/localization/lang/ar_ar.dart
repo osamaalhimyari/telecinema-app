@@ -145,7 +145,6 @@ const Map<String, String> arAr = {
   TranslationKeys.subtitleLanguage: 'لغة الترجمة',
   TranslationKeys.subtitlesSearching: 'جارٍ البحث عن الترجمات…',
   TranslationKeys.subtitlesNoResults: 'لا توجد ترجمات لهذه اللغة.',
-  TranslationKeys.subtitleTitleHint: 'العنوان المراد البحث عنه',
   TranslationKeys.operationsTitle: 'العمليات',
   TranslationKeys.operationsEmpty: 'لا توجد عمليات جارية.',
   TranslationKeys.operationsClearFinished: 'مسح المكتمل',

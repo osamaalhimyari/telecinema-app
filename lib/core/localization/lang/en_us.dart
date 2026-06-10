@@ -150,7 +150,6 @@ const Map<String, String> enUs = {
   TranslationKeys.subtitleLanguage: 'Subtitle language',
   TranslationKeys.subtitlesSearching: 'Searching subtitles…',
   TranslationKeys.subtitlesNoResults: 'No subtitles found for this language.',
-  TranslationKeys.subtitleTitleHint: 'Title to search',
   TranslationKeys.operationsTitle: 'Transfers',
   TranslationKeys.operationsEmpty: 'No transfers in progress.',
   TranslationKeys.operationsClearFinished: 'Clear finished',

@@ -12,7 +12,11 @@ import '../bloc/watch_state.dart';
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
 /// opens/closes the [FullscreenMessagesPanel]; the icon fills in while open.
 class FullscreenMessagesButton extends StatelessWidget {
-  const FullscreenMessagesButton({super.key, required this.open, required this.onTap});
+  const FullscreenMessagesButton({
+    super.key,
+    required this.open,
+    required this.onTap,
+  });
 
   final bool open;
   final VoidCallback onTap;
@@ -41,13 +45,18 @@ class FullscreenMessagesButton extends StatelessWidget {
 /// leaving fullscreen. Shown/hidden by [open]; [onClose] backs the header's
 /// close button.
 class FullscreenMessagesPanel extends StatefulWidget {
-  const FullscreenMessagesPanel({super.key, required this.open, required this.onClose});
+  const FullscreenMessagesPanel({
+    super.key,
+    required this.open,
+    required this.onClose,
+  });
 
   final bool open;
   final VoidCallback onClose;
 
   @override
-  State<FullscreenMessagesPanel> createState() => _FullscreenMessagesPanelState();
+  State<FullscreenMessagesPanel> createState() =>
+      _FullscreenMessagesPanelState();
 }
 
 class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
@@ -134,7 +143,11 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
           Expanded(
             child: Text(
               context.tr(TranslationKeys.messages),
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           IconButton(
@@ -178,12 +191,17 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
             return Align(
               alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
               child: GestureDetector(
-                onTap: failed ? () => context.read<WatchCubit>().retryChat(m) : null,
+                onTap: failed
+                    ? () => context.read<WatchCubit>().retryChat(m)
+                    : null,
                 child: Opacity(
                   opacity: m.status == ChatStatus.sending ? 0.6 : 1,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 3),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
                     constraints: const BoxConstraints(maxWidth: 260),
                     decoration: BoxDecoration(
                       color: mine
@@ -206,7 +224,13 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                               fontSize: 12,
                             ),
                           ),
-                        Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        Text(
+                          m.text,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
                         if (mine && m.isPending)
                           Padding(
                             padding: const EdgeInsets.only(top: 3),
@@ -215,7 +239,9 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                                   ? context.tr(TranslationKeys.chatRetry)
                                   : context.tr(TranslationKeys.chatSending),
                               style: TextStyle(
-                                color: failed ? context.colors.error : Colors.white70,
+                                color: failed
+                                    ? context.colors.error
+                                    : Colors.white70,
                                 fontSize: 11,
                               ),
                             ),
@@ -234,7 +260,12 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
 
   Widget _composer(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(10, 6, 10, MediaQuery.of(context).viewInsets.bottom + 10),
+      padding: EdgeInsets.fromLTRB(
+        10,
+        6,
+        10,
+        MediaQuery.of(context).viewInsets.bottom + 10,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -254,13 +285,19 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               onSubmitted: (_) => _send(),
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filled(onPressed: _send, icon: const Icon(Icons.send_rounded)),
+          IconButton.filled(
+            onPressed: _send,
+            icon: const Icon(Icons.send_rounded),
+          ),
         ],
       ),
     );

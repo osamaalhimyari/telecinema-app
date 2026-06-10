@@ -43,6 +43,10 @@ class CreateRoomCubit extends Cubit<CreateRoomState> {
     if (isUpload) {
       opId = 'upload_${DateTime.now().microsecondsSinceEpoch}';
       _createRoom.cancelToken = _operations.beginUpload(opId, params.name);
+    } else {
+      // Non-upload submit: clear any token left from a prior upload attempt so it
+      // can't be handed to an unrelated request.
+      _createRoom.cancelToken = null;
     }
 
     _createRoom.onUploadProgress = (sent, total) {
@@ -61,6 +65,9 @@ class CreateRoomCubit extends Cubit<CreateRoomState> {
           if (opId != null) _operations.finishUpload(opId, slug: created.room!.slug);
           emit(state.copyWith(status: CreateRoomStatus.success, createdSlug: created.room!.slug));
         } else if (created.jobId != null) {
+          // A server-side download/torrent just started — wake the operations
+          // panel so it lists (and can cancel) this device's new transfer.
+          _operations.refresh();
           _pollDownload(created.jobId!);
         }
       },
@@ -107,6 +114,7 @@ class CreateRoomCubit extends Cubit<CreateRoomState> {
   /// Resets after a handled error so the form is editable again.
   void reset() {
     _pollTimer?.cancel();
+    _createRoom.cancelToken = null;
     emit(const CreateRoomState());
   }
 

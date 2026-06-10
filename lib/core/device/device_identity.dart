@@ -19,7 +19,25 @@ class DeviceIdentity {
 
   String? _cached;
 
-  /// The persisted id, generating and storing one on first use.
+  /// Reads or creates the id and **awaits** its persistence. Call once during DI
+  /// startup so the id is durably on disk before any request uses it — otherwise
+  /// a fast kill after first launch could lose an un-flushed id and the next
+  /// launch would generate a different one, orphaning the device's operations.
+  Future<String> ensure() async {
+    final existing = _cached ?? _storage.getString(StorageKeys.deviceId);
+    if (existing != null && existing.isNotEmpty) {
+      _cached = existing;
+      return existing;
+    }
+    final fresh = _generateUuidV4();
+    _cached = fresh;
+    await _storage.setString(StorageKeys.deviceId, fresh);
+    return fresh;
+  }
+
+  /// The persisted id, generating and storing one on first use. Synchronous for
+  /// the request interceptor; in normal flow [ensure] has already warmed the
+  /// cache, so this just returns it.
   String get id {
     final cached = _cached;
     if (cached != null) return cached;
