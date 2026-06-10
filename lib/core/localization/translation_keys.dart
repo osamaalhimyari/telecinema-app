@@ -158,6 +158,17 @@ class TranslationKeys {
   static const subtitleSize = 'subtitle_size';
   static const reset = 'reset';
 
+  // Server operations (transfers) panel
+  static const operationsTitle = 'operations_title';
+  static const operationsEmpty = 'operations_empty';
+  static const operationsClearFinished = 'operations_clear_finished';
+  static const operationDone = 'operation_done';
+  static const operationCanceled = 'operation_canceled';
+  static const operationKindDownload = 'operation_kind_download';
+  static const operationKindTorrent = 'operation_kind_torrent';
+  static const operationKindMagnet = 'operation_kind_magnet';
+  static const operationKindUpload = 'operation_kind_upload';
+
   // Online subtitles (OpenSubtitles search)
   static const downloadSubtitle = 'download_subtitle';
   static const subtitleLanguage = 'subtitle_language';

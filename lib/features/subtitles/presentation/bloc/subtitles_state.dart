@@ -13,6 +13,7 @@ class SubtitlesState extends Equatable {
     this.status = SubtitlesStatus.idle,
     this.results = const [],
     this.errorKey,
+    this.errorDetail,
     this.applyingId,
     this.appliedOk = false,
   });
@@ -29,6 +30,10 @@ class SubtitlesState extends Equatable {
 
   /// Translation key of the last error (search or apply), or null.
   final String? errorKey;
+
+  /// A short, already-readable hint about the *source* of the last error (e.g.
+  /// `OpenSubtitles · HTTP 503`), shown verbatim under the translated message.
+  final String? errorDetail;
 
   /// Id of the result currently being downloaded + applied (drives its spinner
   /// and blocks a second tap). Null when idle.
@@ -49,6 +54,7 @@ class SubtitlesState extends Equatable {
     SubtitlesStatus? status,
     List<SubtitleResult>? results,
     String? errorKey,
+    String? errorDetail,
     bool clearError = false,
     String? applyingId,
     bool clearApplying = false,
@@ -61,11 +67,13 @@ class SubtitlesState extends Equatable {
       status: status ?? this.status,
       results: results ?? this.results,
       errorKey: clearError ? null : (errorKey ?? this.errorKey),
+      errorDetail: clearError ? null : (errorDetail ?? this.errorDetail),
       applyingId: clearApplying ? null : (applyingId ?? this.applyingId),
       appliedOk: appliedOk ?? this.appliedOk,
     );
   }
 
   @override
-  List<Object?> get props => [langId, season, episode, status, results, errorKey, applyingId, appliedOk];
+  List<Object?> get props =>
+      [langId, season, episode, status, results, errorKey, errorDetail, applyingId, appliedOk];
 }

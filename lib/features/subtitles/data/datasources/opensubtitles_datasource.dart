@@ -135,10 +135,16 @@ String imdbDigits(String raw) {
 
 /// Builds the legacy search URL. Prefers `imdbid-…` when a usable IMDB id is
 /// given, otherwise `query-…` from the title. When [season]/[episode] are
-/// present they are appended as `season-`/`episode-` segments, which is what
+/// present they are added as `season-`/`episode-` segments, which is what
 /// narrows a TV search to one episode — an `imdbid-`(series) or `query-`(show)
 /// search *without* them returns series-wide noise (or nothing for the specific
 /// episode). Returns null when neither a key nor a query is usable.
+///
+/// IMPORTANT: the legacy REST API is order-sensitive — the path segments must be
+/// in **alphabetical** order by key (`episode` < `imdbid`/`query` < `season` <
+/// `sublanguageid`). A movie search (just `imdbid`/`query` + `sublanguageid`) is
+/// already in order, but an episode search built in a natural
+/// imdbid→season→episode order returns no results. So the segments are sorted.
 String? buildOpenSubtitlesSearchUrl({
   String? imdbId,
   String? query,
@@ -155,14 +161,13 @@ String? buildOpenSubtitlesSearchUrl({
     if (q.isEmpty) return null;
     segment = 'query-${Uri.encodeComponent(q)}';
   }
-  final parts = [
-    'search',
+  final segments = <String>[
     segment,
     if (season != null) 'season-$season',
     if (episode != null) 'episode-$episode',
     'sublanguageid-$langId',
-  ];
-  return '$kOpenSubtitlesBase/${parts.join('/')}';
+  ]..sort(); // alphabetical order is required by the API (see doc above)
+  return '$kOpenSubtitlesBase/search/${segments.join('/')}';
 }
 
 /// Search inputs derived from a torrent/release name (or a plain room title):

@@ -7,6 +7,7 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
 import '/injections/injection.dart';
+import '/features/operations/presentation/widgets/operations_button.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/favorites/favorites_state.dart';
 import '/routes/routes_names.dart';
@@ -74,6 +75,7 @@ class _RoomsViewState extends State<_RoomsView> {
       appBar: AppBar(
         title: Text(context.tr(TranslationKeys.roomsTitle)),
         actions: [
+          const OperationsButton(),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => SettingsSheet.show(context),
@@ -230,11 +232,16 @@ class _RoomsViewState extends State<_RoomsView> {
           final room = rooms[i];
           return RoomCard(
             room: room,
-            onTap: () => context.pushNamed(
-              RoutesNames.room,
-              pathParameters: {'slug': room.slug},
-              extra: room,
-            ),
+            onTap: () async {
+              // Await the room route so we can refresh on return — a room the
+              // user deleted in there must drop out of this grid.
+              await context.pushNamed(
+                RoutesNames.room,
+                pathParameters: {'slug': room.slug},
+                extra: room,
+              );
+              if (context.mounted) context.read<RoomsListCubit>().refresh();
+            },
           );
         },
       ),

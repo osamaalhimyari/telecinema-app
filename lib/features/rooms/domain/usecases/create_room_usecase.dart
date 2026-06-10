@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart' show CancelToken;
 
 import '/core/UseCase/usecase.dart';
 import '/core/errors/failures.dart';
@@ -11,7 +12,10 @@ class CreateRoomUseCase implements UseCase<CreateRoomResult, CreateRoomParams> {
 
   void Function(int sent, int total)? onUploadProgress;
 
+  /// Set per-submit so the operations panel can abort an in-flight upload.
+  CancelToken? cancelToken;
+
   @override
   Future<Either<Failure, CreateRoomResult>> call(CreateRoomParams params) =>
-      _repository.createRoom(params, onUploadProgress: onUploadProgress);
+      _repository.createRoom(params, onUploadProgress: onUploadProgress, cancelToken: cancelToken);
 }

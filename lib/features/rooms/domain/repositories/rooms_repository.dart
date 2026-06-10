@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart' show CancelToken;
 
 import '/core/errors/failures.dart';
 import '../entities/create_room_params.dart';
@@ -17,6 +18,7 @@ abstract class RoomsRepository {
   Future<Either<Failure, CreateRoomResult>> createRoom(
     CreateRoomParams params, {
     void Function(int sent, int total)? onUploadProgress,
+    CancelToken? cancelToken,
   });
 
   Future<Either<Failure, DownloadProgress>> downloadProgress(String jobId);

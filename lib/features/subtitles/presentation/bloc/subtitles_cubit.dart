@@ -91,7 +91,11 @@ class SubtitlesCubit extends Cubit<SubtitlesState> {
       ),
     );
     res.fold(
-      (f) => emit(state.copyWith(status: SubtitlesStatus.failure, errorKey: f.message)),
+      (f) => emit(state.copyWith(
+        status: SubtitlesStatus.failure,
+        errorKey: f.message,
+        errorDetail: f.detail,
+      )),
       (list) => emit(state.copyWith(status: SubtitlesStatus.success, results: list)),
     );
   }

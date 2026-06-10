@@ -185,10 +185,14 @@ class _SubtitlesView extends StatelessWidget {
           ),
         );
       case SubtitlesStatus.failure:
+        // Title: the translated reason; message: the same line plus a small,
+        // verbatim source hint (e.g. "OpenSubtitles · HTTP 503") so the user
+        // can see *why* it failed, not just that it did.
+        final reason = context.tr(state.errorKey ?? TranslationKeys.errorUnknown);
         return StatusView(
           icon: Icons.cloud_off_rounded,
-          title: context.tr(TranslationKeys.errorUnknown),
-          message: context.tr(state.errorKey ?? TranslationKeys.errorUnknown),
+          title: reason,
+          message: state.errorDetail == null ? null : '${state.errorDetail}',
           actionLabel: context.tr(TranslationKeys.retry),
           onAction: () => context.read<SubtitlesCubit>().search(),
         );

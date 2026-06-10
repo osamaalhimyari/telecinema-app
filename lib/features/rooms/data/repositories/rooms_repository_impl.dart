@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart' show CancelToken;
 
 import '/core/errors/exceptions.dart';
 import '/core/errors/failures.dart';
@@ -34,8 +35,13 @@ class RoomsRepositoryImpl implements RoomsRepository {
   Future<Either<Failure, CreateRoomResult>> createRoom(
     CreateRoomParams params, {
     void Function(int sent, int total)? onUploadProgress,
+    CancelToken? cancelToken,
   }) => _guard(() async {
-    final result = await _remote.create(params, onUploadProgress: onUploadProgress);
+    final result = await _remote.create(
+      params,
+      onUploadProgress: onUploadProgress,
+      cancelToken: cancelToken,
+    );
     return CreateRoomResult(room: result.room?.toEntity(), jobId: result.jobId);
   });
 

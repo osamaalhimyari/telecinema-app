@@ -203,7 +203,21 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: c.scaffoldBackground,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: c.primary.withValues(alpha: isDark ? 0.20 : 0.12),
+        // Solid primary pill on the active tab — same accent as the "Create
+        // room" button — with the icon flipped to onPrimary so it reads on it.
+        indicatorColor: c.primary,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected) ? c.onPrimary : c.textSecondary,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+            color: states.contains(WidgetState.selected) ? c.primary : c.textSecondary,
+          ),
+        ),
         elevation: 0,
         height: 68,
       ),

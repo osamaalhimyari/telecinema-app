@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '/core/config/app_config.dart';
+import '/core/device/device_identity.dart';
 import '../errors/exceptions.dart';
 import 'api_client.dart';
 import 'api_response.dart';
@@ -13,8 +14,20 @@ class DioApiClient implements ApiClient {
   final Dio _dio;
 
   DioApiClient({Dio? dio}) : _dio = dio ?? _buildDio() {
+    _dio.interceptors.add(_deviceIdInterceptor());
     if (kDebugMode) _dio.interceptors.add(_loggingInterceptor());
   }
+
+  /// Stamps every request with the stable per-install device id, so the server
+  /// can tie long-running operations (downloads/torrents) to this device and
+  /// the app can list/cancel them across socket reconnects.
+  Interceptor _deviceIdInterceptor() => InterceptorsWrapper(
+    onRequest: (o, h) {
+      final id = DeviceIdHolder.current;
+      if (id != null) o.headers['X-Device-Id'] = id;
+      h.next(o);
+    },
+  );
 
   static Dio _buildDio() => Dio(
     BaseOptions(
@@ -74,12 +87,14 @@ class DioApiClient implements ApiClient {
     required FormData data,
     Map<String, dynamic>? queryParameters,
     void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
   }) => _send(
     () => _dio.post(
       path,
       data: data,
       queryParameters: queryParameters,
       onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
     ),
   );
 
@@ -107,6 +122,8 @@ class DioApiClient implements ApiClient {
 
   ServerException _mapDioError(DioException e) {
     switch (e.type) {
+      case DioExceptionType.cancel:
+        return const ServerException('operation_canceled');
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:

@@ -2,12 +2,14 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '/core/config/app_config.dart';
+import '/core/device/device_identity.dart';
 import '/core/network/api_client.dart';
 import '/core/network/dio_api_client.dart';
 import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
 import '/features/favorites/injections/favorites_injection.dart';
+import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/topcinema/injections/topcinema_injection.dart';
 import '/features/subtitles/injections/subtitles_injection.dart';
@@ -40,6 +42,13 @@ Future<void> injectSingletons(GetIt sl) async {
   final prefs = await SharedPreferences.getInstance();
   sl.registerLazySingleton<KeyValueStorage>(() => SharedPrefsStorage(prefs));
 
+  // ===== Device identity (stable per-install id → X-Device-Id header) =====
+  // Built and its id published to the holder *before* the network layer, so the
+  // Dio interceptor always has it to stamp on requests.
+  final deviceIdentity = DeviceIdentity(sl<KeyValueStorage>());
+  DeviceIdHolder.current = deviceIdentity.id;
+  sl.registerSingleton<DeviceIdentity>(deviceIdentity);
+
   // Apply a user-overridden server URL (set in Settings) before the network
   // layer is built, so REST, Socket.IO and media URLs all target it from launch.
   final savedUrl = prefs.getString(StorageKeys.serverBaseUrl);
@@ -63,4 +72,5 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectFavoritesSingletons(sl);
   await injectTopcinemaSingletons(sl);
   await injectSubtitlesSingletons(sl);
+  await injectOperationsSingletons(sl);
 }

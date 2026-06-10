@@ -34,6 +34,7 @@ class SharedPrefsStorage implements KeyValueStorage {
 class StorageKeys {
   StorageKeys._();
   static const displayName = 'display_name';
+  static const deviceId = 'device_id';
   static const serverBaseUrl = 'server_base_url';
   static const favorites = 'favorites';
   static const recentSlugs = 'recent_slugs';

@@ -20,6 +20,7 @@ abstract class RoomsRemoteDataSource {
   Future<({RoomModel? room, String? jobId})> create(
     CreateRoomParams params, {
     void Function(int sent, int total)? onUploadProgress,
+    CancelToken? cancelToken,
   });
 
   Future<DownloadProgress> downloadProgress(String jobId);
@@ -72,6 +73,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
   Future<({RoomModel? room, String? jobId})> create(
     CreateRoomParams params, {
     void Function(int sent, int total)? onUploadProgress,
+    CancelToken? cancelToken,
   }) async {
     final type = switch (params.type) {
       RoomType.external => 'external',
@@ -94,6 +96,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
         '/rooms',
         data: form,
         onSendProgress: onUploadProgress,
+        cancelToken: cancelToken,
       );
       if (!res.success) throw ServerException(res.message ?? 'room_create_failed');
       return (room: _roomFrom(res.data), jobId: null);

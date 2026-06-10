@@ -27,11 +27,13 @@ abstract class ApiClient {
   });
 
   /// Multipart upload (room video / subtitle). [onSendProgress] drives an
-  /// upload progress bar.
+  /// upload progress bar; [cancelToken] aborts the request (used by the
+  /// operations panel's Cancel).
   Future<ApiResponse> postMultipart(
     String path, {
     required FormData data,
     Map<String, dynamic>? queryParameters,
     void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
   });
 }

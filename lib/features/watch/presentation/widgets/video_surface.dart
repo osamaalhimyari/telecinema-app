@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,13 +43,45 @@ class _VideoSurfaceState extends State<VideoSurface> {
   /// Used only when no shared notifier is supplied by the parent.
   ValueNotifier<bool>? _ownVisibility;
 
+  /// Idle countdown that fades the controls out after [_idleTimeout] of no
+  /// interaction. Re-armed every time they're shown or a control is touched.
+  Timer? _hideTimer;
+  static const Duration _idleTimeout = Duration(seconds: 5);
+
   ValueNotifier<bool> get _visible =>
       widget.controlsVisibility ?? (_ownVisibility ??= ValueNotifier<bool>(true));
 
-  void _toggleControls() => _visible.value = !_visible.value;
+  @override
+  void initState() {
+    super.initState();
+    // Controls start visible; arm the auto-hide so they fade on their own.
+    _restartHideTimer();
+  }
+
+  /// Tap on the video: hide immediately if showing, otherwise show + arm the
+  /// auto-hide.
+  void _toggleControls() {
+    if (_visible.value) {
+      _hideTimer?.cancel();
+      _visible.value = false;
+    } else {
+      _visible.value = true;
+      _restartHideTimer();
+    }
+  }
+
+  /// Keep the controls up and reset the idle countdown — called whenever the
+  /// user touches a control so they never vanish mid-interaction.
+  void _restartHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(_idleTimeout, () {
+      if (mounted) _visible.value = false;
+    });
+  }
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     _ownVisibility?.dispose();
     super.dispose();
   }
@@ -135,7 +169,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   color: Colors.white,
                   tooltip: '-10s',
                   icon: const Icon(Icons.replay_10_rounded),
-                  onPressed: () => cubit.seekBy(const Duration(seconds: -10)),
+                  onPressed: () {
+                    cubit.seekBy(const Duration(seconds: -10));
+                    _restartHideTimer();
+                  },
                 ),
                 const SizedBox(width: 20),
                 IconButton.filled(
@@ -143,7 +180,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   style: IconButton.styleFrom(backgroundColor: Colors.white24),
                   icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
                   color: Colors.white,
-                  onPressed: cubit.togglePlay,
+                  onPressed: () {
+                    cubit.togglePlay();
+                    _restartHideTimer();
+                  },
                 ),
                 const SizedBox(width: 20),
                 IconButton(
@@ -151,7 +191,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   color: Colors.white,
                   tooltip: '+10s',
                   icon: const Icon(Icons.forward_10_rounded),
-                  onPressed: () => cubit.seekBy(const Duration(seconds: 10)),
+                  onPressed: () {
+                    cubit.seekBy(const Duration(seconds: 10));
+                    _restartHideTimer();
+                  },
                 ),
               ],
             ),
@@ -174,8 +217,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
                       max: dur.inMilliseconds.toDouble().clamp(1, double.infinity),
                       activeColor: context.colors.primary,
                       inactiveColor: Colors.white30,
-                      onChanged: (v) =>
-                          cubit.emitLocalSeekPreview(Duration(milliseconds: v.toInt())),
+                      onChanged: (v) {
+                        cubit.emitLocalSeekPreview(Duration(milliseconds: v.toInt()));
+                        _restartHideTimer();
+                      },
                       onChangeEnd: (v) => cubit.seekTo(Duration(milliseconds: v.toInt())),
                     ),
                   ),

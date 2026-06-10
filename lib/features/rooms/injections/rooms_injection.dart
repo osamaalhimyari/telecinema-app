@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 
 import '/core/network/api_client.dart';
+import '/features/operations/presentation/bloc/operations_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
 import '../data/datasources/home_socket_datasource.dart';
@@ -50,6 +51,10 @@ Future<void> injectRoomsFactories(GetIt sl) async {
     () => RoomsListCubit(sl<GetRoomsUseCase>(), sl<HomeSocketDataSource>()),
   );
   sl.registerFactory<CreateRoomCubit>(
-    () => CreateRoomCubit(sl<CreateRoomUseCase>(), sl<DownloadProgressUseCase>()),
+    () => CreateRoomCubit(
+      sl<CreateRoomUseCase>(),
+      sl<DownloadProgressUseCase>(),
+      sl<OperationsCubit>(),
+    ),
   );
 }
