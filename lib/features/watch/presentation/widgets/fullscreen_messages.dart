@@ -29,11 +29,22 @@ class FullscreenMessagesButton extends StatelessWidget {
           : Colors.black.withValues(alpha: 0.45),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
-      child: IconButton(
-        color: Colors.white,
-        tooltip: context.tr(TranslationKeys.messages),
-        icon: Icon(open ? Icons.forum_rounded : Icons.forum_outlined),
-        onPressed: onTap,
+      // Sized to match the fullscreen reaction toggle (Icon 22 + 8 padding) so
+      // the two stacked buttons read as a matching pair.
+      child: InkWell(
+        borderRadius: BorderRadius.circular(99),
+        onTap: onTap,
+        child: Tooltip(
+          message: context.tr(TranslationKeys.messages),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              open ? Icons.forum_rounded : Icons.forum_outlined,
+              size: 22,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ),
     );
   }
