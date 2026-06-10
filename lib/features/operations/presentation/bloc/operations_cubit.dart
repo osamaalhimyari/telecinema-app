@@ -31,6 +31,13 @@ class OperationsCubit extends Cubit<OperationsState> {
   final Map<String, ServerOperation> _local = {};
   final Map<String, CancelToken> _localCancels = {};
 
+  /// Server-operation ids the user dismissed with the panel's X. The server
+  /// keeps returning a finished transfer until its own eviction timer drops it
+  /// (there's no "delete operation" endpoint), so we filter these out of every
+  /// merge to honor the dismiss immediately. Pruned in [_poll] once the server
+  /// stops listing the id, so the set can't grow without bound.
+  final Set<String> _dismissed = {};
+
   static const _fastInterval = Duration(seconds: 3);
   static const _idleInterval = Duration(seconds: 15);
 
@@ -51,6 +58,9 @@ class OperationsCubit extends Cubit<OperationsState> {
   Future<void> _poll() async {
     try {
       _server = await _ds.list();
+      // Drop dismissed ids the server no longer lists, so the set tracks only
+      // currently-served operations.
+      _dismissed.removeWhere((id) => !_server.any((o) => o.id == id));
       _emitMerged();
     } catch (_) {
       // A failed poll (offline, server down) just keeps the last known list —
@@ -66,8 +76,11 @@ class OperationsCubit extends Cubit<OperationsState> {
 
   void _emitMerged() {
     // Local uploads first (they're happening on this screen right now), then the
-    // server list (already newest-first).
-    final merged = <ServerOperation>[..._local.values, ..._server];
+    // server list (already newest-first), minus any the user dismissed.
+    final merged = <ServerOperation>[
+      ..._local.values,
+      ..._server.where((o) => !_dismissed.contains(o.id)),
+    ];
     emit(state.copyWith(operations: merged));
   }
 
@@ -143,18 +156,28 @@ class OperationsCubit extends Cubit<OperationsState> {
     await _poll();
   }
 
-  /// Removes a finished operation from the list. Server ones evict themselves
-  /// server-side; this just clears a finished/canceled local upload from view.
+  /// Removes a finished operation from the list. A local upload is dropped
+  /// outright; a server transfer is hidden via [_dismissed] (the server still
+  /// lists it until its own eviction timer, and it isn't ours to delete).
   void dismiss(ServerOperation op) {
-    if (_local.remove(op.id) != null) {
-      _localCancels.remove(op.id);
-      _emitMerged();
+    if (op.isLocal) {
+      if (_local.remove(op.id) != null) {
+        _localCancels.remove(op.id);
+        _emitMerged();
+      }
+      return;
     }
+    _dismissed.add(op.id);
+    _emitMerged();
   }
 
-  /// Clears every finished/errored local upload at once.
+  /// Clears every finished/errored operation at once — local uploads outright,
+  /// finished server transfers by hiding them like [dismiss].
   void clearFinished() {
     _local.removeWhere((_, op) => !op.isActive);
+    for (final op in _server) {
+      if (!op.isActive) _dismissed.add(op.id);
+    }
     _emitMerged();
   }
 
