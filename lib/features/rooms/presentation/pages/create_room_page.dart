@@ -35,19 +35,23 @@ class CreateRoomPage extends StatelessWidget {
     this.initialVideoUrl,
     this.initialCategory,
     this.initialImdbId,
+    this.initialMaxHeight,
   });
 
   /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
-  /// torrent, or from the topcinema direct-download flow). When [initialMagnet]
-  /// is set the form opens on the torrent type; when [initialVideoUrl] is set it
-  /// opens on the download type with the link filled in; [initialCategory]
-  /// pre-selects a category chip (`movies` / `series`); [initialImdbId] is
-  /// carried through so the room can later search subtitles by IMDB id.
+  /// torrent, or from the topcinema / YouTube direct-download flows). When
+  /// [initialMagnet] is set the form opens on the torrent type; when
+  /// [initialVideoUrl] is set it opens on the download type with the link filled
+  /// in; [initialCategory] pre-selects a category chip (`movies` / `series`);
+  /// [initialImdbId] is carried through so the room can later search subtitles
+  /// by IMDB id; [initialMaxHeight] is the YouTube-chosen download quality
+  /// (height in px) carried through to the server, unused by other sources.
   final String? initialName;
   final String? initialMagnet;
   final String? initialVideoUrl;
   final String? initialCategory;
   final String? initialImdbId;
+  final int? initialMaxHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +63,7 @@ class CreateRoomPage extends StatelessWidget {
         initialVideoUrl: initialVideoUrl,
         initialCategory: initialCategory,
         initialImdbId: initialImdbId,
+        initialMaxHeight: initialMaxHeight,
       ),
     );
   }
@@ -71,6 +76,7 @@ class _CreateRoomView extends StatefulWidget {
     this.initialVideoUrl,
     this.initialCategory,
     this.initialImdbId,
+    this.initialMaxHeight,
   });
 
   final String? initialName;
@@ -78,6 +84,7 @@ class _CreateRoomView extends StatefulWidget {
   final String? initialVideoUrl;
   final String? initialCategory;
   final String? initialImdbId;
+  final int? initialMaxHeight;
 
   @override
   State<_CreateRoomView> createState() => _CreateRoomViewState();
@@ -165,6 +172,8 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
         reactions: _reactions.isEmpty ? null : List.of(_reactions),
         category: _category,
         imdbId: widget.initialImdbId,
+        // Only meaningful for a server download (the YouTube flow sets it).
+        maxHeight: _type == RoomType.download ? widget.initialMaxHeight : null,
       ),
     );
   }
