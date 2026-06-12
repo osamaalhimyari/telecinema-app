@@ -158,6 +158,22 @@ class TranslationKeys {
   static const subtitleSize = 'subtitle_size';
   static const reset = 'reset';
 
+  // Offline cache (videos downloaded to this device)
+  static const cachedVideos = 'cached_videos';
+  static const cachedVideosEmpty = 'cached_videos_empty';
+  static const cachedVideosEmptyHint = 'cached_videos_empty_hint';
+  static const downloadForOffline = 'download_for_offline';
+  static const savedOffline = 'saved_offline';
+  static const downloadPaused = 'download_paused';
+  static const downloadFailed = 'download_failed';
+  static const pause = 'pause';
+  static const resume = 'resume';
+  static const deleteDownload = 'delete_download';
+  static const deleteDownloadConfirm = 'delete_download_confirm';
+  static const deleteAll = 'delete_all';
+  static const deleteAllConfirm = 'delete_all_confirm';
+  static const storageUsed = 'storage_used';
+
   // Server operations (transfers) panel
   static const operationsTitle = 'operations_title';
   static const operationsEmpty = 'operations_empty';

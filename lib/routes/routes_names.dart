@@ -22,4 +22,7 @@ class RoutesNames {
 
   /// In-room "Download subtitle" search (OpenSubtitles), pushed above the room.
   static const subtitles = 'subtitles';
+
+  /// Library of videos cached on this device (download-for-offline manager).
+  static const cached = 'cached';
 }

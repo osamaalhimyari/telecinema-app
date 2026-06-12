@@ -20,6 +20,7 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/name_dialog.dart';
 import '/core/shared/status_view.dart';
+import '/features/cache/presentation/widgets/download_button.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
@@ -295,6 +296,8 @@ class _RoomScaffold extends StatelessWidget {
                   child: Row(
                     children: [
                       const Expanded(child: ReactionBar()),
+                      const SizedBox(width: 4),
+                      const DownloadButton(),
                       const SizedBox(width: 4),
                       const VoiceButton(),
                       const SizedBox(width: 12),
