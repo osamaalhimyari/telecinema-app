@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '/features/browse/domain/entities/catalog_item.dart';
 import '/features/browse/presentation/pages/browse_page.dart';
 import '/features/browse/presentation/pages/detail_page.dart';
+import '/features/cache/presentation/pages/cached_videos_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
 import '../features/rooms/domain/entities/room.dart';
@@ -83,6 +84,12 @@ final router = GoRouter(
         slug: state.pathParameters['slug'] ?? '',
         initialRoom: state.extra is Room ? state.extra as Room : null,
       ),
+    ),
+    GoRoute(
+      name: RoutesNames.cached,
+      path: '/cached',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const CachedVideosPage(),
     ),
     GoRoute(
       name: RoutesNames.subtitles,

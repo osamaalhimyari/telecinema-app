@@ -8,6 +8,7 @@ import '/core/network/dio_api_client.dart';
 import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
+import '/features/cache/injections/cache_injection.dart';
 import '/features/favorites/injections/favorites_injection.dart';
 import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
@@ -71,6 +72,8 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectWatchSingletons(sl);
   await injectBrowseSingletons(sl);
   await injectFavoritesSingletons(sl);
+  // On-device video cache (download-before-watch + offline playback).
+  await injectCacheSingletons(sl);
   await injectTopcinemaSingletons(sl);
   await injectSubtitlesSingletons(sl);
   await injectOperationsSingletons(sl);

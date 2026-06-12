@@ -77,6 +77,11 @@ class _RoomsViewState extends State<_RoomsView> {
         actions: [
           const OperationsButton(),
           IconButton(
+            tooltip: context.tr(TranslationKeys.cachedVideos),
+            icon: const Icon(Icons.download_for_offline_outlined),
+            onPressed: () => context.pushNamed(RoutesNames.cached),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => SettingsSheet.show(context),
           ),

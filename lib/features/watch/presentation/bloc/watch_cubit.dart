@@ -8,6 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '/core/config/app_config.dart';
 import '/core/constants/app_constants.dart';
 import '/core/localization/translation_keys.dart';
+import '/features/cache/data/cache_manager.dart';
 import '/features/rooms/domain/usecases/delete_room_usecase.dart';
 import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
@@ -41,6 +42,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._torrentEngine,
     this._favorites,
     this._identity,
+    this._cache,
   ) : super(const WatchState());
 
   final WatchRepository _repo;
@@ -52,6 +54,7 @@ class WatchCubit extends Cubit<WatchState> {
   final TorrentEngine _torrentEngine;
   final FavoritesCubit _favorites;
   final IdentityCubit _identity;
+  final CacheManager _cache;
 
   Player? _player;
 
@@ -158,6 +161,19 @@ class WatchCubit extends Cubit<WatchState> {
     final room = state.room!;
     _repo.join(room.slug);
     if (state.isExternal) return;
+
+    // Prefer a finished local copy: play straight from disk so this viewer never
+    // buffers (and never trips the room's wait-for-slowest gate), while sync,
+    // chat and reactions keep flowing over the socket exactly as for a stream.
+    final cachedPath = _cache.resolvePlayable(room);
+    if (cachedPath != null) {
+      // media_kit/libmpv wants a proper file:// URI (esp. on Windows/desktop),
+      // not a bare path.
+      final subPath = _cache.cachedSubtitlePath(room.slug);
+      if (subPath != null) emit(state.copyWith(subtitleUrl: Uri.file(subPath).toString()));
+      _initVideo(Uri.file(cachedPath).toString());
+      return;
+    }
 
     // Torrent rooms stream on-device: each client adds the magnet to its own
     // embedded librqbit engine and plays the resulting local 127.0.0.1 URL.
