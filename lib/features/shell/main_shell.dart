@@ -4,10 +4,11 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 
-/// App shell hosting the three persistent bottom-nav tabs (Rooms / Browse /
-/// Favorites). Each tab keeps its own navigation state via
-/// [StatefulNavigationShell]; full-screen routes (create room, the player,
-/// title details) are pushed above this shell.
+/// App shell hosting the persistent bottom-nav tabs (Rooms / Browse /
+/// Favorites). Browse is the unified IMDB + Cinema catalogue. Each tab keeps its
+/// own navigation state via [StatefulNavigationShell]; full-screen routes
+/// (create room, the player, title details) are pushed above this shell.
+/// Destination order must match the shell branch order in [router].
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -39,6 +40,7 @@ class MainShell extends StatelessWidget {
           //   selectedIcon: const Icon(Icons.play_circle_rounded),
           //   label: context.tr(TranslationKeys.youtubeTab),
           // ),
+          // Browse — unified IMDB + Cinema catalogue (one tab, branch index 1).
           NavigationDestination(
             icon: const Icon(Icons.movie_outlined),
             selectedIcon: const Icon(Icons.movie_rounded),

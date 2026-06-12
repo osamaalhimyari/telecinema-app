@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
+import '/features/cinema/domain/entities/cinema_item.dart';
 import '/routes/routes_names.dart';
 import '../../../browse/domain/entities/catalog_item.dart';
 import '../../../browse/presentation/widgets/browse_shimmer.dart';
@@ -13,10 +14,20 @@ import '../bloc/catalog_favorites_cubit.dart';
 import '../bloc/catalog_favorites_state.dart';
 
 /// Favorites tab: the account-less global list of movies/series saved from the
-/// catalogue. Reuses the same [PosterCard] tiles and opens the same detail page
-/// as Browse, so a saved title behaves exactly like a browsed one.
-class FavoritesPage extends StatelessWidget {
+/// catalogues. Reuses the same [PosterCard] tiles, and opens the right detail
+/// page per title — the IMDB/Browse page for Cinemeta titles, the Cinema page
+/// for EgyBest titles — using each favorite's `source`. When both catalogues are
+/// present a small filter lets the user view them separately.
+class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
+
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  /// Active source filter: null = all, otherwise `cinemeta` / `egybest`.
+  String? _source;
 
   @override
   Widget build(BuildContext context) {
@@ -60,30 +71,82 @@ class FavoritesPage extends StatelessWidget {
         ),
       );
     }
-    return RefreshIndicator(
-      onRefresh: () => context.read<CatalogFavoritesCubit>().load(),
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 180,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.58,
+
+    // Both catalogues present → offer a filter so they can be viewed separately.
+    final hasEgybest = state.items.any((i) => i.isEgybest);
+    final hasCinemeta = state.items.any((i) => !i.isEgybest);
+    final showFilter = hasEgybest && hasCinemeta;
+    final items = _source == null
+        ? state.items
+        : state.items.where((i) => i.source == _source).toList();
+
+    return Column(
+      children: [
+        if (showFilter) _filter(context),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => context.read<CatalogFavoritesCubit>().load(),
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 180,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.58,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, i) {
+                final item = items[i];
+                return PosterCard(item: item, onTap: () => _openDetail(context, item));
+              },
+            ),
+          ),
         ),
-        itemCount: state.items.length,
-        itemBuilder: (context, i) {
-          final item = state.items[i];
-          return PosterCard(item: item, onTap: () => _openDetail(context, item));
-        },
+      ],
+    );
+  }
+
+  Widget _filter(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<String?>(
+          segments: [
+            ButtonSegment(value: null, label: Text(context.tr(TranslationKeys.categoryAll))),
+            ButtonSegment(
+              value: 'cinemeta',
+              label: Text(context.tr(TranslationKeys.favoritesSourceImdb)),
+            ),
+            ButtonSegment(
+              value: 'egybest',
+              label: Text(context.tr(TranslationKeys.favoritesSourceCinema)),
+            ),
+          ],
+          selected: {_source},
+          onSelectionChanged: (s) => setState(() => _source = s.first),
+          showSelectedIcon: false,
+        ),
       ),
     );
   }
 
+  /// EgyBest favorites open the Cinema detail page; everything else (legacy +
+  /// Cinemeta) opens the Browse/IMDB detail page — keeping the two flows fully
+  /// separate.
   void _openDetail(BuildContext context, CatalogItem item) {
-    context.pushNamed(
-      RoutesNames.browseDetail,
-      pathParameters: {'type': item.type, 'id': item.id},
-      extra: item,
-    );
+    if (item.isEgybest) {
+      context.pushNamed(
+        RoutesNames.cinemaDetail,
+        pathParameters: {'type': item.type, 'id': item.id},
+        extra: CinemaItem.fromCatalogItem(item),
+      );
+    } else {
+      context.pushNamed(
+        RoutesNames.browseDetail,
+        pathParameters: {'type': item.type, 'id': item.id},
+        extra: item,
+      );
+    }
   }
 }

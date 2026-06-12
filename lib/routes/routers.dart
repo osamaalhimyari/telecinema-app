@@ -2,9 +2,11 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/browse/domain/entities/catalog_item.dart';
-import '/features/browse/presentation/pages/browse_page.dart';
 import '/features/browse/presentation/pages/detail_page.dart';
 import '/features/cache/presentation/pages/cached_videos_page.dart';
+import '/features/cinema/domain/entities/cinema_item.dart';
+import '/features/cinema/presentation/pages/cinema_detail_page.dart';
+import '/features/discover/presentation/pages/discover_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
 import '/features/youtube/presentation/pages/youtube_search_page.dart';
@@ -39,12 +41,14 @@ final router = GoRouter(
             ),
           ],
         ),
+        // Browse — the unified tab: one grid merging the IMDB (Cinemeta) and
+        // Cinema (EgyBest) catalogues. Each card opens its own detail page.
         StatefulShellBranch(
           routes: [
             GoRoute(
               name: RoutesNames.browse,
               path: '/browse',
-              builder: (_, _) => const BrowsePage(),
+              builder: (_, _) => const DiscoverPage(),
             ),
           ],
         ),
@@ -125,6 +129,16 @@ final router = GoRouter(
         type: state.pathParameters['type'] ?? 'movie',
         id: state.pathParameters['id'] ?? '',
         initial: state.extra is CatalogItem ? state.extra as CatalogItem : null,
+      ),
+    ),
+    GoRoute(
+      name: RoutesNames.cinemaDetail,
+      path: '/cinema/title/:type/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => CinemaDetailPage(
+        type: state.pathParameters['type'] ?? 'movie',
+        id: state.pathParameters['id'] ?? '',
+        initial: state.extra is CinemaItem ? state.extra as CinemaItem : null,
       ),
     ),
   ],

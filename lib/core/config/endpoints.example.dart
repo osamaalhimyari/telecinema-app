@@ -16,6 +16,10 @@ class Endpoints {
   /// OpenSubtitles legacy REST API base URL.
   static const String openSubtitles = '';
 
+  /// TopCinema scraper base (the "Direct download" provider), e.g.
+  /// `https://web4.topcinema.fan`. Mirror subdomain rotates — bump it here.
+  static const String topcinema = '';
+
   /// Public trackers appended to every built magnet to seed peer discovery.
   static const List<String> trackers = [
     // 'udp://tracker.example.org:1337/announce',

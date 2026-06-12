@@ -49,9 +49,26 @@ class TranslationKeys {
 
   // Bottom navigation tabs
   static const roomsTab = 'rooms_tab';
+  static const cinemaTab = 'cinema_tab';
   static const browseTab = 'browse_tab';
   static const favoritesTab = 'favorites_tab';
   static const youtubeTab = 'youtube_tab';
+
+  // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
+  static const cinemaTitle = 'cinema_title';
+  static const cinemaSearchHint = 'cinema_search_hint';
+  static const cinemaNoResults = 'cinema_no_results';
+  static const cinemaNoResultsHint = 'cinema_no_results_hint';
+  static const cinemaChooseServer = 'cinema_choose_server';
+  static const cinemaNoServers = 'cinema_no_servers';
+  static const cinemaResolveFailed = 'cinema_resolve_failed';
+  static const cinemaDirectFile = 'cinema_direct_file';
+  static const cinemaStreamHost = 'cinema_stream_host';
+  static const cinemaLoading = 'cinema_loading';
+  static const cinemaUnavailable = 'cinema_unavailable';
+  static const cinemaNoEpisodes = 'cinema_no_episodes';
+  static const favoritesSourceImdb = 'favorites_source_imdb';
+  static const favoritesSourceCinema = 'favorites_source_cinema';
 
   // YouTube search tab (isolated "search → server download" feature)
   static const youtubeSearchHint = 'youtube_search_hint';
