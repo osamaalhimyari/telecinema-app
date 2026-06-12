@@ -34,6 +34,11 @@ class MainShell extends StatelessWidget {
             selectedIcon: const Icon(Icons.meeting_room_rounded),
             label: context.tr(TranslationKeys.roomsTab),
           ),
+          //  NavigationDestination(
+          //   icon: const Icon(Icons.play_circle_outline_rounded),
+          //   selectedIcon: const Icon(Icons.play_circle_rounded),
+          //   label: context.tr(TranslationKeys.youtubeTab),
+          // ),
           NavigationDestination(
             icon: const Icon(Icons.movie_outlined),
             selectedIcon: const Icon(Icons.movie_rounded),

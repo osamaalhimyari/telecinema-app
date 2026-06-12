@@ -44,6 +44,13 @@ const Map<String, String> arAr = {
   TranslationKeys.roomsTab: 'الغرف',
   TranslationKeys.browseTab: 'استكشاف',
   TranslationKeys.favoritesTab: 'المفضلة',
+  TranslationKeys.youtubeTab: 'يوتيوب',
+
+  TranslationKeys.youtubeSearchHint: 'ابحث أو الصق رابط يوتيوب',
+  TranslationKeys.youtubeSearchPrompt: 'ابحث في يوتيوب — أو الصق رابط فيديو — لبدء مشاهدة جماعية.',
+  TranslationKeys.youtubeNoResults: 'لا توجد فيديوهات.',
+  TranslationKeys.youtubeUnavailable: 'يوتيوب غير متاح حالياً.',
+  TranslationKeys.youtubeCreateRoom: 'إنشاء غرفة',
 
   TranslationKeys.favoritesTitle: 'المفضلة',
   TranslationKeys.favoritesEmpty: 'لا توجد مفضلة بعد',

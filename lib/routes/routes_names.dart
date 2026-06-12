@@ -10,6 +10,9 @@ class RoutesNames {
   /// Saved movies/series (third bottom-nav tab).
   static const favorites = 'favorites';
 
+  /// YouTube search → server-download room creation (fourth bottom-nav tab).
+  static const youtube = 'youtube';
+
   /// A title's detail page in the Browse catalogue.
   static const browseDetail = 'browse-detail';
 

@@ -51,6 +51,14 @@ class TranslationKeys {
   static const roomsTab = 'rooms_tab';
   static const browseTab = 'browse_tab';
   static const favoritesTab = 'favorites_tab';
+  static const youtubeTab = 'youtube_tab';
+
+  // YouTube search tab (isolated "search → server download" feature)
+  static const youtubeSearchHint = 'youtube_search_hint';
+  static const youtubeSearchPrompt = 'youtube_search_prompt';
+  static const youtubeNoResults = 'youtube_no_results';
+  static const youtubeUnavailable = 'youtube_unavailable';
+  static const youtubeCreateRoom = 'youtube_create_room';
 
   // Favorites (saved movies/series)
   static const favoritesTitle = 'favorites_title';

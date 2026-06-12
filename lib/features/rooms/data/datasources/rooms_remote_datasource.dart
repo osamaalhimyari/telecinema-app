@@ -111,6 +111,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.magnet != null) 'magnet': params.magnet,
       if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
       if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
+      if (params.maxHeight != null) 'maxHeight': params.maxHeight,
       if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
     });
     if (!res.success) throw ServerException(res.message ?? 'room_create_failed');

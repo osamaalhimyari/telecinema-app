@@ -19,6 +19,7 @@ class CreateRoomParams {
     this.reactions,
     this.category,
     this.imdbId,
+    this.maxHeight,
   });
 
   final String name;
@@ -35,6 +36,10 @@ class CreateRoomParams {
   /// from the Browse catalogue; null otherwise. Persisted so the room can later
   /// search OpenSubtitles by IMDB id.
   final String? imdbId;
+
+  /// Max video height for a server-side YouTube download (e.g. 1080), set only
+  /// by the YouTube flow. Ignored by the server for non-YouTube sources.
+  final int? maxHeight;
 }
 
 /// The outcome of a create call: either the room is ready immediately

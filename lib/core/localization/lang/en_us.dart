@@ -46,6 +46,13 @@ const Map<String, String> enUs = {
   TranslationKeys.roomsTab: 'Rooms',
   TranslationKeys.browseTab: 'Browse',
   TranslationKeys.favoritesTab: 'Favorites',
+  TranslationKeys.youtubeTab: 'YouTube',
+
+  TranslationKeys.youtubeSearchHint: 'Search or paste a YouTube link',
+  TranslationKeys.youtubeSearchPrompt: 'Search YouTube — or paste a video link — to start a watch party.',
+  TranslationKeys.youtubeNoResults: 'No videos found.',
+  TranslationKeys.youtubeUnavailable: 'YouTube is unavailable right now.',
+  TranslationKeys.youtubeCreateRoom: 'Create room',
 
   TranslationKeys.favoritesTitle: 'Favorites',
   TranslationKeys.favoritesEmpty: 'No favorites yet',

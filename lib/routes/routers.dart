@@ -7,6 +7,7 @@ import '/features/browse/presentation/pages/detail_page.dart';
 import '/features/cache/presentation/pages/cached_videos_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
+import '/features/youtube/presentation/pages/youtube_search_page.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
 import '../features/rooms/presentation/pages/rooms_page.dart';
@@ -56,6 +57,15 @@ final router = GoRouter(
             ),
           ],
         ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: RoutesNames.youtube,
+              path: '/youtube',
+              builder: (_, _) => const YoutubeSearchPage(),
+            ),
+          ],
+        ),
       ],
     ),
 
@@ -73,6 +83,7 @@ final router = GoRouter(
           initialVideoUrl: prefill['videoUrl'] as String?,
           initialCategory: prefill['category'] as String?,
           initialImdbId: prefill['imdbId'] as String?,
+          initialMaxHeight: prefill['maxHeight'] as int?,
         );
       },
     ),
