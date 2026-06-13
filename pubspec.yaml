@@ -2,7 +2,9 @@ name: watch_aprty_app
 description: "Watch Party — synchronized video rooms, chat, reactions and voice."
 publish_to: 'none'
 
-version: 1.0.4
+# The `+N` build number is the Android versionCode the in-app updater compares
+# on — it MUST increase on every release you publish to the admin dashboard.
+version: 1.0.5+2
 
 environment:
   sdk: ^3.11.0
@@ -54,6 +56,10 @@ dependencies:
   shared_preferences: ^2.5.5
   path_provider: ^2.1.5
   package_info_plus: ^9.0.1
+
+  # ---- In-app updates (sideloaded APK self-update; Android) ----
+  open_filex: ^4.5.0 # hands the downloaded APK to the system installer (bundles its own FileProvider)
+  permission_handler: ^11.3.1 # the REQUEST_INSTALL_PACKAGES "install unknown apps" grant
   url_launcher: ^6.3.2
   intl: ^0.20.2
   cupertino_icons: ^1.0.8

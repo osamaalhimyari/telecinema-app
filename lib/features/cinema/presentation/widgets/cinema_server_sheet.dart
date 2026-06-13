@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '/core/errors/exceptions.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/routes/routes_names.dart';
 import '../../data/datasources/cinema_remote_datasource.dart';
 import '../../domain/entities/cinema_server.dart';
 import '../../domain/entities/cinema_stream.dart';
+import '../bloc/cinema_server_sheet/cinema_server_sheet_cubit.dart';
+import '../bloc/cinema_server_sheet/cinema_server_sheet_state.dart';
 
 /// The "servers of download" picker. Lists every server for a movie or episode;
 /// tapping one **parses it on-device until a direct download link is found**
@@ -39,7 +41,7 @@ Future<void> showCinemaServerPicker(
   );
 }
 
-class _ServerSheet extends StatefulWidget {
+class _ServerSheet extends StatelessWidget {
   const _ServerSheet({
     required this.roomName,
     required this.servers,
@@ -55,67 +57,38 @@ class _ServerSheet extends StatefulWidget {
   final String? imdbId;
 
   @override
-  State<_ServerSheet> createState() => _ServerSheetState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => CinemaServerSheetCubit(
+        datasource: datasource,
+        servers: servers,
+      ),
+      child: _ServerSheetView(
+        roomName: roomName,
+        isSeries: isSeries,
+        imdbId: imdbId,
+      ),
+    );
+  }
 }
 
-class _ServerSheetState extends State<_ServerSheet> {
-  /// Index of the server currently being resolved, or null.
-  int? _resolving;
+class _ServerSheetView extends StatelessWidget {
+  const _ServerSheetView({
+    required this.roomName,
+    required this.isSeries,
+    this.imdbId,
+  });
 
-  /// Most-reliable first: direct files (with a real quality), then the hosts the
-  /// on-device resolver actually cracks, then everything else, with the known
-  /// hard hosts (faselhd, redirectors) last. De-duplicated by link. Ordering is
-  /// only a hint — every server is still tappable.
-  late final List<CinemaServer> _servers = _ordered(widget.servers);
+  final String roomName;
+  final bool isSeries;
+  final String? imdbId;
 
-  /// Hosts the [CinemaResolver] reliably extracts (a packed `eval()` → media
-  /// url). Used only to sort them ahead of the hard ones.
-  static const _goodHosts = [
-    'uqload', 'vidtube', 'updown', 'vidspeed', 'mp4plus',
-    'anafast', 'egybestvid', 'filemoon', 'streamwish', 'mwdy',
-  ];
+  Future<void> _onTap(BuildContext context, int index) async {
+    final cubit = context.read<CinemaServerSheetCubit>();
+    if (cubit.state.resolving != null) return;
 
-  /// Hosts that need bespoke reverse-engineering the resolver doesn't do, so
-  /// they usually fail — pushed to the bottom.
-  static const _hardHosts = ['fasel', 'topcinemaa', 'filelions', 'earnvids', 'reviewrate'];
-
-  static List<CinemaServer> _ordered(List<CinemaServer> servers) {
-    final seen = <String>{};
-    final unique = [
-      for (final s in servers)
-        if (seen.add(s.link)) s,
-    ];
-    int score(CinemaServer s) {
-      if (s.isDirect) return 0;
-      final host = Uri.tryParse(s.link)?.host ?? '';
-      if (_goodHosts.any(host.contains)) return 1;
-      if (_hardHosts.any(host.contains)) return 4;
-      if (s.supportedHosts) return 2;
-      return 3;
-    }
-
-    final indexed = [for (var i = 0; i < unique.length; i++) (i, unique[i])];
-    indexed.sort((a, b) {
-      final c = score(a.$2).compareTo(score(b.$2));
-      return c != 0 ? c : a.$1.compareTo(b.$1); // stable within a tier
-    });
-    return [for (final e in indexed) e.$2];
-  }
-
-  Future<void> _onTap(int index) async {
-    if (_resolving != null) return;
-    setState(() => _resolving = index);
-
-    List<CinemaStream>? streams;
-    try {
-      streams = await widget.datasource.resolve(_servers[index]);
-    } on ServerException {
-      streams = null;
-    } catch (_) {
-      streams = null;
-    }
-    if (!mounted) return;
-    setState(() => _resolving = null);
+    final streams = await cubit.resolve(index);
+    if (!context.mounted) return;
 
     if (streams == null || streams.isEmpty) {
       context.showSnack(context.tr(TranslationKeys.cinemaResolveFailed));
@@ -126,8 +99,8 @@ class _ServerSheetState extends State<_ServerSheet> {
     // quality first ("if there is qualities show them before the room").
     final chosen = streams.length == 1
         ? streams.first
-        : await _showQualityDialog(context, widget.roomName, streams);
-    if (chosen == null || !mounted) return;
+        : await _showQualityDialog(context, roomName, streams);
+    if (chosen == null || !context.mounted) return;
 
     // Capture the router before popping — using the sheet's context after it's
     // dismissed would look up a deactivated ancestor.
@@ -136,10 +109,10 @@ class _ServerSheetState extends State<_ServerSheet> {
     router.pushNamed(
       RoutesNames.createRoom,
       extra: {
-        'name': widget.roomName,
+        'name': roomName,
         'videoUrl': chosen.url,
-        'category': widget.isSeries ? 'series' : 'movies',
-        'imdbId': widget.imdbId,
+        'category': isSeries ? 'series' : 'movies',
+        'imdbId': imdbId,
       },
     );
   }
@@ -152,41 +125,46 @@ class _ServerSheetState extends State<_ServerSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.92,
       builder: (context, controller) {
-        return ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                context.tr(TranslationKeys.cinemaChooseServer),
-                style: context.text.titleLarge,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                widget.roomName,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
+        return BlocBuilder<CinemaServerSheetCubit, CinemaServerSheetState>(
+          builder: (context, state) {
+            final servers = state.servers;
+            return ListView(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    context.tr(TranslationKeys.cinemaChooseServer),
+                    style: context.text.titleLarge,
+                  ),
                 ),
-              ),
-            ),
-            if (_servers.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 36),
-                child: Center(child: Text(context.tr(TranslationKeys.cinemaNoServers))),
-              ),
-            for (var i = 0; i < _servers.length; i++)
-              _serverTile(context, i, _servers[i]),
-          ],
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    roomName,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                if (servers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
+                    child: Center(child: Text(context.tr(TranslationKeys.cinemaNoServers))),
+                  ),
+                for (var i = 0; i < servers.length; i++)
+                  _serverTile(context, i, servers[i], state.resolving),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _serverTile(BuildContext context, int index, CinemaServer server) {
-    final loading = _resolving == index;
+  Widget _serverTile(BuildContext context, int index, CinemaServer server, int? resolving) {
+    final loading = resolving == index;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
@@ -202,7 +180,7 @@ class _ServerSheetState extends State<_ServerSheet> {
               )
             : const Icon(Icons.download_rounded),
         // Block other taps while one server resolves.
-        onTap: _resolving == null ? () => _onTap(index) : null,
+        onTap: resolving == null ? () => _onTap(context, index) : null,
       ),
     );
   }

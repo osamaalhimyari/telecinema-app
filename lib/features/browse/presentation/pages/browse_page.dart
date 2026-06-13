@@ -28,36 +28,8 @@ class BrowsePage extends StatelessWidget {
   }
 }
 
-class _BrowseView extends StatefulWidget {
+class _BrowseView extends StatelessWidget {
   const _BrowseView();
-
-  @override
-  State<_BrowseView> createState() => _BrowseViewState();
-}
-
-class _BrowseViewState extends State<_BrowseView> {
-  final _search = TextEditingController();
-  final _scroll = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scroll.removeListener(_onScroll);
-    _scroll.dispose();
-    _search.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
-      context.read<BrowseCubit>().loadMore();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,28 +63,31 @@ class _BrowseViewState extends State<_BrowseView> {
   }
 
   Widget _searchField(BuildContext context) {
-    final hasText = _search.text.isNotEmpty;
+    final cubit = context.read<BrowseCubit>();
+    final controller = cubit.searchController;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: TextField(
-        controller: _search,
-        textInputAction: TextInputAction.search,
-        onChanged: (v) => setState(() => context.read<BrowseCubit>().setQuery(v)),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: context.tr(TranslationKeys.browseSearchHint),
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: hasText
-              ? IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () {
-                    _search.clear();
-                    context.read<BrowseCubit>().setQuery('');
-                    setState(() {});
-                  },
-                )
-              : null,
-        ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          final hasText = value.text.isNotEmpty;
+          return TextField(
+            controller: controller,
+            textInputAction: TextInputAction.search,
+            onChanged: cubit.setQuery,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: context.tr(TranslationKeys.browseSearchHint),
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: hasText
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: cubit.clearSearch,
+                    )
+                  : null,
+            ),
+          );
+        },
       ),
     );
   }
@@ -199,7 +174,7 @@ class _BrowseViewState extends State<_BrowseView> {
     return Stack(
       children: [
         GridView.builder(
-          controller: _scroll,
+          controller: context.read<BrowseCubit>().scrollController,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 180,

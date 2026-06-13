@@ -150,6 +150,9 @@ const Map<String, String> arAr = {
   TranslationKeys.speaking: 'يتحدث',
   TranslationKeys.micPermissionDenied: 'تم رفض إذن الميكروفون.',
 
+  TranslationKeys.lockControls: 'قفل لمس الشاشة',
+  TranslationKeys.unlockControls: 'فتح لمس الشاشة',
+
   TranslationKeys.addSubtitle: 'إضافة ترجمة',
   TranslationKeys.subtitleAdded: 'تمت إضافة الترجمة.',
   TranslationKeys.subtitleExternalOnly: 'الترجمة متاحة لغرف التضمين فقط.',
@@ -242,4 +245,19 @@ const Map<String, String> arAr = {
   TranslationKeys.serverInvalid: 'أدخل رابط http(s) صالحاً.',
   TranslationKeys.serverChangedRestart: 'تم تحديث الخادم — أعد تشغيل التطبيق للتطبيق.',
   TranslationKeys.resetToDefault: 'استعادة الافتراضي',
+  TranslationKeys.appVersion: 'الإصدار',
+
+  TranslationKeys.updateAvailable: 'يتوفر تحديث',
+  TranslationKeys.updateDownload: 'حدّث الآن',
+  TranslationKeys.updateDownloading: 'جارٍ التنزيل',
+  TranslationKeys.updateInstall: 'تثبيت',
+  TranslationKeys.updateLater: 'لاحقاً',
+  TranslationKeys.updateError: 'تعذّر تنزيل التحديث.',
+  TranslationKeys.updatePermissionDenied:
+      'اسمح لـ TeleCinema بـ«تثبيت التطبيقات غير المعروفة» لإكمال التحديث.',
+  TranslationKeys.updateRequiredTitle: 'التحديث مطلوب',
+  TranslationKeys.updateRequiredBody:
+      'يلزم إصدار جديد لمتابعة استخدام TeleCinema. يرجى التحديث للمتابعة.',
+  TranslationKeys.updateInstallHint:
+      'إذا أظهر أندرويد أن التطبيق غير آمن، اضغط «مزيد من التفاصيل» ثم «تثبيت على أي حال».',
 };

@@ -153,6 +153,9 @@ const Map<String, String> enUs = {
   TranslationKeys.speaking: 'speaking',
   TranslationKeys.micPermissionDenied: 'Microphone permission denied.',
 
+  TranslationKeys.lockControls: 'Lock screen touch',
+  TranslationKeys.unlockControls: 'Unlock screen touch',
+
   TranslationKeys.addSubtitle: 'Add subtitle',
   TranslationKeys.subtitleAdded: 'Subtitle added.',
   TranslationKeys.subtitleExternalOnly:
@@ -250,4 +253,19 @@ const Map<String, String> enUs = {
   TranslationKeys.serverInvalid: 'Enter a valid http(s) URL.',
   TranslationKeys.serverChangedRestart: 'Server updated — restart the app to apply.',
   TranslationKeys.resetToDefault: 'Reset to default',
+  TranslationKeys.appVersion: 'Version',
+
+  TranslationKeys.updateAvailable: 'Update available',
+  TranslationKeys.updateDownload: 'Update now',
+  TranslationKeys.updateDownloading: 'Downloading',
+  TranslationKeys.updateInstall: 'Install',
+  TranslationKeys.updateLater: 'Later',
+  TranslationKeys.updateError: 'The update could not be downloaded.',
+  TranslationKeys.updatePermissionDenied:
+      'Allow "install unknown apps" for TeleCinema to finish updating.',
+  TranslationKeys.updateRequiredTitle: 'Update required',
+  TranslationKeys.updateRequiredBody:
+      'A new version is required to keep using TeleCinema. Please update to continue.',
+  TranslationKeys.updateInstallHint:
+      'If Android says the app is unsafe, tap "More details" → "Install anyway".',
 };

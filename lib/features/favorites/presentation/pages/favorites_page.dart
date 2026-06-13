@@ -12,22 +12,28 @@ import '../../../browse/presentation/widgets/browse_shimmer.dart';
 import '../../../browse/presentation/widgets/poster_card.dart';
 import '../bloc/catalog_favorites_cubit.dart';
 import '../bloc/catalog_favorites_state.dart';
+import '../bloc/favorites_filter/favorites_filter_cubit.dart';
+import '../bloc/favorites_filter/favorites_filter_state.dart';
 
 /// Favorites tab: the account-less global list of movies/series saved from the
 /// catalogues. Reuses the same [PosterCard] tiles, and opens the right detail
 /// page per title — the IMDB/Browse page for Cinemeta titles, the Cinema page
 /// for EgyBest titles — using each favorite's `source`. When both catalogues are
 /// present a small filter lets the user view them separately.
-class FavoritesPage extends StatefulWidget {
+class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
   @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FavoritesFilterCubit(),
+      child: const _FavoritesView(),
+    );
+  }
 }
 
-class _FavoritesPageState extends State<FavoritesPage> {
-  /// Active source filter: null = all, otherwise `cinemeta` / `egybest`.
-  String? _source;
+class _FavoritesView extends StatelessWidget {
+  const _FavoritesView();
 
   @override
   Widget build(BuildContext context) {
@@ -76,37 +82,42 @@ class _FavoritesPageState extends State<FavoritesPage> {
     final hasEgybest = state.items.any((i) => i.isEgybest);
     final hasCinemeta = state.items.any((i) => !i.isEgybest);
     final showFilter = hasEgybest && hasCinemeta;
-    final items = _source == null
-        ? state.items
-        : state.items.where((i) => i.source == _source).toList();
 
-    return Column(
-      children: [
-        if (showFilter) _filter(context),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => context.read<CatalogFavoritesCubit>().load(),
-            child: GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 180,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.58,
+    return BlocBuilder<FavoritesFilterCubit, FavoritesFilterState>(
+      builder: (context, filter) {
+        final items = filter.source == null
+            ? state.items
+            : state.items.where((i) => i.source == filter.source).toList();
+
+        return Column(
+          children: [
+            if (showFilter) _filter(context, filter.source),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => context.read<CatalogFavoritesCubit>().load(),
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 180,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.58,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final item = items[i];
+                    return PosterCard(item: item, onTap: () => _openDetail(context, item));
+                  },
+                ),
               ),
-              itemCount: items.length,
-              itemBuilder: (context, i) {
-                final item = items[i];
-                return PosterCard(item: item, onTap: () => _openDetail(context, item));
-              },
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _filter(BuildContext context) {
+  Widget _filter(BuildContext context, String? source) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: SizedBox(
@@ -123,8 +134,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
               label: Text(context.tr(TranslationKeys.favoritesSourceCinema)),
             ),
           ],
-          selected: {_source},
-          onSelectionChanged: (s) => setState(() => _source = s.first),
+          selected: {source},
+          onSelectionChanged: (s) => context.read<FavoritesFilterCubit>().select(s.first),
           showSelectedIcon: false,
         ),
       ),

@@ -59,8 +59,9 @@ class _VideoSurfaceState extends State<VideoSurface> {
   }
 
   /// Tap on the video: hide immediately if showing, otherwise show + arm the
-  /// auto-hide.
+  /// auto-hide. A no-op while the per-user touch lock is on.
   void _toggleControls() {
+    if (context.read<WatchCubit>().state.controlsLocked) return;
     if (_visible.value) {
       _hideTimer?.cancel();
       _visible.value = false;
@@ -102,11 +103,21 @@ class _VideoSurfaceState extends State<VideoSurface> {
     // The player and its controls always read left-to-right — a seek bar that
     // filled and skipped backwards under Arabic (RTL) would be confusing. The
     // surrounding app stays RTL; only this player subtree is pinned to LTR.
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: GestureDetector(
-        onTap: _toggleControls,
-        child: Stack(
+    return BlocListener<WatchCubit, WatchState>(
+      // When the user locks touch, drop the controls immediately so a ghost
+      // touch can't catch them mid-fade.
+      listenWhen: (a, b) => a.controlsLocked != b.controlsLocked,
+      listener: (context, s) {
+        if (s.controlsLocked) {
+          _hideTimer?.cancel();
+          _visible.value = false;
+        }
+      },
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: GestureDetector(
+          onTap: state.controlsLocked ? null : _toggleControls,
+          child: Stack(
           fit: StackFit.expand,
           children: [
             // The Video widget letterboxes to the real aspect ratio on black.
@@ -134,12 +145,13 @@ class _VideoSurfaceState extends State<VideoSurface> {
                 opacity: visible ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: IgnorePointer(
-                  ignoring: !visible,
+                  ignoring: !visible || state.controlsLocked,
                   child: _controls(context, state, cubit),
                 ),
               ),
             ),
           ],
+          ),
         ),
       ),
     );

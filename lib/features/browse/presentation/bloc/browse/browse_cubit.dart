@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/browse_category.dart';
@@ -12,12 +13,25 @@ import 'browse_state.dart';
 /// search, dynamic genre chips and skip-based infinite scroll. "All" fans out to
 /// both the movie and series catalogues and merges them, de-duplicated by id.
 class BrowseCubit extends Cubit<BrowseState> {
-  BrowseCubit(this._getCatalog, this._search) : super(const BrowseState());
+  BrowseCubit(this._getCatalog, this._search) : super(const BrowseState()) {
+    scrollController.addListener(_onScroll);
+  }
 
   final GetCatalogUseCase _getCatalog;
   final SearchCatalogUseCase _search;
 
+  /// Owned by the cubit so they survive widget rebuilds; disposed in [close].
+  final TextEditingController searchController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
+
   Timer? _debounce;
+
+  void _onScroll() {
+    if (scrollController.position.pixels >=
+        scrollController.position.maxScrollExtent - 400) {
+      loadMore();
+    }
+  }
 
   /// Initial load / full reload for the current category + query.
   Future<void> load() async {
@@ -55,6 +69,12 @@ class BrowseCubit extends Cubit<BrowseState> {
   /// Local-only genre filter — no refetch.
   void setGenre(String? genre) =>
       emit(state.copyWith(selectedGenre: genre, clearGenre: genre == null));
+
+  /// Clears the search field text and resets the query (the x button).
+  void clearSearch() {
+    searchController.clear();
+    setQuery('');
+  }
 
   Future<void> loadMore() async {
     if (state.loadingMore ||
@@ -124,6 +144,9 @@ class BrowseCubit extends Cubit<BrowseState> {
   @override
   Future<void> close() {
     _debounce?.cancel();
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    searchController.dispose();
     return super.close();
   }
 }

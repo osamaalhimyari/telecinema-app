@@ -3,26 +3,26 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '../bloc/unlock_overlay/unlock_overlay_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
 /// Full-screen password gate for a protected room. Mirrors the website's
 /// client-side unlock overlay.
-class UnlockOverlay extends StatefulWidget {
+class UnlockOverlay extends StatelessWidget {
   const UnlockOverlay({super.key});
 
   @override
-  State<UnlockOverlay> createState() => _UnlockOverlayState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => UnlockOverlayCubit(),
+      child: const _UnlockOverlayView(),
+    );
+  }
 }
 
-class _UnlockOverlayState extends State<UnlockOverlay> {
-  final _password = TextEditingController();
-
-  @override
-  void dispose() {
-    _password.dispose();
-    super.dispose();
-  }
+class _UnlockOverlayView extends StatelessWidget {
+  const _UnlockOverlayView();
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,6 @@ class _UnlockOverlayState extends State<UnlockOverlay> {
                 ),
                 const SizedBox(height: 20),
                 TextField(
-                  controller: _password,
                   obscureText: true,
                   autofocus: true,
                   decoration: InputDecoration(
@@ -59,6 +58,7 @@ class _UnlockOverlayState extends State<UnlockOverlay> {
                         ? null
                         : context.tr(state.unlockErrorKey!),
                   ),
+                  onChanged: (v) => context.read<UnlockOverlayCubit>().setPassword(v),
                   onSubmitted: (v) => context.read<WatchCubit>().unlock(v),
                 ),
                 const SizedBox(height: 16),
@@ -67,7 +67,9 @@ class _UnlockOverlayState extends State<UnlockOverlay> {
                   child: FilledButton(
                     onPressed: state.unlockBusy
                         ? null
-                        : () => context.read<WatchCubit>().unlock(_password.text),
+                        : () => context.read<WatchCubit>().unlock(
+                            context.read<UnlockOverlayCubit>().state.password,
+                          ),
                     child: state.unlockBusy
                         ? const SizedBox(
                             width: 18,

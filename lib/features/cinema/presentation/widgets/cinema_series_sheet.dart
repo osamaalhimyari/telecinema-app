@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '/core/errors/exceptions.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../../data/datasources/cinema_remote_datasource.dart';
 import '../../domain/entities/cinema_detail.dart';
 import '../../domain/entities/cinema_season.dart';
+import '../bloc/series/cinema_series_cubit.dart';
+import '../bloc/series/cinema_series_state.dart';
 
 /// The chosen episode plus the room name to create (carries the `S01E02` label).
 typedef CinemaEpisodePick = ({CinemaEpisode episode, String roomName});
@@ -31,7 +33,7 @@ Future<CinemaEpisodePick?> showCinemaSeriesPicker(
   );
 }
 
-class _SeriesSheet extends StatefulWidget {
+class _SeriesSheet extends StatelessWidget {
   const _SeriesSheet({required this.title, required this.detail, required this.datasource});
 
   final String title;
@@ -39,77 +41,30 @@ class _SeriesSheet extends StatefulWidget {
   final CinemaRemoteDataSource datasource;
 
   @override
-  State<_SeriesSheet> createState() => _SeriesSheetState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => CinemaSeriesCubit(detail.seasons, datasource)..init(),
+      child: _SeriesView(title: title, seasons: detail.seasons),
+    );
+  }
 }
 
-enum _Step { seasons, episodes }
+class _SeriesView extends StatelessWidget {
+  const _SeriesView({required this.title, required this.seasons});
 
-class _SeriesSheetState extends State<_SeriesSheet> {
-  _Step _step = _Step.seasons;
-  bool _loading = false;
-  String? _errorKey;
+  final String title;
+  final List<CinemaSeason> seasons;
 
-  late final List<CinemaSeason> _seasons = widget.detail.seasons;
-  List<CinemaEpisode> _episodes = const [];
-  CinemaSeason? _season;
-
-  @override
-  void initState() {
-    super.initState();
-    // Single season → skip the season list and load its episodes up front.
-    if (_seasons.length <= 1) {
-      _season = _seasons.isNotEmpty ? _seasons.first : null;
-      if (_season != null) {
-        _step = _Step.episodes;
-        _loadEpisodes(_season!);
-      }
-    }
-  }
-
-  Future<void> _loadEpisodes(CinemaSeason season) async {
-    setState(() {
-      _loading = true;
-      _errorKey = null;
-      _season = season;
-      _step = _Step.episodes;
-    });
-    try {
-      final episodes = await widget.datasource.season(season.id);
-      if (!mounted) return;
-      setState(() {
-        _episodes = episodes;
-        _loading = false;
-        if (episodes.isEmpty) _errorKey = 'cinema_no_episodes';
-      });
-    } on ServerException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _errorKey = e.message;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _errorKey = 'cinema_unavailable';
-      });
-    }
-  }
-
-  void _pickEpisode(CinemaEpisode ep) {
-    final s = _season?.number ?? 0;
+  void _pickEpisode(BuildContext context, CinemaSeason? season, CinemaEpisode ep) {
+    final s = season?.number ?? 0;
     final label = s > 0
         ? 'S${_pad(s)}E${_pad(ep.number)}'
         : 'E${_pad(ep.number)}';
-    Navigator.of(context).pop((episode: ep, roomName: '${widget.title} — $label'));
+    Navigator.of(context).pop((episode: ep, roomName: '$title — $label'));
   }
 
-  void _back() => setState(() {
-    _errorKey = null;
-    _step = _Step.seasons;
-  });
-
-  bool get _canGoBack => _step == _Step.episodes && _seasons.length > 1;
+  bool _canGoBack(CinemaSeriesState state) =>
+      state.step == CinemaSeriesStep.episodes && seasons.length > 1;
 
   @override
   Widget build(BuildContext context) {
@@ -119,54 +74,61 @@ class _SeriesSheetState extends State<_SeriesSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.92,
       builder: (context, controller) {
-        return ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Row(
+        return BlocBuilder<CinemaSeriesCubit, CinemaSeriesState>(
+          builder: (context, state) {
+            return ListView(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               children: [
-                if (_canGoBack)
-                  IconButton(
-                    onPressed: _loading ? null : _back,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                Expanded(
+                Row(
+                  children: [
+                    if (_canGoBack(state))
+                      IconButton(
+                        onPressed: state.loading
+                            ? null
+                            : context.read<CinemaSeriesCubit>().back,
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    Expanded(
+                      child: Text(
+                        context.tr(state.step == CinemaSeriesStep.seasons
+                            ? TranslationKeys.chooseSeason
+                            : TranslationKeys.chooseEpisode),
+                        style: context.text.titleLarge,
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
-                    context.tr(_step == _Step.seasons
-                        ? TranslationKeys.chooseSeason
-                        : TranslationKeys.chooseEpisode),
-                    style: context.text.titleLarge,
+                    _subtitle(context, state),
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
                   ),
                 ),
+                ..._body(context, state),
               ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8),
-              child: Text(
-                _subtitle(),
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
-                ),
-              ),
-            ),
-            ..._body(context),
-          ],
+            );
+          },
         );
       },
     );
   }
 
-  String _subtitle() {
-    final parts = <String>[widget.title];
-    if (_step == _Step.episodes && _season != null && _season!.number > 0) {
-      parts.add('${context.tr(TranslationKeys.season)} ${_season!.number}');
+  String _subtitle(BuildContext context, CinemaSeriesState state) {
+    final parts = <String>[title];
+    final season = state.season;
+    if (state.step == CinemaSeriesStep.episodes && season != null && season.number > 0) {
+      parts.add('${context.tr(TranslationKeys.season)} ${season.number}');
     }
     return parts.join('  ›  ');
   }
 
-  List<Widget> _body(BuildContext context) {
-    if (_loading) {
+  List<Widget> _body(BuildContext context, CinemaSeriesState state) {
+    if (state.loading) {
       return const [
         Padding(
           padding: EdgeInsets.symmetric(vertical: 48),
@@ -174,23 +136,25 @@ class _SeriesSheetState extends State<_SeriesSheet> {
         ),
       ];
     }
-    if (_errorKey != null) {
+    if (state.errorKey != null) {
       return [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 36),
-          child: Center(child: Text(context.tr(_errorKey!))),
+          child: Center(child: Text(context.tr(state.errorKey!))),
         ),
       ];
     }
-    return _step == _Step.seasons ? _seasonsView(context) : _episodesView(context);
+    return state.step == CinemaSeriesStep.seasons
+        ? _seasonsView(context)
+        : _episodesView(context, state);
   }
 
   List<Widget> _seasonsView(BuildContext context) {
-    if (_seasons.isEmpty) {
+    if (seasons.isEmpty) {
       return [_empty(context)];
     }
     return [
-      for (final s in _seasons)
+      for (final s in seasons)
         Card(
           margin: const EdgeInsets.only(bottom: 8),
           clipBehavior: Clip.antiAlias,
@@ -200,14 +164,14 @@ class _SeriesSheetState extends State<_SeriesSheet> {
                 ? s.name
                 : '${context.tr(TranslationKeys.season)} ${s.number}'),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => _loadEpisodes(s),
+            onTap: () => context.read<CinemaSeriesCubit>().loadEpisodes(s),
           ),
         ),
     ];
   }
 
-  List<Widget> _episodesView(BuildContext context) {
-    if (_episodes.isEmpty) {
+  List<Widget> _episodesView(BuildContext context, CinemaSeriesState state) {
+    if (state.episodes.isEmpty) {
       return [_empty(context)];
     }
     return [
@@ -215,11 +179,11 @@ class _SeriesSheetState extends State<_SeriesSheet> {
         spacing: 8,
         runSpacing: 8,
         children: [
-          for (final e in _episodes)
+          for (final e in state.episodes)
             SizedBox(
               width: 72,
               child: OutlinedButton(
-                onPressed: () => _pickEpisode(e),
+                onPressed: () => _pickEpisode(context, state.season, e),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

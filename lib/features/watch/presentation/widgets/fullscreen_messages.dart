@@ -6,6 +6,9 @@ import '/core/localization/translation_keys.dart';
 import '/core/shared/user_avatar.dart';
 import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../bloc/fullscreen_messages/fullscreen_messages_cubit.dart';
+import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
+import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
@@ -55,7 +58,7 @@ class FullscreenMessagesButton extends StatelessWidget {
 /// inline chat) and a compose box, so viewers can both read and reply without
 /// leaving fullscreen. Shown/hidden by [open]; [onClose] backs the header's
 /// close button.
-class FullscreenMessagesPanel extends StatefulWidget {
+class FullscreenMessagesPanel extends StatelessWidget {
   const FullscreenMessagesPanel({
     super.key,
     required this.open,
@@ -66,76 +69,59 @@ class FullscreenMessagesPanel extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<FullscreenMessagesPanel> createState() =>
-      _FullscreenMessagesPanelState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FullscreenMessagesCubit(context.read<WatchCubit>()),
+      child: _PanelView(open: open, onClose: onClose),
+    );
+  }
 }
 
-class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
-  final _input = TextEditingController();
-  final _scroll = ScrollController();
+class _PanelView extends StatelessWidget {
+  const _PanelView({required this.open, required this.onClose});
 
-  @override
-  void didUpdateWidget(FullscreenMessagesPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Jump to the latest messages whenever the panel is (re)opened.
-    if (widget.open && !oldWidget.open) _scrollToEnd();
-  }
+  final bool open;
+  final VoidCallback onClose;
 
-  @override
-  void dispose() {
-    _input.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _send() {
-    final text = _input.text.trim();
-    if (text.isEmpty) return;
-    context.read<WatchCubit>().sendChat(text);
-    _input.clear();
-  }
-
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
+  void _send(BuildContext context) =>
+      context.read<FullscreenMessagesCubit>().send();
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final panelWidth = (width * 0.42).clamp(280.0, 420.0);
 
-    return Align(
-      alignment: Alignment.centerRight,
-      child: AnimatedSlide(
-        offset: widget.open ? Offset.zero : const Offset(1, 0),
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        child: AnimatedOpacity(
-          opacity: widget.open ? 1 : 0,
-          duration: const Duration(milliseconds: 200),
-          child: IgnorePointer(
-            ignoring: !widget.open,
-            child: SizedBox(
-              width: panelWidth,
-              height: double.infinity,
-              child: Material(
-                color: Colors.black.withValues(alpha: 0.62),
-                child: SafeArea(
-                  left: false,
-                  child: Column(
-                    children: [
-                      _header(context),
-                      Expanded(child: _list(context)),
-                      _composer(context),
-                    ],
+    // Jump to the latest messages whenever the panel is (re)opened — fired when
+    // the parent's `messagesOpen` flips false -> true (was `didUpdateWidget`).
+    return BlocListener<FullscreenUiCubit, FullscreenUiState>(
+      listenWhen: (a, b) => !a.messagesOpen && b.messagesOpen,
+      listener: (context, _) =>
+          context.read<FullscreenMessagesCubit>().scrollToEnd(),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: AnimatedSlide(
+          offset: open ? Offset.zero : const Offset(1, 0),
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            opacity: open ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: !open,
+              child: SizedBox(
+                width: panelWidth,
+                height: double.infinity,
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.62),
+                  child: SafeArea(
+                    left: false,
+                    child: Column(
+                      children: [
+                        _header(context),
+                        Expanded(child: _list(context)),
+                        _composer(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -165,7 +151,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
             color: Colors.white,
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.close_rounded),
-            onPressed: widget.onClose,
+            onPressed: onClose,
           ),
         ],
       ),
@@ -176,7 +162,8 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
     final me = context.watch<IdentityCubit>().state;
     return BlocConsumer<WatchCubit, WatchState>(
       listenWhen: (a, b) => a.messages.length != b.messages.length,
-      listener: (_, _) => _scrollToEnd(),
+      listener: (context, _) =>
+          context.read<FullscreenMessagesCubit>().scrollToEnd(),
       buildWhen: (a, b) => a.messages != b.messages,
       builder: (context, state) {
         if (state.messages.isEmpty) {
@@ -192,7 +179,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
           );
         }
         return ListView.builder(
-          controller: _scroll,
+          controller: context.read<FullscreenMessagesCubit>().scroll,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           itemCount: state.messages.length,
           itemBuilder: (context, i) {
@@ -281,7 +268,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
         children: [
           Expanded(
             child: TextField(
-              controller: _input,
+              controller: context.read<FullscreenMessagesCubit>().input,
               textInputAction: TextInputAction.send,
               style: const TextStyle(color: Colors.white),
               minLines: 1,
@@ -301,12 +288,12 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                   vertical: 8,
                 ),
               ),
-              onSubmitted: (_) => _send(),
+              onSubmitted: (_) => _send(context),
             ),
           ),
           const SizedBox(width: 8),
           IconButton.filled(
-            onPressed: _send,
+            onPressed: () => _send(context),
             icon: const Icon(Icons.send_rounded),
           ),
         ],

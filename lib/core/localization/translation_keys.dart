@@ -167,6 +167,10 @@ class TranslationKeys {
   static const speaking = 'speaking';
   static const micPermissionDenied = 'mic_permission_denied';
 
+  // Per-user touch lock (disables the video's tap layer; emoji/chat/mic stay on)
+  static const lockControls = 'lock_controls';
+  static const unlockControls = 'unlock_controls';
+
   // Subtitles
   static const addSubtitle = 'add_subtitle';
   static const subtitleAdded = 'subtitle_added';
@@ -268,4 +272,17 @@ class TranslationKeys {
   static const serverInvalid = 'server_invalid';
   static const serverChangedRestart = 'server_changed_restart';
   static const resetToDefault = 'reset_to_default';
+  static const appVersion = 'app_version';
+
+  // In-app updates (sideloaded APK self-update)
+  static const updateAvailable = 'update_available';
+  static const updateDownload = 'update_download';
+  static const updateDownloading = 'update_downloading';
+  static const updateInstall = 'update_install';
+  static const updateLater = 'update_later';
+  static const updateError = 'update_error';
+  static const updatePermissionDenied = 'update_permission_denied';
+  static const updateRequiredTitle = 'update_required_title';
+  static const updateRequiredBody = 'update_required_body';
+  static const updateInstallHint = 'update_install_hint';
 }

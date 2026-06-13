@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/services/locale_service.dart';
@@ -29,7 +30,9 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     this._getMetaDetail,
     this._cinema,
     this._locale,
-  ) : super(const DiscoverState());
+  ) : super(const DiscoverState()) {
+    scrollController.addListener(_onScroll);
+  }
 
   final GetCatalogUseCase _getCatalog;
   final SearchCatalogUseCase _search;
@@ -37,9 +40,20 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   final CinemaRemoteDataSource _cinema;
   final LocaleService _locale;
 
+  /// Owned by the cubit so they survive widget rebuilds; disposed in [close].
+  final TextEditingController searchController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
+
   Timer? _debounce;
   final Map<String, String> _ratingCache = {};
   final Set<String> _ratingPending = {};
+
+  void _onScroll() {
+    if (scrollController.position.pixels >=
+        scrollController.position.maxScrollExtent - 400) {
+      loadMore();
+    }
+  }
 
   Future<void> load() async {
     emit(
@@ -76,6 +90,12 @@ class DiscoverCubit extends Cubit<DiscoverState> {
 
   void setGenre(String? genre) =>
       emit(state.copyWith(selectedGenre: genre, clearGenre: genre == null));
+
+  /// Clears the search field text and resets the query (the x button).
+  void clearSearch() {
+    searchController.clear();
+    setQuery('');
+  }
 
   Future<void> loadMore() async {
     if (state.loadingMore ||
@@ -294,6 +314,9 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   @override
   Future<void> close() {
     _debounce?.cancel();
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    searchController.dispose();
     return super.close();
   }
 }
