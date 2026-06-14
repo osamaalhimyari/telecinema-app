@@ -7,6 +7,7 @@ import '/core/localization/translation_keys.dart';
 import '/features/favorites/presentation/bloc/catalog_favorites_cubit.dart';
 import '/features/favorites/presentation/bloc/catalog_favorites_state.dart';
 import '../../domain/entities/catalog_item.dart';
+import 'source_badge.dart';
 
 /// A single poster tile in the Browse grid: cached poster image, an IMDB rating
 /// badge, and the title + year beneath it.
@@ -33,6 +34,7 @@ class PosterCard extends StatelessWidget {
                   if (item.imdbRating != null)
                     Positioned(top: 8, right: 8, child: _ratingBadge(context)),
                   Positioned(top: 4, left: 4, child: _FavoriteHeart(item: item)),
+                  Positioned(bottom: 6, left: 6, child: SourceBadge(source: item.source)),
                 ],
               ),
             ),

@@ -6,45 +6,26 @@ import '/core/localization/translation_keys.dart';
 import '/core/shared/user_avatar.dart';
 import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../bloc/chat_panel/chat_panel_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
-class ChatPanel extends StatefulWidget {
+class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
 
   @override
-  State<ChatPanel> createState() => _ChatPanelState();
+  Widget build(BuildContext context) {
+    // The WatchCubit is provided by room_page above us; hand it to the panel's
+    // cubit so sends can be delegated to it.
+    return BlocProvider(
+      create: (_) => ChatPanelCubit(context.read<WatchCubit>()),
+      child: const _ChatPanelView(),
+    );
+  }
 }
 
-class _ChatPanelState extends State<ChatPanel> {
-  final _input = TextEditingController();
-  final _scroll = ScrollController();
-
-  @override
-  void dispose() {
-    _input.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _send() {
-    final text = _input.text.trim();
-    if (text.isEmpty) return;
-    context.read<WatchCubit>().sendChat(text);
-    _input.clear();
-  }
-
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
+class _ChatPanelView extends StatelessWidget {
+  const _ChatPanelView();
 
   /// Tiny delivery line under our own pending messages: a spinner while it's in
   /// flight, or a tappable "tap to retry" when the send failed.
@@ -75,12 +56,13 @@ class _ChatPanelState extends State<ChatPanel> {
   @override
   Widget build(BuildContext context) {
     final me = context.watch<IdentityCubit>().state;
+    final chat = context.read<ChatPanelCubit>();
     return Column(
       children: [
         Expanded(
           child: BlocConsumer<WatchCubit, WatchState>(
             listenWhen: (a, b) => a.messages.length != b.messages.length,
-            listener: (_, _) => _scrollToEnd(),
+            listener: (_, _) => chat.scrollToEnd(),
             builder: (context, state) {
               if (state.messages.isEmpty) {
                 return Center(
@@ -95,7 +77,7 @@ class _ChatPanelState extends State<ChatPanel> {
                 );
               }
               return ListView.builder(
-                controller: _scroll,
+                controller: chat.scroll,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: state.messages.length,
                 itemBuilder: (context, i) {
@@ -151,7 +133,7 @@ class _ChatPanelState extends State<ChatPanel> {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _input,
+                    controller: chat.input,
                     textInputAction: TextInputAction.send,
                     minLines: 1,
                     maxLines: 3,
@@ -159,11 +141,11 @@ class _ChatPanelState extends State<ChatPanel> {
                       hintText: context.tr(TranslationKeys.chatHint),
                       isDense: true,
                     ),
-                    onSubmitted: (_) => _send(),
+                    onSubmitted: (_) => chat.send(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton.filled(onPressed: _send, icon: const Icon(Icons.send_rounded)),
+                IconButton.filled(onPressed: chat.send, icon: const Icon(Icons.send_rounded)),
               ],
             ),
           ),

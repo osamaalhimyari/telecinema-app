@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import '/core/config/endpoints.dart';
 import '/core/errors/exceptions.dart';
 import '../domain/entities/topcinema_series.dart';
 import '../domain/entities/topcinema_source.dart';
@@ -24,8 +25,12 @@ class TopcinemaScraper {
 
   static const _ua =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-  static const _base = 'https://web4.topcinema.fan';
+  static const _base = Endpoints.topcinema;
   static const _timeout = Duration(seconds: 25);
+
+  /// `href="…"` links pointing back at the [_base] host — derived from [_base]
+  /// so a mirror change in `endpoints.dart` is the only edit needed.
+  static final RegExp _linkRe = RegExp('href="(${RegExp.escape(_base)}/[^"]+)"');
 
   /// Arabic season ordinals as they appear in the url (الموسم الاول … العاشر).
   static const _ordinals = [
@@ -219,7 +224,7 @@ class TopcinemaScraper {
 
   List<({String raw, String dec})> _links(String html) {
     final out = <({String raw, String dec})>[];
-    for (final m in RegExp(r'href="(https://web4\.topcinema\.fan/[^"]+)"').allMatches(html)) {
+    for (final m in _linkRe.allMatches(html)) {
       final raw = m.group(1)!;
       String dec;
       try {

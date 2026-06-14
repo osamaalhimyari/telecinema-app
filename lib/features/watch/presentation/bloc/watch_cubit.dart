@@ -725,6 +725,11 @@ class WatchCubit extends Cubit<WatchState> {
 
   void requestResync() => _repo.requestResync();
 
+  /// Toggles the per-user touch lock (local only — never sent to the room).
+  /// While locked, [VideoSurface] ignores taps on the video and its playback
+  /// controls, so a faulty screen can't trigger play/pause/seek.
+  void toggleControlsLock() => emit(state.copyWith(controlsLocked: !state.controlsLocked));
+
   void changeSource(String url) {
     final trimmed = url.trim();
     if (trimmed.isEmpty || !trimmed.startsWith('http')) return;

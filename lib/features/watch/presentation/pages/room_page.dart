@@ -30,6 +30,7 @@ import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../widgets/chat_panel.dart';
+import '../widgets/controls_lock_button.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
 import '../widgets/reaction_bar.dart';
@@ -300,7 +301,8 @@ class _RoomScaffold extends StatelessWidget {
                       const DownloadButton(),
                       const SizedBox(width: 4),
                       const VoiceButton(),
-                      const SizedBox(width: 12),
+                      const ControlsLockButton(),
+                      const SizedBox(width: 8),
                     ],
                   ),
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '/core/app_info.dart';
 import '/core/config/app_config.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -8,13 +9,14 @@ import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/localization/locale_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
-import '/logic/storage/shared_prefs_storage.dart';
 import '/logic/theme/theme_cubit.dart';
 import '/logic/theme/theme_state.dart';
+import '../bloc/settings_sheet/settings_sheet_cubit.dart';
+import '../bloc/settings_sheet/settings_sheet_state.dart';
 
 /// Bottom sheet for the lightweight, account-less settings: display name,
 /// theme and language.
-class SettingsSheet extends StatefulWidget {
+class SettingsSheet extends StatelessWidget {
   const SettingsSheet({super.key});
 
   static Future<void> show(BuildContext context) => showModalBottomSheet(
@@ -24,69 +26,41 @@ class SettingsSheet extends StatefulWidget {
   );
 
   @override
-  State<SettingsSheet> createState() => _SettingsSheetState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) =>
+          SettingsSheetCubit(sl<KeyValueStorage>(), context.read<IdentityCubit>()),
+      child: const _SettingsSheetView(),
+    );
+  }
 }
 
-class _SettingsSheetState extends State<SettingsSheet> {
-  late final TextEditingController _name = TextEditingController(
-    text: context.read<IdentityCubit>().state,
-  );
+class _SettingsSheetView extends StatelessWidget {
+  const _SettingsSheetView();
 
-  // The server field shows the persisted override (what will be used after the
-  // next launch), falling back to whatever is active now.
-  late final TextEditingController _server = TextEditingController(
-    text: sl<KeyValueStorage>().getString(StorageKeys.serverBaseUrl) ?? AppConfig.baseUrl,
-  );
-  String? _serverError;
-
-  bool get _isServerDefault =>
-      AppConfig.normalizeUrl(_server.text) == AppConfig.defaultBaseUrl;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _server.dispose();
-    super.dispose();
-  }
-
-  void _resetServer() {
-    setState(() {
-      _server.text = AppConfig.defaultBaseUrl;
-      _serverError = null;
-    });
-  }
-
-  void _save() {
-    final raw = _server.text;
-    if (!AppConfig.isValidUrl(raw)) {
-      setState(() => _serverError = context.tr(TranslationKeys.serverInvalid));
-      return;
-    }
-    final normalized = AppConfig.normalizeUrl(raw);
-    final storage = sl<KeyValueStorage>();
-    final current = storage.getString(StorageKeys.serverBaseUrl) ?? AppConfig.defaultBaseUrl;
-    final changed = AppConfig.normalizeUrl(current) != normalized;
-
-    // Store the override, or clear it when it matches the built-in default so
-    // we don't pin a stale URL across future default changes.
-    if (normalized == AppConfig.defaultBaseUrl) {
-      storage.remove(StorageKeys.serverBaseUrl);
-    } else {
-      storage.setString(StorageKeys.serverBaseUrl, normalized);
-    }
-
-    context.read<IdentityCubit>().setName(_name.text);
-
+  Future<void> _save(BuildContext context) async {
+    final cubit = context.read<SettingsSheetCubit>();
     final messenger = ScaffoldMessenger.of(context);
     final restartMsg = context.tr(TranslationKeys.serverChangedRestart);
+    final invalidMsg = context.tr(TranslationKeys.serverInvalid);
+
+    final result = await cubit.save();
+    if (!context.mounted) return;
+
+    if (result == SettingsSaveResult.invalid) {
+      cubit.setServerError(invalidMsg);
+      return;
+    }
+
     Navigator.of(context).pop();
-    if (changed) {
+    if (result == SettingsSaveResult.savedChanged) {
       messenger.showSnackBar(SnackBar(content: Text(restartMsg)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cubit = context.read<SettingsSheetCubit>();
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -110,7 +84,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: _name,
+            controller: cubit.name,
             maxLength: 30,
             textInputAction: TextInputAction.done,
             onChanged: (value) {
@@ -146,6 +120,14 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
             ),
           ),
+          _RowTile(
+            icon: Icons.info_outline_rounded,
+            label: context.tr(TranslationKeys.appVersion),
+            trailing: Text(
+              'v${AppInfo.version} (${AppInfo.buildNumber})',
+              style: context.text.bodyMedium?.copyWith(color: context.colors.outline),
+            ),
+          ),
           const SizedBox(height: 20),
 
           Text(context.tr(TranslationKeys.server), style: context.text.titleSmall),
@@ -154,32 +136,38 @@ class _SettingsSheetState extends State<SettingsSheet> {
             children: [
               Expanded(
                 child: TextField(
-                  controller: _server,
+                  controller: cubit.server,
                   keyboardType: TextInputType.url,
                   autocorrect: false,
                   textInputAction: TextInputAction.done,
-                  onChanged: (_) => setState(() => _serverError = null),
+                  onChanged: (_) => cubit.onServerChanged(),
                   decoration: InputDecoration(
                     hintText: context.tr(TranslationKeys.serverHint),
                     prefixIcon: const Icon(Icons.dns_outlined),
                   ),
-                  onSubmitted: (_) => _save(),
+                  onSubmitted: (_) => _save(context),
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filledTonal(
-                tooltip: context.tr(TranslationKeys.resetToDefault),
-                onPressed: _isServerDefault ? null : _resetServer,
-                icon: const Icon(Icons.restart_alt_rounded),
+              BlocSelector<SettingsSheetCubit, SettingsSheetState, bool>(
+                selector: (state) => state.isServerDefault,
+                builder: (context, isServerDefault) => IconButton.filledTonal(
+                  tooltip: context.tr(TranslationKeys.resetToDefault),
+                  onPressed: isServerDefault ? null : cubit.resetServer,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            _serverError ??
-                '${context.tr(TranslationKeys.serverDefaultLabel)}: ${AppConfig.defaultBaseUrl}',
-            style: context.text.bodySmall?.copyWith(
-              color: _serverError != null ? context.colors.error : context.colors.outline,
+          BlocSelector<SettingsSheetCubit, SettingsSheetState, String?>(
+            selector: (state) => state.serverError,
+            builder: (context, serverError) => Text(
+              serverError ??
+                  '${context.tr(TranslationKeys.serverDefaultLabel)}: ${AppConfig.defaultBaseUrl}',
+              style: context.text.bodySmall?.copyWith(
+                color: serverError != null ? context.colors.error : context.colors.outline,
+              ),
             ),
           ),
 
@@ -187,7 +175,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _save,
+              onPressed: () => _save(context),
               child: Text(context.tr(TranslationKeys.save)),
             ),
           ),

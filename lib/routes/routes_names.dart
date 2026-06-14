@@ -4,6 +4,12 @@ class RoutesNames {
   /// Home — the grid of rooms (first bottom-nav tab).
   static const rooms = 'rooms';
 
+  /// Cinema catalogue (EgyBest) — its own bottom-nav tab, beside Browse.
+  static const cinema = 'cinema';
+
+  /// A title's detail page in the Cinema catalogue.
+  static const cinemaDetail = 'cinema-detail';
+
   /// Browse catalogue (second bottom-nav tab).
   static const browse = 'browse';
 

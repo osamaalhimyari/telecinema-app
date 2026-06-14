@@ -9,7 +9,9 @@ import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
 import '/features/cache/injections/cache_injection.dart';
+import '/features/cinema/injections/cinema_injection.dart';
 import '/features/favorites/injections/favorites_injection.dart';
+import '/features/app_update/injections/app_update_injection.dart';
 import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/topcinema/injections/topcinema_injection.dart';
@@ -73,10 +75,14 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectWatchSingletons(sl);
   await injectBrowseSingletons(sl);
   await injectFavoritesSingletons(sl);
+  // Isolated EgyBest catalogue → on-device resolve → direct-download room.
+  await injectCinemaSingletons(sl);
   // On-device video cache (download-before-watch + offline playback).
   await injectCacheSingletons(sl);
   await injectTopcinemaSingletons(sl);
   await injectYoutubeSingletons(sl);
   await injectSubtitlesSingletons(sl);
   await injectOperationsSingletons(sl);
+  // In-app updates — checks the server for a newer APK, downloads + installs it.
+  await injectAppUpdateSingletons(sl);
 }

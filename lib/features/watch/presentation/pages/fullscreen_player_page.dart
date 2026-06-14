@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
+import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
+import '../widgets/controls_lock_button.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
@@ -10,50 +12,32 @@ import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
 import '../widgets/video_surface.dart';
 
-/// Full-screen, landscape view of the room's video. It reuses the room's
-/// [WatchCubit] (passed in via `BlocProvider.value`) and therefore its media_kit
-/// player, so playback stays in sync with the room. Forces landscape + immersive
-/// system UI on entry and restores the defaults on exit.
-class FullscreenPlayerPage extends StatefulWidget {
+/// Full-screen, landscape view of the room's video. Reuses the room's
+/// [WatchCubit] (provided by the parent) for playback, and a page-scoped
+/// [FullscreenUiCubit] for the overlay's UI state + the landscape/immersive
+/// lifecycle — so the page itself is a plain StatelessWidget ().
+class FullscreenPlayerPage extends StatelessWidget {
   const FullscreenPlayerPage({super.key});
 
   @override
-  State<FullscreenPlayerPage> createState() => _FullscreenPlayerPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      // Eager so creating the cubit forces landscape + immersive mode on entry,
+      // and closing it (on pop) restores portrait + the system bars.
+      lazy: false,
+      create: (_) => FullscreenUiCubit(),
+      child: const _FullscreenView(),
+    );
+  }
 }
 
-class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
-  /// Shared with [VideoSurface]: the playback controls toggle this on tap, and
-  /// the viewer count overlay rides the same flag so it hides/appears with them.
-  final ValueNotifier<bool> _controlsVisible = ValueNotifier<bool>(true);
-
-  /// Whether the side messages panel is open.
-  bool _messagesOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  }
-
-  @override
-  void dispose() {
-    _controlsVisible.dispose();
-    // Restore the app's portrait layout and the system bars.
-    SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    super.dispose();
-  }
+class _FullscreenView extends StatelessWidget {
+  const _FullscreenView();
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<WatchCubit>();
+    final watch = context.read<WatchCubit>();
+    final ui = context.read<FullscreenUiCubit>();
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -61,32 +45,61 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
         children: [
           VideoSurface(
             fullscreen: true,
-            controlsVisibility: _controlsVisible,
+            controlsVisibility: ui.controlsVisible,
             onToggleFullscreen: () => Navigator.of(context).maybePop(),
           ),
           // Reactions + chat float over the video. Both ignore pointers so taps
           // reach the player.
-          FloatingReactions(stream: cubit.reactions),
-          FloatingChatOverlay(stream: cubit.incomingChat),
+          FloatingReactions(stream: watch.reactions),
+          FloatingChatOverlay(stream: watch.incomingChat),
 
-          // Top-left: the collapsible reaction palette, with the messages
-          // toggle stacked right beneath it.
+          // Top-left: a single toggle button that reveals/hides the control
+          // stack (emoji, messages, mic, lock) stacked under it.
           SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const FullscreenReactionBar(),
-                    const SizedBox(height: 10),
-                    FullscreenMessagesButton(
-                      open: _messagesOpen,
-                      onTap: () => setState(() => _messagesOpen = !_messagesOpen),
-                    ),
-                  ],
+                child: BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
+                  builder: (context, state) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ControlsToggle(
+                          expanded: state.controlsExpanded,
+                          onTap: ui.toggleControls,
+                        ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topLeft,
+                          child: !state.controlsExpanded
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const FullscreenReactionBar(),
+                                      const SizedBox(height: 10),
+                                      FullscreenMessagesButton(
+                                        open: state.messagesOpen,
+                                        onTap: ui.toggleMessages,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const FullscreenVoiceButton(),
+                                      const SizedBox(height: 10),
+                                      const FullscreenLockButton(),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -102,7 +115,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    FullscreenViewerCount(visibility: _controlsVisible),
+                    FullscreenViewerCount(visibility: ui.controlsVisible),
                     const SizedBox(height: 8),
                     const FullscreenSpeakingIndicator(),
                   ],
@@ -111,24 +124,46 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
             ),
           ),
 
-          // Top-right: tap-to-talk microphone.
-          const SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: EdgeInsets.all(8),
-                child: FullscreenVoiceButton(),
-              ),
+          // The messages side panel slides in from the right when open.
+          BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
+            buildWhen: (a, b) => a.messagesOpen != b.messagesOpen,
+            builder: (context, state) => FullscreenMessagesPanel(
+              open: state.messagesOpen,
+              onClose: ui.closeMessages,
             ),
           ),
-
-          // The messages side panel sits above the overlays; it slides in from
-          // the right while the top-left toggle stays reachable to close it.
-          FullscreenMessagesPanel(
-            open: _messagesOpen,
-            onClose: () => setState(() => _messagesOpen = false),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+/// The master toggle that shows/hides the fullscreen control stack. Matches the
+/// reaction/messages buttons' round style; fills in (primary tint) while open.
+class _ControlsToggle extends StatelessWidget {
+  const _ControlsToggle({required this.expanded, required this.onTap});
+
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: expanded
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.9)
+          : Colors.black.withValues(alpha: 0.45),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            expanded ? Icons.close_rounded : Icons.tune_rounded,
+            size: 22,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }

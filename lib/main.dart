@@ -13,6 +13,8 @@ import 'core/constants/app_constants.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/services/locale_service.dart';
 import 'core/services/theme_service.dart';
+import 'features/app_update/presentation/bloc/app_update_cubit.dart';
+import 'features/app_update/presentation/widgets/update_gate.dart';
 import 'features/favorites/presentation/bloc/catalog_favorites_cubit.dart';
 import 'features/operations/presentation/bloc/operations_cubit.dart';
 import 'injections/injection.dart';
@@ -58,6 +60,10 @@ class App extends StatelessWidget {
         BlocProvider<OperationsCubit>.value(
           value: sl<OperationsCubit>()..start(),
         ),
+        // App-lifetime updater — checks for a newer build on launch.
+        BlocProvider<AppUpdateCubit>.value(
+          value: sl<AppUpdateCubit>()..check(),
+        ),
       ],
       child: BlocBuilder<LocaleCubit, LocaleState>(
         builder: (context, localeState) {
@@ -79,6 +85,9 @@ class App extends StatelessWidget {
                   GlobalCupertinoLocalizations.delegate,
                 ],
                 routerConfig: router,
+                // Paints a blocking gate over the app when an update is forced.
+                builder: (context, child) =>
+                    UpdateGate(child: child ?? const SizedBox.shrink()),
               );
             },
           );

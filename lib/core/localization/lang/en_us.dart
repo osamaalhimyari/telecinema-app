@@ -44,9 +44,25 @@ const Map<String, String> enUs = {
   TranslationKeys.categoryAll: 'All',
 
   TranslationKeys.roomsTab: 'Rooms',
+  TranslationKeys.cinemaTab: 'Cinema',
   TranslationKeys.browseTab: 'Browse',
   TranslationKeys.favoritesTab: 'Favorites',
   TranslationKeys.youtubeTab: 'YouTube',
+
+  TranslationKeys.cinemaTitle: 'Cinema',
+  TranslationKeys.cinemaSearchHint: 'Search movies & series',
+  TranslationKeys.cinemaNoResults: 'Nothing found',
+  TranslationKeys.cinemaNoResultsHint: 'Try a different title, category or genre.',
+  TranslationKeys.cinemaChooseServer: 'Choose a server',
+  TranslationKeys.cinemaNoServers: 'No download servers for this title.',
+  TranslationKeys.cinemaResolveFailed: "Couldn't read this server — try another.",
+  TranslationKeys.cinemaDirectFile: 'Direct file',
+  TranslationKeys.cinemaStreamHost: 'Streaming host',
+  TranslationKeys.cinemaLoading: 'Loading…',
+  TranslationKeys.cinemaUnavailable: 'The catalogue is unavailable right now.',
+  TranslationKeys.cinemaNoEpisodes: 'No episodes found for this season.',
+  TranslationKeys.favoritesSourceImdb: 'IMDB',
+  TranslationKeys.favoritesSourceCinema: 'Cinema',
 
   TranslationKeys.youtubeSearchHint: 'Search or paste a YouTube link',
   TranslationKeys.youtubeSearchPrompt: 'Search YouTube — or paste a video link — to start a watch party.',
@@ -136,6 +152,9 @@ const Map<String, String> enUs = {
   TranslationKeys.tapToTalk: 'Tap to talk',
   TranslationKeys.speaking: 'speaking',
   TranslationKeys.micPermissionDenied: 'Microphone permission denied.',
+
+  TranslationKeys.lockControls: 'Lock screen touch',
+  TranslationKeys.unlockControls: 'Unlock screen touch',
 
   TranslationKeys.addSubtitle: 'Add subtitle',
   TranslationKeys.subtitleAdded: 'Subtitle added.',
@@ -234,4 +253,19 @@ const Map<String, String> enUs = {
   TranslationKeys.serverInvalid: 'Enter a valid http(s) URL.',
   TranslationKeys.serverChangedRestart: 'Server updated — restart the app to apply.',
   TranslationKeys.resetToDefault: 'Reset to default',
+  TranslationKeys.appVersion: 'Version',
+
+  TranslationKeys.updateAvailable: 'Update available',
+  TranslationKeys.updateDownload: 'Update now',
+  TranslationKeys.updateDownloading: 'Downloading',
+  TranslationKeys.updateInstall: 'Install',
+  TranslationKeys.updateLater: 'Later',
+  TranslationKeys.updateError: 'The update could not be downloaded.',
+  TranslationKeys.updatePermissionDenied:
+      'Allow "install unknown apps" for TeleCinema to finish updating.',
+  TranslationKeys.updateRequiredTitle: 'Update required',
+  TranslationKeys.updateRequiredBody:
+      'A new version is required to keep using TeleCinema. Please update to continue.',
+  TranslationKeys.updateInstallHint:
+      'If Android says the app is unsafe, tap "More details" → "Install anyway".',
 };

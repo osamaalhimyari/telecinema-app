@@ -49,9 +49,26 @@ class TranslationKeys {
 
   // Bottom navigation tabs
   static const roomsTab = 'rooms_tab';
+  static const cinemaTab = 'cinema_tab';
   static const browseTab = 'browse_tab';
   static const favoritesTab = 'favorites_tab';
   static const youtubeTab = 'youtube_tab';
+
+  // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
+  static const cinemaTitle = 'cinema_title';
+  static const cinemaSearchHint = 'cinema_search_hint';
+  static const cinemaNoResults = 'cinema_no_results';
+  static const cinemaNoResultsHint = 'cinema_no_results_hint';
+  static const cinemaChooseServer = 'cinema_choose_server';
+  static const cinemaNoServers = 'cinema_no_servers';
+  static const cinemaResolveFailed = 'cinema_resolve_failed';
+  static const cinemaDirectFile = 'cinema_direct_file';
+  static const cinemaStreamHost = 'cinema_stream_host';
+  static const cinemaLoading = 'cinema_loading';
+  static const cinemaUnavailable = 'cinema_unavailable';
+  static const cinemaNoEpisodes = 'cinema_no_episodes';
+  static const favoritesSourceImdb = 'favorites_source_imdb';
+  static const favoritesSourceCinema = 'favorites_source_cinema';
 
   // YouTube search tab (isolated "search → server download" feature)
   static const youtubeSearchHint = 'youtube_search_hint';
@@ -149,6 +166,10 @@ class TranslationKeys {
   static const tapToTalk = 'tap_to_talk';
   static const speaking = 'speaking';
   static const micPermissionDenied = 'mic_permission_denied';
+
+  // Per-user touch lock (disables the video's tap layer; emoji/chat/mic stay on)
+  static const lockControls = 'lock_controls';
+  static const unlockControls = 'unlock_controls';
 
   // Subtitles
   static const addSubtitle = 'add_subtitle';
@@ -251,4 +272,17 @@ class TranslationKeys {
   static const serverInvalid = 'server_invalid';
   static const serverChangedRestart = 'server_changed_restart';
   static const resetToDefault = 'reset_to_default';
+  static const appVersion = 'app_version';
+
+  // In-app updates (sideloaded APK self-update)
+  static const updateAvailable = 'update_available';
+  static const updateDownload = 'update_download';
+  static const updateDownloading = 'update_downloading';
+  static const updateInstall = 'update_install';
+  static const updateLater = 'update_later';
+  static const updateError = 'update_error';
+  static const updatePermissionDenied = 'update_permission_denied';
+  static const updateRequiredTitle = 'update_required_title';
+  static const updateRequiredBody = 'update_required_body';
+  static const updateInstallHint = 'update_install_hint';
 }

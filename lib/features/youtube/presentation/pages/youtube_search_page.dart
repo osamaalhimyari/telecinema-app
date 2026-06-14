@@ -1,87 +1,33 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '/core/errors/exceptions.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/injections/injection.dart';
 import '../../data/datasources/youtube_remote_datasource.dart';
 import '../../domain/entities/youtube_video.dart';
+import '../bloc/youtube_search/youtube_search_cubit.dart';
+import '../bloc/youtube_search/youtube_search_state.dart';
 import '../widgets/youtube_picker_sheet.dart';
 
 /// The YouTube search tab: search on-device, preview a result, then create a
 /// synchronized room the server downloads (yt-dlp). An isolated feature — it
 /// drives the data source directly and reuses the create-room route, touching
 /// no other feature's code.
-class YoutubeSearchPage extends StatefulWidget {
+class YoutubeSearchPage extends StatelessWidget {
   const YoutubeSearchPage({super.key});
 
   @override
-  State<YoutubeSearchPage> createState() => _YoutubeSearchPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => YoutubeSearchCubit(sl<YoutubeRemoteDataSource>()),
+      child: const _YoutubeSearchView(),
+    );
+  }
 }
 
-class _YoutubeSearchPageState extends State<YoutubeSearchPage> {
-  final _search = TextEditingController();
-  final _datasource = sl<YoutubeRemoteDataSource>();
-
-  Timer? _debounce;
-  bool _loading = false;
-  String? _errorKey;
-  List<YoutubeVideo> _results = const [];
-
-  /// Guards against out-of-order responses: only the latest query's result is
-  /// applied (a slow earlier search can't overwrite a newer one).
-  int _requestId = 0;
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _search.dispose();
-    super.dispose();
-  }
-
-  void _onChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () => _run(value.trim()));
-  }
-
-  Future<void> _run(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _results = const [];
-        _loading = false;
-        _errorKey = null;
-      });
-      return;
-    }
-    final id = ++_requestId;
-    setState(() {
-      _loading = true;
-      _errorKey = null;
-    });
-    try {
-      final results = await _datasource.search(query);
-      if (!mounted || id != _requestId) return;
-      setState(() {
-        _results = results;
-        _loading = false;
-        _errorKey = results.isEmpty ? TranslationKeys.youtubeNoResults : null;
-      });
-    } on ServerException catch (e) {
-      if (!mounted || id != _requestId) return;
-      setState(() {
-        _loading = false;
-        _errorKey = e.message;
-      });
-    } catch (_) {
-      if (!mounted || id != _requestId) return;
-      setState(() {
-        _loading = false;
-        _errorKey = TranslationKeys.youtubeUnavailable;
-      });
-    }
-  }
+class _YoutubeSearchView extends StatelessWidget {
+  const _YoutubeSearchView();
 
   @override
   Widget build(BuildContext context) {
@@ -90,62 +36,65 @@ class _YoutubeSearchPageState extends State<YoutubeSearchPage> {
       body: Column(
         children: [
           _searchField(context),
-          Expanded(child: _body(context)),
+          const Expanded(child: _Body()),
         ],
       ),
     );
   }
 
   Widget _searchField(BuildContext context) {
-    final hasText = _search.text.isNotEmpty;
+    final cubit = context.read<YoutubeSearchCubit>();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: TextField(
-        controller: _search,
-        textInputAction: TextInputAction.search,
-        autofocus: false,
-        onChanged: (v) {
-          setState(() {}); // refresh the clear button
-          _onChanged(v);
+      child: BlocSelector<YoutubeSearchCubit, YoutubeSearchState, bool>(
+        selector: (state) => state.query.isNotEmpty,
+        builder: (context, hasText) {
+          return TextField(
+            controller: cubit.searchController,
+            textInputAction: TextInputAction.search,
+            autofocus: false,
+            onChanged: cubit.onChanged,
+            onSubmitted: (v) => cubit.search(v.trim()),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: context.tr(TranslationKeys.youtubeSearchHint),
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: hasText
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: cubit.clear,
+                    )
+                  : null,
+            ),
+          );
         },
-        onSubmitted: (v) => _run(v.trim()),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: context.tr(TranslationKeys.youtubeSearchHint),
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: hasText
-              ? IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () {
-                    _debounce?.cancel();
-                    _search.clear();
-                    setState(() {
-                      _results = const [];
-                      _errorKey = null;
-                      _loading = false;
-                    });
-                  },
-                )
-              : null,
-        ),
       ),
     );
   }
+}
 
-  Widget _body(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_errorKey != null) {
-      return _centered(context, context.tr(_errorKey!));
-    }
-    if (_results.isEmpty) {
-      return _centered(context, context.tr(TranslationKeys.youtubeSearchPrompt));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-      itemCount: _results.length,
-      itemBuilder: (context, i) => _videoTile(context, _results[i]),
+class _Body extends StatelessWidget {
+  const _Body();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<YoutubeSearchCubit, YoutubeSearchState>(
+      builder: (context, state) {
+        if (state.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state.errorKey != null) {
+          return _centered(context, context.tr(state.errorKey!));
+        }
+        if (state.results.isEmpty) {
+          return _centered(context, context.tr(TranslationKeys.youtubeSearchPrompt));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+          itemCount: state.results.length,
+          itemBuilder: (context, i) => _videoTile(context, state.results[i]),
+        );
+      },
     );
   }
 
@@ -165,7 +114,7 @@ class _YoutubeSearchPageState extends State<YoutubeSearchPage> {
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => startYoutubeRoomFlow(context, video, _datasource),
+        onTap: () => startYoutubeRoomFlow(context, video, sl<YoutubeRemoteDataSource>()),
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(

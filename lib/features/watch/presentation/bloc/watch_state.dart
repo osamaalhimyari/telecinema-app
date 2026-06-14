@@ -33,6 +33,7 @@ class WatchState extends Equatable {
     this.subtitleUrl,
     this.subtitleSettings = const SubtitleSettings.defaults(),
     this.lastSync,
+    this.controlsLocked = false,
   });
 
   final WatchPhase phase;
@@ -86,6 +87,12 @@ class WatchState extends Equatable {
   /// iframe's real position.
   final PlaybackSync? lastSync;
 
+  /// Per-user, local-only touch lock. When true, the video's tap layer and
+  /// playback controls are disabled (so a faulty screen's ghost-touches can't
+  /// play/pause/seek) — emoji, chat and the mic stay fully usable. Never synced
+  /// to other viewers.
+  final bool controlsLocked;
+
   bool get isExternal => room?.isExternal ?? false;
   bool get someoneWaiting => waiting.isNotEmpty;
 
@@ -114,6 +121,7 @@ class WatchState extends Equatable {
     String? subtitleUrl,
     SubtitleSettings? subtitleSettings,
     PlaybackSync? lastSync,
+    bool? controlsLocked,
   }) {
     return WatchState(
       phase: phase ?? this.phase,
@@ -139,6 +147,7 @@ class WatchState extends Equatable {
       subtitleUrl: subtitleUrl ?? this.subtitleUrl,
       subtitleSettings: subtitleSettings ?? this.subtitleSettings,
       lastSync: lastSync ?? this.lastSync,
+      controlsLocked: controlsLocked ?? this.controlsLocked,
     );
   }
 
@@ -167,5 +176,6 @@ class WatchState extends Equatable {
     subtitleUrl,
     subtitleSettings,
     lastSync,
+    controlsLocked,
   ];
 }

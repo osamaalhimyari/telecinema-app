@@ -32,14 +32,15 @@ class FullscreenVoiceButton extends StatelessWidget {
             onTap: () => cubit.state.micActive ? cubit.stopTalking() : cubit.startTalking(),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 48,
-              height: 48,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: active ? context.semantic.success : Colors.black.withValues(alpha: 0.45),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 active ? Icons.mic_rounded : Icons.mic_none_rounded,
+                size: 20,
                 color: Colors.white,
               ),
             ),

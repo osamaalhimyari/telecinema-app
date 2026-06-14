@@ -42,9 +42,25 @@ const Map<String, String> arAr = {
   TranslationKeys.categoryAll: 'الكل',
 
   TranslationKeys.roomsTab: 'الغرف',
+  TranslationKeys.cinemaTab: 'سينما',
   TranslationKeys.browseTab: 'استكشاف',
   TranslationKeys.favoritesTab: 'المفضلة',
   TranslationKeys.youtubeTab: 'يوتيوب',
+
+  TranslationKeys.cinemaTitle: 'سينما',
+  TranslationKeys.cinemaSearchHint: 'ابحث عن أفلام ومسلسلات',
+  TranslationKeys.cinemaNoResults: 'لا توجد نتائج',
+  TranslationKeys.cinemaNoResultsHint: 'جرّب عنواناً أو قسماً أو تصنيفاً آخر.',
+  TranslationKeys.cinemaChooseServer: 'اختر سيرفر',
+  TranslationKeys.cinemaNoServers: 'لا توجد سيرفرات تحميل لهذا العنوان.',
+  TranslationKeys.cinemaResolveFailed: 'تعذّر قراءة هذا السيرفر — جرّب غيره.',
+  TranslationKeys.cinemaDirectFile: 'ملف مباشر',
+  TranslationKeys.cinemaStreamHost: 'مضيف بث',
+  TranslationKeys.cinemaLoading: 'جارٍ التحميل…',
+  TranslationKeys.cinemaUnavailable: 'الكتالوج غير متاح حالياً.',
+  TranslationKeys.cinemaNoEpisodes: 'لا توجد حلقات لهذا الموسم.',
+  TranslationKeys.favoritesSourceImdb: 'IMDB',
+  TranslationKeys.favoritesSourceCinema: 'سينما',
 
   TranslationKeys.youtubeSearchHint: 'ابحث أو الصق رابط يوتيوب',
   TranslationKeys.youtubeSearchPrompt: 'ابحث في يوتيوب — أو الصق رابط فيديو — لبدء مشاهدة جماعية.',
@@ -133,6 +149,9 @@ const Map<String, String> arAr = {
   TranslationKeys.tapToTalk: 'اضغط للتحدث',
   TranslationKeys.speaking: 'يتحدث',
   TranslationKeys.micPermissionDenied: 'تم رفض إذن الميكروفون.',
+
+  TranslationKeys.lockControls: 'قفل لمس الشاشة',
+  TranslationKeys.unlockControls: 'فتح لمس الشاشة',
 
   TranslationKeys.addSubtitle: 'إضافة ترجمة',
   TranslationKeys.subtitleAdded: 'تمت إضافة الترجمة.',
@@ -226,4 +245,19 @@ const Map<String, String> arAr = {
   TranslationKeys.serverInvalid: 'أدخل رابط http(s) صالحاً.',
   TranslationKeys.serverChangedRestart: 'تم تحديث الخادم — أعد تشغيل التطبيق للتطبيق.',
   TranslationKeys.resetToDefault: 'استعادة الافتراضي',
+  TranslationKeys.appVersion: 'الإصدار',
+
+  TranslationKeys.updateAvailable: 'يتوفر تحديث',
+  TranslationKeys.updateDownload: 'حدّث الآن',
+  TranslationKeys.updateDownloading: 'جارٍ التنزيل',
+  TranslationKeys.updateInstall: 'تثبيت',
+  TranslationKeys.updateLater: 'لاحقاً',
+  TranslationKeys.updateError: 'تعذّر تنزيل التحديث.',
+  TranslationKeys.updatePermissionDenied:
+      'اسمح لـ TeleCinema بـ«تثبيت التطبيقات غير المعروفة» لإكمال التحديث.',
+  TranslationKeys.updateRequiredTitle: 'التحديث مطلوب',
+  TranslationKeys.updateRequiredBody:
+      'يلزم إصدار جديد لمتابعة استخدام TeleCinema. يرجى التحديث للمتابعة.',
+  TranslationKeys.updateInstallHint:
+      'إذا أظهر أندرويد أن التطبيق غير آمن، اضغط «مزيد من التفاصيل» ثم «تثبيت على أي حال».',
 };
