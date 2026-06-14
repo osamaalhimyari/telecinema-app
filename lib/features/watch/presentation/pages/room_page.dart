@@ -246,10 +246,18 @@ class _RoomScaffold extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  state.room?.name ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Tapping the (possibly truncated) name surfaces it in full as
+                // a snack — handy when the room title is ellipsized.
+                GestureDetector(
+                  onTap: () {
+                    final name = state.room?.name ?? '';
+                    if (name.isNotEmpty) context.showSnack(name);
+                  },
+                  child: Text(
+                    state.room?.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Text(
                   '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
