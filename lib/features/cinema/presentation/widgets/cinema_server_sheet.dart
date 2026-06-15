@@ -26,6 +26,7 @@ Future<void> showCinemaServerPicker(
   required CinemaRemoteDataSource datasource,
   required bool isSeries,
   String? imdbId,
+  String? poster,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -37,6 +38,7 @@ Future<void> showCinemaServerPicker(
       datasource: datasource,
       isSeries: isSeries,
       imdbId: imdbId,
+      poster: poster,
     ),
   );
 }
@@ -48,6 +50,7 @@ class _ServerSheet extends StatelessWidget {
     required this.datasource,
     required this.isSeries,
     this.imdbId,
+    this.poster,
   });
 
   final String roomName;
@@ -55,6 +58,7 @@ class _ServerSheet extends StatelessWidget {
   final CinemaRemoteDataSource datasource;
   final bool isSeries;
   final String? imdbId;
+  final String? poster;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +71,7 @@ class _ServerSheet extends StatelessWidget {
         roomName: roomName,
         isSeries: isSeries,
         imdbId: imdbId,
+        poster: poster,
       ),
     );
   }
@@ -77,11 +82,13 @@ class _ServerSheetView extends StatelessWidget {
     required this.roomName,
     required this.isSeries,
     this.imdbId,
+    this.poster,
   });
 
   final String roomName;
   final bool isSeries;
   final String? imdbId;
+  final String? poster;
 
   Future<void> _onTap(BuildContext context, int index) async {
     final cubit = context.read<CinemaServerSheetCubit>();
@@ -113,6 +120,7 @@ class _ServerSheetView extends StatelessWidget {
         'videoUrl': chosen.url,
         'category': isSeries ? 'series' : 'movies',
         'imdbId': imdbId,
+        'thumbnail': poster,
       },
     );
   }

@@ -5,6 +5,9 @@ import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
 import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../widgets/controls_lock_button.dart';
+import '../widgets/draw_toggle_button.dart';
+import '../widgets/drawing_canvas.dart';
+import '../widgets/drawing_overlay.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
@@ -53,16 +56,28 @@ class _FullscreenView extends StatelessWidget {
           FloatingReactions(stream: watch.reactions),
           FloatingChatOverlay(stream: watch.incomingChat),
 
-          // Top-left: a single toggle button that reveals/hides the control
-          // stack (emoji, messages, mic, lock) stacked under it.
+          // Drawings render over the video (pointer-transparent); the canvas
+          // above captures touches only while draw mode is on. Both sit *under*
+          // the control stack below, so its buttons (incl. the draw toggle to
+          // exit) stay tappable.
+          DrawingOverlay(stream: watch.drawings),
+          const DrawingCanvas(),
+
+          // Top-start: a single toggle button that reveals/hides the control
+          // stack (emoji, messages, mic, draw, lock) — laid out *beside* it,
+          // extending into the screen (right in LTR, left in Arabic/RTL).
           SafeArea(
             child: Align(
-              alignment: Alignment.topLeft,
+              alignment: AlignmentDirectional.topStart,
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
                   builder: (context, state) {
-                    return Column(
+                    // A Row so the controls open *beside* the toggle (its start
+                    // side anchors the screen corner, so they extend inward —
+                    // rightward in LTR, leftward in Arabic/RTL). The toggle still
+                    // gates whether they appear at all.
+                    return Row(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -73,11 +88,11 @@ class _FullscreenView extends StatelessWidget {
                         AnimatedSize(
                           duration: const Duration(milliseconds: 200),
                           curve: Curves.easeOutCubic,
-                          alignment: Alignment.topLeft,
+                          alignment: AlignmentDirectional.topStart,
                           child: !state.controlsExpanded
                               ? const SizedBox.shrink()
                               : Padding(
-                                  padding: const EdgeInsets.only(top: 10),
+                                  padding: const EdgeInsetsDirectional.only(start: 10),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
@@ -91,6 +106,8 @@ class _FullscreenView extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 10),
                                       const FullscreenVoiceButton(),
+                                      const SizedBox(height: 10),
+                                      const FullscreenDrawButton(),
                                       const SizedBox(height: 10),
                                       const FullscreenLockButton(),
                                     ],

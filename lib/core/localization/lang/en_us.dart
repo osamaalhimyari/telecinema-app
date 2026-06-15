@@ -87,6 +87,7 @@ const Map<String, String> enUs = {
   TranslationKeys.allGenres: 'All genres',
   TranslationKeys.browseNoResults: 'Nothing found',
   TranslationKeys.browseNoResultsHint: 'Try a different title, category or genre.',
+  TranslationKeys.loadMore: 'Load more',
   TranslationKeys.torrentSearching: 'Looking for a torrent…',
   TranslationKeys.torrentNotAvailable: 'Not available currently',
 
@@ -112,6 +113,8 @@ const Map<String, String> enUs = {
   TranslationKeys.shareRoom: 'Share room',
   TranslationKeys.copyLink: 'Copy link',
   TranslationKeys.linkCopied: 'Link copied',
+  TranslationKeys.copy: 'Copy',
+  TranslationKeys.copied: 'Copied',
   TranslationKeys.scanToJoin: 'Scan to join',
 
   TranslationKeys.live: 'LIVE',
@@ -142,6 +145,8 @@ const Map<String, String> enUs = {
   TranslationKeys.chatSending: 'Sending…',
   TranslationKeys.chatRetry: 'Not sent · tap to retry',
   TranslationKeys.messages: 'Messages',
+  TranslationKeys.writing: 'is writing…',
+  TranslationKeys.draw: 'Draw',
 
   TranslationKeys.reactions: 'Reactions',
   TranslationKeys.chooseReactions: 'Pick 8 reactions for this room',
@@ -220,12 +225,17 @@ const Map<String, String> enUs = {
   TranslationKeys.typeTorrent: 'Magnet / Torrent',
   TranslationKeys.typeTorrentDesc:
       'Stream a video from a magnet link — no full download.',
+  TranslationKeys.typeYoutube: 'YouTube',
+  TranslationKeys.typeYoutubeDesc:
+      'Paste a YouTube link — the server streams it (no download), played with the room controls.',
   TranslationKeys.externalUrl: 'Embed URL',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'Video link',
   TranslationKeys.videoUrlHint: 'Direct video link or a magnet — the server downloads it',
   TranslationKeys.magnetUrl: 'Magnet link',
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
+  TranslationKeys.youtubeLink: 'YouTube link',
+  TranslationKeys.youtubeLinkHint: 'https://youtube.com/watch?v=…',
   TranslationKeys.pickVideo: 'Choose a video',
   TranslationKeys.password: 'Password',
   TranslationKeys.passwordOptionalHint:

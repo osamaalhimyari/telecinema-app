@@ -28,6 +28,7 @@ class WatchState extends Equatable {
     this.waiting = const [],
     this.messages = const [],
     this.sessionReactions = const [],
+    this.typingUsers = const {},
     this.externalUrl,
     this.resyncTick = 0,
     this.subtitleUrl,
@@ -70,6 +71,11 @@ class WatchState extends Equatable {
   /// fullscreen reaction bars show the same list — adding one in either appears
   /// in both.
   final List<String> sessionReactions;
+
+  /// Other viewers currently typing a chat message, `socketId → display name`.
+  /// Each entry auto-expires in the cubit so it can never get stuck on a lost
+  /// "stopped typing" signal.
+  final Map<String, String> typingUsers;
 
   // External (embed) rooms
   final String? externalUrl;
@@ -116,6 +122,7 @@ class WatchState extends Equatable {
     List<PresenceUser>? waiting,
     List<ChatMessage>? messages,
     List<String>? sessionReactions,
+    Map<String, String>? typingUsers,
     String? externalUrl,
     int? resyncTick,
     String? subtitleUrl,
@@ -142,6 +149,7 @@ class WatchState extends Equatable {
       waiting: waiting ?? this.waiting,
       messages: messages ?? this.messages,
       sessionReactions: sessionReactions ?? this.sessionReactions,
+      typingUsers: typingUsers ?? this.typingUsers,
       externalUrl: externalUrl ?? this.externalUrl,
       resyncTick: resyncTick ?? this.resyncTick,
       subtitleUrl: subtitleUrl ?? this.subtitleUrl,
@@ -171,6 +179,7 @@ class WatchState extends Equatable {
     waiting,
     messages,
     sessionReactions,
+    typingUsers,
     externalUrl,
     resyncTick,
     subtitleUrl,

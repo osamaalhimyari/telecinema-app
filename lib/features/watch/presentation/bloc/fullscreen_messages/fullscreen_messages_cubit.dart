@@ -9,17 +9,24 @@ import 'fullscreen_messages_state.dart';
 /// StatelessWidget (no setState). Sending delegates to the room's [WatchCubit];
 /// the controllers are disposed in [close].
 class FullscreenMessagesCubit extends Cubit<FullscreenMessagesState> {
-  FullscreenMessagesCubit(this._watch) : super(const FullscreenMessagesState());
+  FullscreenMessagesCubit(this._watch) : super(const FullscreenMessagesState()) {
+    input.addListener(_onInputChanged);
+  }
 
   final WatchCubit _watch;
 
   final TextEditingController input = TextEditingController();
   final ScrollController scroll = ScrollController();
 
+  /// Relay "I'm typing" to the room on each keystroke (throttled + auto-cleared
+  /// by the cubit). `input.clear()` after a send stops the signal.
+  void _onInputChanged() => _watch.notifyTyping(input.text);
+
   void send() {
     final text = input.text.trim();
     if (text.isEmpty) return;
     _watch.sendChat(text);
+    _watch.stopTyping();
     input.clear();
   }
 
@@ -37,6 +44,7 @@ class FullscreenMessagesCubit extends Cubit<FullscreenMessagesState> {
 
   @override
   Future<void> close() {
+    input.removeListener(_onInputChanged);
     input.dispose();
     scroll.dispose();
     return super.close();

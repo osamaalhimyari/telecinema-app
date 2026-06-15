@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
@@ -92,16 +93,19 @@ class PlayerStage extends StatelessWidget {
   /// keeps running in sync. `BlocProvider.value` does not close the cubit when
   /// the route is popped — the room page still owns it.
   void _openFullscreen(BuildContext context) {
-    // Hand the fullscreen route the same cubits so playback stays in sync and
-    // the push-to-talk mic keeps working. `.value` won't dispose them on pop.
+    // Hand the fullscreen route the same cubits so playback stays in sync, the
+    // push-to-talk mic keeps working and the draw-mode/pen choice carries over.
+    // `.value` won't dispose them on pop.
     final watch = context.read<WatchCubit>();
     final voice = context.read<VoiceCubit>();
+    final draw = context.read<DrawModeCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MultiBlocProvider(
           providers: [
             BlocProvider<WatchCubit>.value(value: watch),
             BlocProvider<VoiceCubit>.value(value: voice),
+            BlocProvider<DrawModeCubit>.value(value: draw),
           ],
           child: const FullscreenPlayerPage(),
         ),

@@ -29,6 +29,7 @@ Future<void> showTopcinemaPicker(
   required TopcinemaRemoteDataSource datasource,
   String? category,
   String? imdbId,
+  String? poster,
 }) async {
   final name = await _askName(context, _slugify(title));
   if (name == null || name.isEmpty || !context.mounted) return;
@@ -56,6 +57,7 @@ Future<void> showTopcinemaPicker(
       'videoUrl': choice.source.url,
       'category': category,
       'imdbId': imdbId,
+      'thumbnail': poster,
     },
   );
 }

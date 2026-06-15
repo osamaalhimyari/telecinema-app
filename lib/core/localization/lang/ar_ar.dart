@@ -85,6 +85,7 @@ const Map<String, String> arAr = {
   TranslationKeys.allGenres: 'كل التصنيفات',
   TranslationKeys.browseNoResults: 'لا توجد نتائج',
   TranslationKeys.browseNoResultsHint: 'جرّب عنواناً أو فئة أو تصنيفاً آخر.',
+  TranslationKeys.loadMore: 'تحميل المزيد',
   TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
   TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
 
@@ -110,6 +111,8 @@ const Map<String, String> arAr = {
   TranslationKeys.shareRoom: 'مشاركة الغرفة',
   TranslationKeys.copyLink: 'نسخ الرابط',
   TranslationKeys.linkCopied: 'تم نسخ الرابط',
+  TranslationKeys.copy: 'نسخ',
+  TranslationKeys.copied: 'تم النسخ',
   TranslationKeys.scanToJoin: 'امسح الرمز للانضمام',
 
   TranslationKeys.live: 'مباشر',
@@ -139,6 +142,8 @@ const Map<String, String> arAr = {
   TranslationKeys.chatSending: 'جارٍ الإرسال…',
   TranslationKeys.chatRetry: 'لم تُرسل · اضغط للإعادة',
   TranslationKeys.messages: 'الرسائل',
+  TranslationKeys.writing: 'يكتب…',
+  TranslationKeys.draw: 'رسم',
 
   TranslationKeys.reactions: 'تفاعلات',
   TranslationKeys.chooseReactions: 'اختر 8 تفاعلات لهذه الغرفة',
@@ -213,12 +218,17 @@ const Map<String, String> arAr = {
   TranslationKeys.typeTorrent: 'مغناطيسي / تورنت',
   TranslationKeys.typeTorrentDesc:
       'بث فيديو من رابط مغناطيسي — بدون تنزيل كامل.',
+  TranslationKeys.typeYoutube: 'يوتيوب',
+  TranslationKeys.typeYoutubeDesc:
+      'الصق رابط يوتيوب — يبثّه الخادم (بدون تنزيل) ويُشغَّل بأدوات تحكّم الغرفة.',
   TranslationKeys.externalUrl: 'رابط التضمين',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'رابط الفيديو',
   TranslationKeys.videoUrlHint: 'رابط مباشر للفيديو أو رابط مغناطيسي — يقوم الخادم بتنزيله',
   TranslationKeys.magnetUrl: 'رابط مغناطيسي',
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
+  TranslationKeys.youtubeLink: 'رابط يوتيوب',
+  TranslationKeys.youtubeLinkHint: 'https://youtube.com/watch?v=…',
   TranslationKeys.pickVideo: 'اختر فيديو',
   TranslationKeys.password: 'كلمة المرور',
   TranslationKeys.passwordOptionalHint: 'اختياري — اتركه فارغاً لغرفة مفتوحة',

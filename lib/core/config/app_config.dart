@@ -68,6 +68,12 @@ class AppConfig {
   static String? torrentStreamUrl(String? slug) =>
       (slug == null || slug.isEmpty) ? null : '$baseUrl/stream/$slug';
 
+  /// Absolute URL that streams a youtube room (`GET /youtube/:slug`, range
+  /// support). The server resolves the watch URL to a direct googlevideo stream
+  /// and proxies it, so the app plays it like any file room.
+  static String? youtubeStreamUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/youtube/$slug';
+
   /// Absolute URL of a room's thumbnail (served statically from `public/`).
   static String? thumbnailUrl(String? filename) =>
       (filename == null || filename.isEmpty)

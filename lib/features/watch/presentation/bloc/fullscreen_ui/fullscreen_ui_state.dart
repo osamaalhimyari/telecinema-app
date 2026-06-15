@@ -8,30 +8,25 @@ class FullscreenUiState extends Equatable {
   const FullscreenUiState({
     this.controlsExpanded = false,
     this.messagesOpen = false,
-    this.reactionsExpanded = false,
   });
 
-  /// The left-side control stack (emoji / messages / mic / lock) is revealed.
+  /// The left-side control stack (emoji strip + messages / mic / draw / lock)
+  /// is revealed.
   final bool controlsExpanded;
 
   /// The messages side-panel is open.
   final bool messagesOpen;
 
-  /// The emoji palette's strip is expanded (vs. the single reaction icon).
-  final bool reactionsExpanded;
-
   FullscreenUiState copyWith({
     bool? controlsExpanded,
     bool? messagesOpen,
-    bool? reactionsExpanded,
   }) {
     return FullscreenUiState(
       controlsExpanded: controlsExpanded ?? this.controlsExpanded,
       messagesOpen: messagesOpen ?? this.messagesOpen,
-      reactionsExpanded: reactionsExpanded ?? this.reactionsExpanded,
     );
   }
 
   @override
-  List<Object?> get props => [controlsExpanded, messagesOpen, reactionsExpanded];
+  List<Object?> get props => [controlsExpanded, messagesOpen];
 }

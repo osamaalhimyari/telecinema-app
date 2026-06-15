@@ -9,6 +9,7 @@ import '../../domain/entities/chat_message.dart';
 import '../bloc/chat_panel/chat_panel_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import 'typing_indicator.dart';
 
 class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
@@ -113,6 +114,18 @@ class _ChatPanelView extends StatelessWidget {
                                   ),
                                 ),
                               Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  // `m.time` is the server timestamp rendered in
+                                  // this device's own timezone + clock format.
+                                  TimeOfDay.fromDateTime(m.time).format(context),
+                                  style: context.text.labelSmall?.copyWith(
+                                    color: context.colors.onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
                               if (mine && m.isPending) _status(context, m),
                             ],
                           ),
@@ -125,6 +138,7 @@ class _ChatPanelView extends StatelessWidget {
             },
           ),
         ),
+        const TypingIndicator(),
         SafeArea(
           top: false,
           child: Padding(

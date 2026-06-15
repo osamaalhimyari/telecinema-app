@@ -79,6 +79,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       RoomType.external => 'external',
       RoomType.download => 'download',
       RoomType.torrent => 'torrent',
+      RoomType.youtube => 'youtube',
       RoomType.upload => 'upload',
     };
 
@@ -89,6 +90,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
         if (params.password != null && params.password!.isNotEmpty) 'password': params.password,
         if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
         if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
+        if (params.thumbnail != null && params.thumbnail!.isNotEmpty) 'thumbnail': params.thumbnail,
         if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
         'video': await MultipartFile.fromFile(params.localVideoPath!),
       });
@@ -112,6 +114,7 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
       if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
       if (params.maxHeight != null) 'maxHeight': params.maxHeight,
+      if (params.thumbnail != null && params.thumbnail!.isNotEmpty) 'thumbnail': params.thumbnail,
       if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
     });
     if (!res.success) throw ServerException(res.message ?? 'room_create_failed');

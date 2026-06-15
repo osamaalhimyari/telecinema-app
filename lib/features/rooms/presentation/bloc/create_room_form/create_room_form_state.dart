@@ -9,6 +9,7 @@ class CreateRoomFormState extends Equatable {
     this.videoName,
     this.category,
     this.reactions = const <String>[],
+    this.reactionsExpanded = false,
   });
 
   final RoomType type;
@@ -17,12 +18,17 @@ class CreateRoomFormState extends Equatable {
   final String? category;
   final List<String> reactions;
 
+  /// Whether the (large) emoji picker grid is expanded. Collapsed by default to
+  /// keep the form compact; the chosen reactions still show above it.
+  final bool reactionsExpanded;
+
   CreateRoomFormState copyWith({
     RoomType? type,
     String? videoPath,
     String? videoName,
     String? category,
     List<String>? reactions,
+    bool? reactionsExpanded,
     bool clearVideo = false,
     bool clearCategory = false,
   }) {
@@ -32,9 +38,17 @@ class CreateRoomFormState extends Equatable {
       videoName: clearVideo ? null : (videoName ?? this.videoName),
       category: clearCategory ? null : (category ?? this.category),
       reactions: reactions ?? this.reactions,
+      reactionsExpanded: reactionsExpanded ?? this.reactionsExpanded,
     );
   }
 
   @override
-  List<Object?> get props => [type, videoPath, videoName, category, reactions];
+  List<Object?> get props => [
+    type,
+    videoPath,
+    videoName,
+    category,
+    reactions,
+    reactionsExpanded,
+  ];
 }

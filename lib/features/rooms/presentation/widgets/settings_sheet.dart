@@ -28,8 +28,10 @@ class SettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          SettingsSheetCubit(sl<KeyValueStorage>(), context.read<IdentityCubit>()),
+      create: (_) => SettingsSheetCubit(
+        sl<KeyValueStorage>(),
+        context.read<IdentityCubit>(),
+      ),
       child: const _SettingsSheetView(),
     );
   }
@@ -125,48 +127,53 @@ class _SettingsSheetView extends StatelessWidget {
             label: context.tr(TranslationKeys.appVersion),
             trailing: Text(
               'v${AppInfo.version} (${AppInfo.buildNumber})',
-              style: context.text.bodyMedium?.copyWith(color: context.colors.outline),
+              style: context.text.bodyMedium,
             ),
           ),
           const SizedBox(height: 20),
 
-          Text(context.tr(TranslationKeys.server), style: context.text.titleSmall),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: cubit.server,
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  textInputAction: TextInputAction.done,
-                  onChanged: (_) => cubit.onServerChanged(),
-                  decoration: InputDecoration(
-                    hintText: context.tr(TranslationKeys.serverHint),
-                    prefixIcon: const Icon(Icons.dns_outlined),
-                  ),
-                  onSubmitted: (_) => _save(context),
-                ),
-              ),
-              const SizedBox(width: 8),
-              BlocSelector<SettingsSheetCubit, SettingsSheetState, bool>(
-                selector: (state) => state.isServerDefault,
-                builder: (context, isServerDefault) => IconButton.filledTonal(
-                  tooltip: context.tr(TranslationKeys.resetToDefault),
-                  onPressed: isServerDefault ? null : cubit.resetServer,
-                  icon: const Icon(Icons.restart_alt_rounded),
-                ),
-              ),
-            ],
+          Text(
+            context.tr(TranslationKeys.server),
+            style: context.text.titleSmall,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
+          // Row(
+          //   children: [
+          //     Expanded(
+          //       child: TextField(
+          //         controller: cubit.server,
+          //         keyboardType: TextInputType.url,
+          //         autocorrect: false,
+          //         textInputAction: TextInputAction.done,
+          //         onChanged: (_) => cubit.onServerChanged(),
+          //         decoration: InputDecoration(
+          //           hintText: context.tr(TranslationKeys.serverHint),
+          //           prefixIcon: const Icon(Icons.dns_outlined),
+          //         ),
+          //         onSubmitted: (_) => _save(context),
+          //       ),
+          //     ),
+          //     const SizedBox(width: 8),
+          //     BlocSelector<SettingsSheetCubit, SettingsSheetState, bool>(
+          //       selector: (state) => state.isServerDefault,
+          //       builder: (context, isServerDefault) => IconButton.filledTonal(
+          //         tooltip: context.tr(TranslationKeys.resetToDefault),
+          //         onPressed: isServerDefault ? null : cubit.resetServer,
+          //         icon: const Icon(Icons.restart_alt_rounded),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          // const SizedBox(height: 6),
           BlocSelector<SettingsSheetCubit, SettingsSheetState, String?>(
             selector: (state) => state.serverError,
             builder: (context, serverError) => Text(
               serverError ??
                   '${context.tr(TranslationKeys.serverDefaultLabel)}: ${AppConfig.defaultBaseUrl}',
               style: context.text.bodySmall?.copyWith(
-                color: serverError != null ? context.colors.error : context.colors.outline,
+                color: serverError != null
+                    ? context.colors.error
+                    : context.colors.outline,
               ),
             ),
           ),

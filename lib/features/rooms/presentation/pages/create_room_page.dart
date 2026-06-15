@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,6 +26,7 @@ class CreateRoomPage extends StatelessWidget {
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
+    this.initialThumbnail,
   });
 
   /// Optional pre-fill (e.g. opened from the Browse catalogue with a chosen
@@ -41,6 +43,7 @@ class CreateRoomPage extends StatelessWidget {
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
+  final String? initialThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +56,7 @@ class CreateRoomPage extends StatelessWidget {
         initialCategory: initialCategory,
         initialImdbId: initialImdbId,
         initialMaxHeight: initialMaxHeight,
+        initialThumbnail: initialThumbnail,
       ),
     );
   }
@@ -66,6 +70,7 @@ class _CreateRoomView extends StatelessWidget {
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
+    this.initialThumbnail,
   });
 
   final String? initialName;
@@ -74,6 +79,7 @@ class _CreateRoomView extends StatelessWidget {
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
+  final String? initialThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -87,16 +93,22 @@ class _CreateRoomView extends StatelessWidget {
       child: _CreateRoomForm(
         initialImdbId: initialImdbId,
         initialMaxHeight: initialMaxHeight,
+        initialThumbnail: initialThumbnail,
       ),
     );
   }
 }
 
 class _CreateRoomForm extends StatelessWidget {
-  const _CreateRoomForm({this.initialImdbId, this.initialMaxHeight});
+  const _CreateRoomForm({
+    this.initialImdbId,
+    this.initialMaxHeight,
+    this.initialThumbnail,
+  });
 
   final String? initialImdbId;
   final int? initialMaxHeight;
+  final String? initialThumbnail;
 
   Future<void> _pickVideo(BuildContext context) async {
     final file = await ImagePicker().pickVideo(source: ImageSource.gallery);
@@ -131,9 +143,11 @@ class _CreateRoomForm extends StatelessWidget {
         externalUrl: state.type == RoomType.external
             ? form.externalUrl.text.trim()
             : null,
-        videoUrl: state.type == RoomType.download && !downloadIsMagnet
-            ? downloadText
-            : null,
+        videoUrl: state.type == RoomType.youtube
+            ? form.youtubeUrl.text.trim()
+            : (state.type == RoomType.download && !downloadIsMagnet
+                  ? downloadText
+                  : null),
         magnet: state.type == RoomType.torrent
             ? form.magnet.text.trim()
             : (state.type == RoomType.download && downloadIsMagnet
@@ -145,6 +159,9 @@ class _CreateRoomForm extends StatelessWidget {
         imdbId: initialImdbId,
         // Only meaningful for a server download (the YouTube flow sets it).
         maxHeight: state.type == RoomType.download ? initialMaxHeight : null,
+        // The movie/series poster (from the catalogue). Null → server picks a
+        // random placeholder.
+        thumbnail: initialThumbnail,
       ),
     );
   }
@@ -216,24 +233,15 @@ class _CreateRoomForm extends StatelessWidget {
                       _categorySelector(context),
                       const SizedBox(height: 20),
 
-                      BlocSelector<CreateRoomFormCubit, CreateRoomFormState,
-                          int>(
-                        selector: (s) => s.reactions.length,
-                        builder: (context, count) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            '${context.tr(TranslationKeys.chooseReactions)}  ($count/$maxReactions)',
-                            style: context.text.titleSmall,
-                          ),
-                        ),
-                      ),
+                      _reactionsHeader(context),
                       _selectedReactionsRow(context),
-                      _reactionsPicker(context),
+                      _collapsibleReactionsPicker(context),
                     ],
                   ),
                 ),
                 const SizedBox(height: 28),
                 _submitButton(context, state),
+                const SizedBox(height: 28),
               ],
             ),
           );
@@ -246,6 +254,24 @@ class _CreateRoomForm extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(context.tr(key), style: context.text.titleSmall),
   );
+
+  /// A copy button for a (often long, prefilled) source field — select-all +
+  /// the text toolbar is fiddly on a multi-line magnet, so this copies the whole
+  /// field in one tap. Copies the controller's current text and confirms it.
+  Widget _copyButton(BuildContext context, TextEditingController controller) {
+    return IconButton(
+      tooltip: context.tr(TranslationKeys.copy),
+      icon: const Icon(Icons.copy_rounded),
+      onPressed: () async {
+        final text = controller.text.trim();
+        if (text.isEmpty) return;
+        await Clipboard.setData(ClipboardData(text: text));
+        if (context.mounted) {
+          context.showSnack(context.tr(TranslationKeys.copied));
+        }
+      },
+    );
+  }
 
   /// A live preview of the currently-chosen reactions, shown above the full
   /// picker. Tapping a chip removes that emoji from the selection ("changeable
@@ -302,6 +328,55 @@ class _CreateRoomForm extends StatelessWidget {
     );
   }
 
+  /// Tappable header: shows the chosen count and a chevron that expands/collapses
+  /// the emoji grid below (kept collapsed by default to keep the form compact).
+  Widget _reactionsHeader(BuildContext context) {
+    return BlocSelector<CreateRoomFormCubit, CreateRoomFormState, (int, bool)>(
+      selector: (s) => (s.reactions.length, s.reactionsExpanded),
+      builder: (context, data) {
+        final (count, expanded) = data;
+        return InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () =>
+              context.read<CreateRoomFormCubit>().toggleReactionsExpanded(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${context.tr(TranslationKeys.chooseReactions)}  ($count/$maxReactions)',
+                    style: context.text.titleSmall,
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(Icons.expand_more_rounded),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// The emoji grid, revealed/hidden by [_reactionsHeader].
+  Widget _collapsibleReactionsPicker(BuildContext context) {
+    return BlocSelector<CreateRoomFormCubit, CreateRoomFormState, bool>(
+      selector: (s) => s.reactionsExpanded,
+      builder: (context, expanded) => AnimatedCrossFade(
+        firstChild: const SizedBox(width: double.infinity),
+        secondChild: _reactionsPicker(context),
+        crossFadeState:
+            expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+        duration: const Duration(milliseconds: 200),
+        sizeCurve: Curves.easeOutCubic,
+      ),
+    );
+  }
+
   Widget _reactionsPicker(BuildContext context) {
     return Container(
       height: 220,
@@ -311,41 +386,48 @@ class _CreateRoomForm extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(12),
       child: SingleChildScrollView(
-        child: BlocSelector<CreateRoomFormCubit, CreateRoomFormState,
-            List<String>>(
-          selector: (s) => s.reactions,
-          builder: (context, reactions) {
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: kReactionEmojis.map((emoji) {
-                final selected = reactions.contains(emoji);
-                return GestureDetector(
-                  onTap: () => _toggleReaction(context, emoji),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 120),
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? context.colors.primary.withValues(alpha: 0.18)
-                          : context.colors.surface,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selected
-                            ? context.colors.primary
-                            : context.colors.outline,
-                        width: selected ? 2 : 1,
+        child:
+            BlocSelector<
+              CreateRoomFormCubit,
+              CreateRoomFormState,
+              List<String>
+            >(
+              selector: (s) => s.reactions,
+              builder: (context, reactions) {
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: kReactionEmojis.map((emoji) {
+                    final selected = reactions.contains(emoji);
+                    return GestureDetector(
+                      onTap: () => _toggleReaction(context, emoji),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? context.colors.primary.withValues(alpha: 0.18)
+                              : context.colors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? context.colors.primary
+                                : context.colors.outline,
+                            width: selected ? 2 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
                       ),
-                    ),
-                    child: Text(emoji, style: const TextStyle(fontSize: 20)),
-                  ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
-            );
-          },
-        ),
+              },
+            ),
       ),
     );
   }
@@ -397,6 +479,11 @@ class _CreateRoomForm extends StatelessWidget {
               label: Text(context.tr(TranslationKeys.typeDownload)),
             ),
             ButtonSegment(
+              value: RoomType.youtube,
+              icon: const Icon(Icons.smart_display_outlined, size: 18),
+              label: Text(context.tr(TranslationKeys.typeYoutube)),
+            ),
+            ButtonSegment(
               value: RoomType.upload,
               icon: const Icon(Icons.upload_rounded, size: 18),
               label: Text(context.tr(TranslationKeys.typeUpload)),
@@ -434,6 +521,7 @@ class _CreateRoomForm extends StatelessWidget {
                     labelText: context.tr(TranslationKeys.magnetUrl),
                     hintText: context.tr(TranslationKeys.magnetUrlHint),
                     prefixIcon: const Icon(Icons.stream_rounded),
+                    suffixIcon: _copyButton(context, form.magnet),
                   ),
                   validator: (v) =>
                       (type == RoomType.torrent &&
@@ -459,6 +547,7 @@ class _CreateRoomForm extends StatelessWidget {
                     labelText: context.tr(TranslationKeys.externalUrl),
                     hintText: context.tr(TranslationKeys.externalUrlHint),
                     prefixIcon: const Icon(Icons.public_rounded),
+                    suffixIcon: _copyButton(context, form.externalUrl),
                   ),
                   validator: (v) =>
                       (type == RoomType.external &&
@@ -484,6 +573,7 @@ class _CreateRoomForm extends StatelessWidget {
                     labelText: context.tr(TranslationKeys.videoUrl),
                     hintText: context.tr(TranslationKeys.videoUrlHint),
                     prefixIcon: const Icon(Icons.download_rounded),
+                    suffixIcon: _copyButton(context, form.videoUrl),
                   ),
                   validator: (v) {
                     if (type != RoomType.download) return null;
@@ -493,6 +583,36 @@ class _CreateRoomForm extends StatelessWidget {
                     return (t.startsWith('http') || t.startsWith('magnet:'))
                         ? null
                         : context.tr(TranslationKeys.videoUrlHint);
+                  },
+                ),
+              ],
+            );
+          case RoomType.youtube:
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(TranslationKeys.typeYoutubeDesc),
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: form.youtubeUrl,
+                  keyboardType: TextInputType.url,
+                  minLines: 1,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: context.tr(TranslationKeys.youtubeLink),
+                    hintText: context.tr(TranslationKeys.youtubeLinkHint),
+                    prefixIcon: const Icon(Icons.smart_display_outlined),
+                    suffixIcon: _copyButton(context, form.youtubeUrl),
+                  ),
+                  validator: (v) {
+                    if (type != RoomType.youtube) return null;
+                    final t = v?.trim().toLowerCase() ?? '';
+                    final ok = t.startsWith('http') &&
+                        (t.contains('youtube.com') || t.contains('youtu.be'));
+                    return ok ? null : context.tr(TranslationKeys.youtubeLinkHint);
                   },
                 ),
               ],

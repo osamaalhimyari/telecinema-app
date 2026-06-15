@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui' show Offset;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -19,12 +21,86 @@ import '/logic/identity/identity_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
 import '/logic/storage/shared_prefs_storage.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/subtitle_settings.dart';
+import '../../domain/entities/typing_event.dart';
 import '../../domain/repositories/watch_repository.dart';
 import '../../data/datasources/torrent_engine.dart';
 import 'watch_state.dart';
+
+// ===========================================================================
+// Reaction haptics — a distinct vibration for laugh / heart reactions, so a
+// laugh feels playful and a heart "beats". Fired for both sent and received
+// reactions (see WatchCubit.sendReaction / the reaction listener). Uses the
+// view's haptic feedback (no VIBRATE permission); a harmless no-op on web.
+// ===========================================================================
+
+/// Laughing emojis → a celebratory triple buzz.
+const _laughEmojis = {'😂', '🤣'};
+
+/// Heart code points, matched **per rune** so every variation is caught —
+/// `❤` vs `❤️` (with the U+FE0F selector), the colored hearts, and the
+/// decorative ones — without listing each rendered string.
+const _heartRunes = <int>{
+  0x2764, 0x2763, 0x2665, // ❤ ❣ ♥
+  0x1F90D, 0x1F9E1, 0x1F49B, 0x1F49A, 0x1F499, 0x1F49C, 0x1F90E, 0x1F5A4, // colored
+  0x1F496, 0x1F497, 0x1F493, 0x1F49E, 0x1F495, 0x1F498, 0x1F49D, 0x1F49F, // decorative
+  0x1F494, // 💔 broken
+};
+
+/// Heart-ish faces the user grouped with hearts (not hearts themselves).
+const _heartFaces = {'😘', '🥰'};
+
+/// Scared / anguished faces → a trembling shiver.
+const _scaredEmojis = {'😦', '😧', '😨', '😱', '😰'};
+
+bool _isLaugh(String emoji) => _laughEmojis.contains(emoji);
+
+bool _isHeart(String emoji) {
+  if (_heartFaces.contains(emoji)) return true;
+  for (final rune in emoji.runes) {
+    if (_heartRunes.contains(rune)) return true;
+  }
+  return false;
+}
+
+bool _isScared(String emoji) => _scaredEmojis.contains(emoji);
+
+/// A short, playful triple buzz so a laughing reaction feels like laughter.
+void _laughHaptic() {
+  HapticFeedback.vibrate();
+  Timer(const Duration(milliseconds: 110), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 220), () => HapticFeedback.vibrate());
+}
+
+/// A "lub-dub … lub-dub" double heartbeat for heart reactions.
+void _heartHaptic() {
+  HapticFeedback.vibrate();
+  Timer(const Duration(milliseconds: 150), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 600), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 750), () => HapticFeedback.vibrate());
+}
+
+/// A rapid trembling shiver (5 quick buzzes) for scared / anguished reactions.
+void _scaredHaptic() {
+  HapticFeedback.vibrate();
+  for (var i = 1; i <= 4; i++) {
+    Timer(Duration(milliseconds: 60 * i), () => HapticFeedback.vibrate());
+  }
+}
+
+/// Fires the matching haptic (laugh / heart / scared) for a reaction emoji.
+void _reactionHaptic(String emoji) {
+  if (_isLaugh(emoji)) {
+    _laughHaptic();
+  } else if (_isHeart(emoji)) {
+    _heartHaptic();
+  } else if (_isScared(emoji)) {
+    _scaredHaptic();
+  }
+}
 
 /// The synchronized-room brain. Owns the libmpv-backed [Player] for file rooms,
 /// applies the server's authoritative `sync` (extrapolated for latency) and
@@ -91,6 +167,15 @@ class WatchCubit extends Cubit<WatchState> {
   final _reactions = StreamController<ReactionEvent>.broadcast();
   Stream<ReactionEvent> get reactions => _reactions.stream;
 
+  /// Transient drawing-segment feed for the drawing overlay (not part of
+  /// state). Carries both relayed strokes and the local echo (id `'me'`).
+  final _draw = StreamController<DrawEvent>.broadcast();
+  Stream<DrawEvent> get drawings => _draw.stream;
+
+  /// Monotonic counter feeding unique stroke ids for this session.
+  int _drawSeq = 0;
+  String newStrokeId() => 'd${DateTime.now().microsecondsSinceEpoch}-${_drawSeq++}';
+
   /// Transient feed of *incoming* chat for the fullscreen floating overlay.
   /// (Messages are still appended to `state.messages` for the chat panel.)
   final _incomingChat = StreamController<ChatMessage>.broadcast();
@@ -106,6 +191,20 @@ class WatchCubit extends Cubit<WatchState> {
   int _chatSeq = 0;
 
   static const _sendTimeout = Duration(seconds: 12);
+
+  /// Per-typer safety timers (`socketId → expiry`). A typing entry is dropped
+  /// when its timer fires, so a lost "stopped typing" can never strand the
+  /// indicator. Re-armed on every refresh.
+  final Map<String, Timer> _typingTimers = {};
+  static const _typingTtl = Duration(seconds: 5);
+
+  /// Our own outgoing typing state: whether we've told the room we're typing,
+  /// when we last (re)sent it, and the idle timer that auto-clears it.
+  bool _selfTyping = false;
+  DateTime? _selfTypingSentAt;
+  Timer? _selfTypingIdle;
+  static const _selfTypingResend = Duration(seconds: 2);
+  static const _selfTypingIdleTimeout = Duration(seconds: 3);
 
   // ===========================================================================
   // Lifecycle
@@ -261,7 +360,15 @@ class WatchCubit extends Cubit<WatchState> {
       _repo.subtitleSettings.listen(_applyRemoteSubtitleSettings),
       _repo.reaction.listen((r) {
         if (!_reactions.isClosed) _reactions.add(r);
+        // Incoming reactions are other viewers' only (the server relays to
+        // others; our own echo is added directly above), so this never
+        // double-fires for the sender.
+        _reactionHaptic(r.emoji);
       }),
+      _repo.draw.listen((d) {
+        if (!_draw.isClosed) _draw.add(d);
+      }),
+      _repo.typing.listen(_onTyping),
       _repo.roomDeleted.listen((_) => emit(state.copyWith(phase: WatchPhase.deleted))),
     ]);
   }
@@ -712,6 +819,81 @@ class WatchCubit extends Cubit<WatchState> {
     if (!_reactions.isClosed) {
       _reactions.add(ReactionEvent(emoji: emoji, id: 'me', name: ''));
     }
+    _reactionHaptic(emoji);
+  }
+
+  /// Relays one segment of a drawing stroke to the room and echoes it locally
+  /// (id `'me'`) so this device's overlay renders the line as it's drawn —
+  /// mirroring how [sendReaction] floats the sender's own emoji. [points] are
+  /// normalized (0..1) against the player box.
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<Offset> points,
+    required bool done,
+  }) {
+    _repo.sendDraw(
+      strokeId: strokeId,
+      color: color,
+      points: [for (final p in points) [p.dx, p.dy]],
+      done: done,
+    );
+    if (!_draw.isClosed) {
+      _draw.add(
+        DrawEvent(id: 'me', name: '', strokeId: strokeId, color: color, points: points, done: done),
+      );
+    }
+  }
+
+  // ---- typing indicator --------------------------------------------------
+
+  /// A relayed typing signal from another viewer. Tracks the typer with a
+  /// safety TTL so a lost `typing:false` can never strand the indicator.
+  void _onTyping(TypingEvent e) {
+    if (e.id.isEmpty) return;
+    _typingTimers.remove(e.id)?.cancel();
+    final next = Map<String, String>.from(state.typingUsers);
+    if (e.typing && e.name.trim().isNotEmpty) {
+      next[e.id] = e.name;
+      _typingTimers[e.id] = Timer(_typingTtl, () {
+        _typingTimers.remove(e.id);
+        if (isClosed) return;
+        emit(state.copyWith(typingUsers: Map<String, String>.from(state.typingUsers)..remove(e.id)));
+      });
+    } else {
+      next.remove(e.id);
+    }
+    emit(state.copyWith(typingUsers: next));
+  }
+
+  /// Called from the chat composers on each keystroke. Announces "I'm typing"
+  /// (throttled to one refresh per [_selfTypingResend]) and arms an idle timer
+  /// that auto-clears it after [_selfTypingIdleTimeout] of no input — so the
+  /// signal stops on its own even if the user just walks away.
+  void notifyTyping(String text) {
+    if (text.trim().isEmpty) {
+      stopTyping();
+      return;
+    }
+    final now = DateTime.now();
+    final stale = _selfTypingSentAt == null || now.difference(_selfTypingSentAt!) > _selfTypingResend;
+    if (!_selfTyping || stale) {
+      _selfTyping = true;
+      _selfTypingSentAt = now;
+      _repo.sendTyping(true);
+    }
+    _selfTypingIdle?.cancel();
+    _selfTypingIdle = Timer(_selfTypingIdleTimeout, stopTyping);
+  }
+
+  /// Clears our own typing signal (on send, on empty input, or idle timeout).
+  void stopTyping() {
+    _selfTypingIdle?.cancel();
+    _selfTypingIdle = null;
+    if (!_selfTyping) return;
+    _selfTyping = false;
+    _selfTypingSentAt = null;
+    _repo.sendTyping(false);
   }
 
   /// Adds a custom emoji to this session's reaction palette (shared by the
@@ -763,10 +945,15 @@ class WatchCubit extends Cubit<WatchState> {
   Future<void> close() async {
     _bufferDebounce?.cancel();
     _torrentStallTimer?.cancel();
+    _selfTypingIdle?.cancel();
     for (final t in _sendTimers.values) {
       t.cancel();
     }
     _sendTimers.clear();
+    for (final t in _typingTimers.values) {
+      t.cancel();
+    }
+    _typingTimers.clear();
     for (final s in _subs) {
       await s.cancel();
     }
@@ -776,6 +963,7 @@ class WatchCubit extends Cubit<WatchState> {
     await _player?.dispose();
     _repo.leave();
     await _reactions.close();
+    await _draw.close();
     await _incomingChat.close();
     return super.close();
   }

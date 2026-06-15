@@ -5,11 +5,13 @@ import '/core/config/app_config.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/presence_user.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/source_change.dart';
 import '../../domain/entities/subtitle_settings.dart';
+import '../../domain/entities/typing_event.dart';
 
 /// Binds the shared [SocketCubit] to a single room's realtime protocol — the
 /// exact event set the website uses (`join_room`, `sync`, `control`, `chat`,
@@ -37,6 +39,8 @@ class WatchSocketDataSource {
   final _subtitleSettings = StreamController<SubtitleSettings>.broadcast();
   final _forceResync = StreamController<PlaybackSync>.broadcast();
   final _reaction = StreamController<ReactionEvent>.broadcast();
+  final _draw = StreamController<DrawEvent>.broadcast();
+  final _typing = StreamController<TypingEvent>.broadcast();
   final _roomDeleted = StreamController<void>.broadcast();
   final _voice = StreamController<VoiceEvent>.broadcast();
 
@@ -59,6 +63,8 @@ class WatchSocketDataSource {
   Stream<SubtitleSettings> get subtitleSettings => _subtitleSettings.stream;
   Stream<PlaybackSync> get forceResync => _forceResync.stream;
   Stream<ReactionEvent> get reaction => _reaction.stream;
+  Stream<DrawEvent> get draw => _draw.stream;
+  Stream<TypingEvent> get typing => _typing.stream;
   Stream<void> get roomDeleted => _roomDeleted.stream;
   Stream<VoiceEvent> get voice => _voice.stream;
 
@@ -99,6 +105,8 @@ class WatchSocketDataSource {
       _socket.on('subtitle_changed').listen(_onSubtitleChanged),
       _socket.on('subtitle_settings_changed').listen(_onSubtitleSettings),
       _socket.on('reaction').listen(_onReaction),
+      _socket.on('draw').listen(_onDraw),
+      _socket.on('typing').listen(_onTyping),
       _socket.on('room_deleted').listen((_) => _add(_roomDeleted, null)),
       _socket.on('voice_start').listen((d) => _onVoice(VoicePhase.start, d)),
       _socket.on('voice_chunk').listen((d) => _onVoice(VoicePhase.chunk, d)),
@@ -120,6 +128,24 @@ class WatchSocketDataSource {
       _socket.emitEvent('chat', {'text': text, 'clientId': ?clientId});
 
   void sendReaction(String emoji) => _socket.emitEvent('reaction', {'emoji': emoji});
+
+  /// Relays a drawing-stroke segment. [points] are normalized (0..1) pairs;
+  /// [done] ends the stroke.
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<List<double>> points,
+    required bool done,
+  }) {
+    _socket.emitEvent('draw', {
+      'strokeId': strokeId,
+      'color': color,
+      'points': points,
+      'done': done,
+    });
+  }
+
+  void sendTyping(bool typing) => _socket.emitEvent('typing', {'typing': typing});
 
   void setBuffering(bool buffering) => _socket.emitEvent('buffer_state', {'buffering': buffering});
 
@@ -199,6 +225,14 @@ class WatchSocketDataSource {
     if (d is Map) _add(_reaction, ReactionEvent.fromJson(Map<String, dynamic>.from(d)));
   }
 
+  void _onDraw(dynamic d) {
+    if (d is Map) _add(_draw, DrawEvent.fromJson(Map<String, dynamic>.from(d)));
+  }
+
+  void _onTyping(dynamic d) {
+    if (d is Map) _add(_typing, TypingEvent.fromJson(Map<String, dynamic>.from(d)));
+  }
+
   void _onVoice(VoicePhase phase, dynamic d) {
     if (d is! Map) return;
     _add(
@@ -245,6 +279,8 @@ class WatchSocketDataSource {
     await _subtitleSettings.close();
     await _forceResync.close();
     await _reaction.close();
+    await _draw.close();
+    await _typing.close();
     await _roomDeleted.close();
     await _voice.close();
   }
