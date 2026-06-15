@@ -220,7 +220,7 @@ const Map<String, String> arAr = {
       'بث فيديو من رابط مغناطيسي — بدون تنزيل كامل.',
   TranslationKeys.typeYoutube: 'يوتيوب',
   TranslationKeys.typeYoutubeDesc:
-      'الصق رابط يوتيوب — يبثّه الخادم (بدون تنزيل) ويُشغَّل بأدوات تحكّم الغرفة.',
+      'الصق رابط يوتيوب — يقوم الخادم بتنزيله ثم يفتح الغرفة، ويُشغَّل بأدوات تحكّم الغرفة.',
   TranslationKeys.externalUrl: 'رابط التضمين',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'رابط الفيديو',

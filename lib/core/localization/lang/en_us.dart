@@ -227,7 +227,7 @@ const Map<String, String> enUs = {
       'Stream a video from a magnet link — no full download.',
   TranslationKeys.typeYoutube: 'YouTube',
   TranslationKeys.typeYoutubeDesc:
-      'Paste a YouTube link — the server streams it (no download), played with the room controls.',
+      'Paste a YouTube link — the server downloads it and opens the room, played with the room controls.',
   TranslationKeys.externalUrl: 'Embed URL',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'Video link',

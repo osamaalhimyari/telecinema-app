@@ -133,17 +133,26 @@ class _CreateRoomForm extends StatelessWidget {
     final downloadText = form.videoUrl.text.trim();
     final downloadIsMagnet = downloadText.startsWith('magnet:');
 
+    // A YouTube room is created by DOWNLOADING the video to the server (yt-dlp),
+    // exactly like a pasted download link — not by proxying a live stream, which
+    // needs the server to resolve a googlevideo URL on demand and fails on hosts
+    // without yt-dlp. So the YouTube tab is submitted as a `download` whose
+    // videoUrl is the watch URL; the server routes a YouTube host to yt-dlp
+    // automatically and the create cubit polls the job like any other download.
+    final isYoutube = state.type == RoomType.youtube;
+    final submitType = isYoutube ? RoomType.download : state.type;
+
     context.read<CreateRoomCubit>().submit(
       CreateRoomParams(
         name: form.name.text.trim(),
-        type: state.type,
+        type: submitType,
         password: form.password.text.trim().isEmpty
             ? null
             : form.password.text.trim(),
         externalUrl: state.type == RoomType.external
             ? form.externalUrl.text.trim()
             : null,
-        videoUrl: state.type == RoomType.youtube
+        videoUrl: isYoutube
             ? form.youtubeUrl.text.trim()
             : (state.type == RoomType.download && !downloadIsMagnet
                   ? downloadText
@@ -157,8 +166,9 @@ class _CreateRoomForm extends StatelessWidget {
         reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
         category: state.category,
         imdbId: initialImdbId,
-        // Only meaningful for a server download (the YouTube flow sets it).
-        maxHeight: state.type == RoomType.download ? initialMaxHeight : null,
+        // Server download height cap. The manual YouTube paste leaves it null
+        // (server default); the YouTube search picker pre-fills initialMaxHeight.
+        maxHeight: submitType == RoomType.download ? initialMaxHeight : null,
         // The movie/series poster (from the catalogue). Null → server picks a
         // random placeholder.
         thumbnail: initialThumbnail,
