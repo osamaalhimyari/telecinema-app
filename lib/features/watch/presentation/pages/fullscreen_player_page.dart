@@ -63,9 +63,9 @@ class _FullscreenView extends StatelessWidget {
           DrawingOverlay(stream: watch.drawings),
           const DrawingCanvas(),
 
-          // Top-start: a single toggle button that reveals/hides the control
-          // stack (emoji, messages, mic, draw, lock) — laid out *beside* it,
-          // extending into the screen (right in LTR, left in Arabic/RTL).
+          // Top-start: two independent toggle buttons stacked vertically — the
+          // emoji button **above** the control-stack button. Each opens its
+          // panel *beside* itself (rightward in LTR, leftward in Arabic/RTL).
           SafeArea(
             child: Align(
               alignment: AlignmentDirectional.topStart,
@@ -73,46 +73,42 @@ class _FullscreenView extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
                   builder: (context, state) {
-                    // A Row so the controls open *beside* the toggle (its start
-                    // side anchors the screen corner, so they extend inward —
-                    // rightward in LTR, leftward in Arabic/RTL). The toggle still
-                    // gates whether they appear at all.
-                    return Row(
+                    return Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _ControlsToggle(
-                          expanded: state.controlsExpanded,
-                          onTap: ui.toggleControls,
+                        // Emoji button (separate, on top) — opens the emoji
+                        // strip beside it.
+                        _SideToggle(
+                          expanded: state.reactionsExpanded,
+                          collapsedIcon: Icons.add_reaction_outlined,
+                          onTap: ui.toggleReactions,
+                          panel: const FullscreenReactionBar(),
                         ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          alignment: AlignmentDirectional.topStart,
-                          child: !state.controlsExpanded
-                              ? const SizedBox.shrink()
-                              : Padding(
-                                  padding: const EdgeInsetsDirectional.only(start: 10),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const FullscreenReactionBar(),
-                                      const SizedBox(height: 10),
-                                      FullscreenMessagesButton(
-                                        open: state.messagesOpen,
-                                        onTap: ui.toggleMessages,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      const FullscreenVoiceButton(),
-                                      const SizedBox(height: 10),
-                                      const FullscreenDrawButton(),
-                                      const SizedBox(height: 10),
-                                      const FullscreenLockButton(),
-                                    ],
-                                  ),
-                                ),
+                        const SizedBox(height: 10),
+                        // Control-stack button — opens messages / mic / draw /
+                        // lock *underneath* it.
+                        _SideToggle(
+                          expanded: state.controlsExpanded,
+                          collapsedIcon: Icons.tune_rounded,
+                          onTap: ui.toggleControls,
+                          below: true,
+                          panel: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FullscreenMessagesButton(
+                                open: state.messagesOpen,
+                                onTap: ui.toggleMessages,
+                              ),
+                              const SizedBox(height: 10),
+                              const FullscreenVoiceButton(),
+                              const SizedBox(height: 10),
+                              const FullscreenDrawButton(),
+                              const SizedBox(height: 10),
+                              const FullscreenLockButton(),
+                            ],
+                          ),
                         ),
                       ],
                     );
@@ -155,17 +151,31 @@ class _FullscreenView extends StatelessWidget {
   }
 }
 
-/// The master toggle that shows/hides the fullscreen control stack. Matches the
-/// reaction/messages buttons' round style; fills in (primary tint) while open.
-class _ControlsToggle extends StatelessWidget {
-  const _ControlsToggle({required this.expanded, required this.onTap});
+/// A round toggle button with a panel that opens while [expanded]. By default
+/// the panel opens *beside* the button (rightward in LTR, leftward in Arabic/
+/// RTL); with [below] true it opens *underneath* instead. Used for the two
+/// stacked fullscreen buttons — the emoji button (beside) and the control-stack
+/// button (below). Fills in (primary tint) and swaps to a close icon while open.
+class _SideToggle extends StatelessWidget {
+  const _SideToggle({
+    required this.expanded,
+    required this.collapsedIcon,
+    required this.onTap,
+    required this.panel,
+    this.below = false,
+  });
 
   final bool expanded;
+  final IconData collapsedIcon;
   final VoidCallback onTap;
+  final Widget panel;
+
+  /// Open the panel below the button (vertical) instead of beside it.
+  final bool below;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final button = Material(
       color: expanded
           ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.9)
           : Colors.black.withValues(alpha: 0.45),
@@ -176,12 +186,39 @@ class _ControlsToggle extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            expanded ? Icons.close_rounded : Icons.tune_rounded,
+            expanded ? Icons.close_rounded : collapsedIcon,
             size: 22,
             color: Colors.white,
           ),
         ),
       ),
     );
+
+    final reveal = AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      alignment: AlignmentDirectional.topStart,
+      child: !expanded
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: below
+                  ? const EdgeInsets.only(top: 10)
+                  : const EdgeInsetsDirectional.only(start: 10),
+              child: panel,
+            ),
+    );
+
+    final children = [button, reveal];
+    return below
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          );
   }
 }

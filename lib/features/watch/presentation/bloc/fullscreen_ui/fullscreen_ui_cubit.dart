@@ -24,10 +24,14 @@ class FullscreenUiCubit extends Cubit<FullscreenUiState> {
   /// ValueListenableBuilder; owned here so its lifetime matches the page.
   final ValueNotifier<bool> controlsVisible = ValueNotifier<bool>(true);
 
-  /// Expands/collapses the whole left control stack. Expanding reveals the
-  /// emoji strip (horizontal) above the message/voice/draw/lock buttons.
+  /// Expands/collapses the control stack (messages / mic / draw / lock) beside
+  /// its toggle button.
   void toggleControls() =>
       emit(state.copyWith(controlsExpanded: !state.controlsExpanded));
+
+  /// Expands/collapses the emoji strip beside its own (separate) toggle button.
+  void toggleReactions() =>
+      emit(state.copyWith(reactionsExpanded: !state.reactionsExpanded));
 
   void toggleMessages() => emit(state.copyWith(messagesOpen: !state.messagesOpen));
 

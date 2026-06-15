@@ -462,39 +462,63 @@ class _CreateRoomForm extends StatelessWidget {
     }
   }
 
+  /// Source-type picker as a dropdown (the 4 methods no longer fit a segmented
+  /// button comfortably). Each option — and the selected value — shows an icon
+  /// and a name.
   Widget _typeSelector(BuildContext context) {
     return BlocSelector<CreateRoomFormCubit, CreateRoomFormState, RoomType>(
       selector: (s) => s.type,
       builder: (context, type) {
-        return SegmentedButton<RoomType>(
-          segments: [
-            ButtonSegment(
-              value: RoomType.torrent,
-              icon: const Icon(Icons.stream_rounded, size: 18),
-              label: Text(context.tr(TranslationKeys.typeTorrent)),
+        return InputDecorator(
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<RoomType>(
+              value: type,
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(12),
+              icon: const Icon(Icons.arrow_drop_down_rounded),
+              items: [
+                _typeItem(context, RoomType.torrent, Icons.stream_rounded,
+                    TranslationKeys.typeTorrent),
+                _typeItem(context, RoomType.download, Icons.link_rounded,
+                    TranslationKeys.typeDownload),
+                _typeItem(context, RoomType.youtube, Icons.smart_display_outlined,
+                    TranslationKeys.typeYoutube),
+                _typeItem(context, RoomType.upload, Icons.upload_rounded,
+                    TranslationKeys.typeUpload),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  context.read<CreateRoomFormCubit>().setType(value);
+                }
+              },
             ),
-            ButtonSegment(
-              value: RoomType.download,
-              icon: const Icon(Icons.link_rounded, size: 18),
-              label: Text(context.tr(TranslationKeys.typeDownload)),
-            ),
-            ButtonSegment(
-              value: RoomType.youtube,
-              icon: const Icon(Icons.smart_display_outlined, size: 18),
-              label: Text(context.tr(TranslationKeys.typeYoutube)),
-            ),
-            ButtonSegment(
-              value: RoomType.upload,
-              icon: const Icon(Icons.upload_rounded, size: 18),
-              label: Text(context.tr(TranslationKeys.typeUpload)),
-            ),
-          ],
-          selected: {type},
-          onSelectionChanged: (s) =>
-              context.read<CreateRoomFormCubit>().setType(s.first),
-          showSelectedIcon: false,
+          ),
         );
       },
+    );
+  }
+
+  DropdownMenuItem<RoomType> _typeItem(
+    BuildContext context,
+    RoomType value,
+    IconData icon,
+    String labelKey,
+  ) {
+    return DropdownMenuItem<RoomType>(
+      value: value,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: context.colors.primary),
+          const SizedBox(width: 10),
+          Text(context.tr(labelKey)),
+        ],
+      ),
     );
   }
 
