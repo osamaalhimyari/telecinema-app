@@ -9,7 +9,6 @@ import '/features/cinema/presentation/pages/cinema_detail_page.dart';
 import '/features/discover/presentation/pages/discover_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
-import '/features/youtube/presentation/pages/youtube_search_page.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
 import '../features/rooms/presentation/pages/rooms_page.dart';
@@ -61,15 +60,8 @@ final router = GoRouter(
             ),
           ],
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              name: RoutesNames.youtube,
-              path: '/youtube',
-              builder: (_, _) => const YoutubeSearchPage(),
-            ),
-          ],
-        ),
+        // YouTube browsing/search is intentionally not exposed in this app — the
+        // only YouTube entry point is the "YouTube" room type in Create Room.
       ],
     ),
 
@@ -88,6 +80,7 @@ final router = GoRouter(
           initialCategory: prefill['category'] as String?,
           initialImdbId: prefill['imdbId'] as String?,
           initialMaxHeight: prefill['maxHeight'] as int?,
+          initialThumbnail: prefill['thumbnail'] as String?,
         );
       },
     ),

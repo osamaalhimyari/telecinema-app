@@ -6,14 +6,14 @@ import '../../../domain/entities/room_type.dart';
 import 'create_room_form_state.dart';
 
 const defaultReactions = <String>[
+  '👍',
+  '👎',
   '😂',
   '❤️',
   '🔥',
-  '👍',
   '😮',
   '😢',
-  '👏',
-  '🎉',
+  '😑',
 ];
 
 const maxReactions = 8;
@@ -60,9 +60,13 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
   final externalUrl = TextEditingController();
   final videoUrl = TextEditingController();
   final magnet = TextEditingController();
+  final youtubeUrl = TextEditingController();
   final password = TextEditingController();
 
   void setType(RoomType type) => emit(state.copyWith(type: type));
+
+  void toggleReactionsExpanded() =>
+      emit(state.copyWith(reactionsExpanded: !state.reactionsExpanded));
 
   void setVideo(String path, String videoName) =>
       emit(state.copyWith(videoPath: path, videoName: videoName));
@@ -77,14 +81,22 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
 
   void removeReaction(String emoji) {
     if (!state.reactions.contains(emoji)) return;
-    emit(state.copyWith(reactions: state.reactions.where((e) => e != emoji).toList()));
+    emit(
+      state.copyWith(
+        reactions: state.reactions.where((e) => e != emoji).toList(),
+      ),
+    );
   }
 
   /// Toggles an emoji in the selection. Returns false when the selection is full
   /// (so the widget can show the limit snack); true otherwise.
   bool toggleReaction(String emoji) {
     if (state.reactions.contains(emoji)) {
-      emit(state.copyWith(reactions: state.reactions.where((e) => e != emoji).toList()));
+      emit(
+        state.copyWith(
+          reactions: state.reactions.where((e) => e != emoji).toList(),
+        ),
+      );
       return true;
     } else if (state.reactions.length < maxReactions) {
       emit(state.copyWith(reactions: [...state.reactions, emoji]));
@@ -99,6 +111,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
     externalUrl.dispose();
     videoUrl.dispose();
     magnet.dispose();
+    youtubeUrl.dispose();
     password.dispose();
     return super.close();
   }

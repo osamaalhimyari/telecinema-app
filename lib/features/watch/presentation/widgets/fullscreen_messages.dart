@@ -11,6 +11,7 @@ import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
 import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import 'typing_indicator.dart';
 
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
 /// opens/closes the [FullscreenMessagesPanel]; the icon fills in while open.
@@ -119,6 +120,7 @@ class _PanelView extends StatelessWidget {
                       children: [
                         _header(context),
                         Expanded(child: _list(context)),
+                        const TypingIndicator(dark: true),
                         _composer(context),
                       ],
                     ),
@@ -227,6 +229,17 @@ class _PanelView extends StatelessWidget {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            // Server timestamp in this device's local timezone.
+                            TimeOfDay.fromDateTime(m.time).format(context),
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 10,
+                            ),
                           ),
                         ),
                         if (mine && m.isPending)

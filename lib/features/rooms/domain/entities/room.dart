@@ -61,15 +61,25 @@ class Room extends Equatable {
 
   bool get isExternal => roomType.isExternal;
 
-  /// Streamable video URL: the swarm stream for torrent rooms, the stored file
-  /// for upload/download rooms, null for external (WebView) rooms.
+  /// Streamable video URL: the swarm stream for torrent rooms, the server proxy
+  /// for youtube rooms, the stored file for upload/download rooms, null for
+  /// external (WebView) rooms.
   String? get videoUrl {
     if (isExternal) return null;
     if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
+    if (roomType.isYoutube) return AppConfig.youtubeStreamUrl(slug);
     return AppConfig.videoUrl(videoFilename);
   }
 
-  String? get thumbnailUrl => AppConfig.thumbnailUrl(thumbnailFilename);
+  /// A stored full URL (a catalogue poster) is used as-is; a bare filename is a
+  /// built-in placeholder served from the host's `/thumbnails/`.
+  String? get thumbnailUrl {
+    final t = thumbnailFilename;
+    if (t != null && (t.startsWith('http://') || t.startsWith('https://'))) {
+      return t;
+    }
+    return AppConfig.thumbnailUrl(t);
+  }
 
   String? get subtitleUrl => AppConfig.subtitleUrl(subtitleFilename);
 

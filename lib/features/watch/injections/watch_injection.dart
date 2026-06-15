@@ -47,5 +47,5 @@ Future<void> injectWatchFactories(GetIt sl) async {
       sl<CacheManager>(),
     ),
   );
-  sl.registerFactory<VoiceCubit>(() => VoiceCubit(sl<WatchRepository>()));
+  sl.registerFactory<VoiceCubit>(() => VoiceCubit(sl<WatchRepository>(), sl<IdentityCubit>()));
 }

@@ -20,6 +20,7 @@ class CreateRoomParams {
     this.category,
     this.imdbId,
     this.maxHeight,
+    this.thumbnail,
   });
 
   final String name;
@@ -31,6 +32,11 @@ class CreateRoomParams {
   final String? localVideoPath;
   final List<String>? reactions;
   final String? category;
+
+  /// Poster image URL of the movie/series this room plays, carried from the
+  /// catalogue. Stored as the room's thumbnail; when null the server assigns a
+  /// random built-in placeholder instead.
+  final String? thumbnail;
 
   /// IMDB id of the source title (e.g. `tt1190634`) when the room is created
   /// from the Browse catalogue; null otherwise. Persisted so the room can later

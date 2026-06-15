@@ -7,31 +7,32 @@ import 'package:equatable/equatable.dart';
 class FullscreenUiState extends Equatable {
   const FullscreenUiState({
     this.controlsExpanded = false,
-    this.messagesOpen = false,
     this.reactionsExpanded = false,
+    this.messagesOpen = false,
   });
 
-  /// The left-side control stack (emoji / messages / mic / lock) is revealed.
+  /// The control stack (messages / mic / draw / lock) is revealed beside its
+  /// toggle button.
   final bool controlsExpanded;
+
+  /// The emoji strip is revealed beside its own (separate) toggle button.
+  final bool reactionsExpanded;
 
   /// The messages side-panel is open.
   final bool messagesOpen;
 
-  /// The emoji palette's strip is expanded (vs. the single reaction icon).
-  final bool reactionsExpanded;
-
   FullscreenUiState copyWith({
     bool? controlsExpanded,
-    bool? messagesOpen,
     bool? reactionsExpanded,
+    bool? messagesOpen,
   }) {
     return FullscreenUiState(
       controlsExpanded: controlsExpanded ?? this.controlsExpanded,
-      messagesOpen: messagesOpen ?? this.messagesOpen,
       reactionsExpanded: reactionsExpanded ?? this.reactionsExpanded,
+      messagesOpen: messagesOpen ?? this.messagesOpen,
     );
   }
 
   @override
-  List<Object?> get props => [controlsExpanded, messagesOpen, reactionsExpanded];
+  List<Object?> get props => [controlsExpanded, reactionsExpanded, messagesOpen];
 }

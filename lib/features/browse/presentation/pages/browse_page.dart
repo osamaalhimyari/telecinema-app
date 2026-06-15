@@ -171,33 +171,49 @@ class _BrowseView extends StatelessWidget {
         message: context.tr(TranslationKeys.browseNoResultsHint),
       );
     }
-    return Stack(
-      children: [
-        GridView.builder(
-          controller: context.read<BrowseCubit>().scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
-            childAspectRatio: 0.58,
+    // Paginating is only possible on the unfiltered catalogue, not a search.
+    final canLoadMore = state.query.isEmpty && state.hasMore;
+    return CustomScrollView(
+      controller: context.read<BrowseCubit>().scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 180,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: 0.58,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return PosterCard(
+                item: item,
+                onTap: () => _openDetail(context, item),
+              );
+            },
           ),
-          itemCount: items.length,
-          itemBuilder: (context, i) {
-            final item = items[i];
-            return PosterCard(item: item, onTap: () => _openDetail(context, item));
-          },
         ),
-        if (state.loadingMore)
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 12,
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+        // A footer that auto-loads on scroll, but is also a tappable button so
+        // a short page (e.g. only a couple of results) can still fetch more
+        // without anything to scroll.
+        if (canLoadMore)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: Center(
+                child: state.loadingMore
+                    ? const SizedBox(
+                        width: 26,
+                        height: 26,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () => context.read<BrowseCubit>().loadMore(),
+                        icon: const Icon(Icons.expand_more_rounded),
+                        label: Text(context.tr(TranslationKeys.loadMore)),
+                      ),
               ),
             ),
           ),

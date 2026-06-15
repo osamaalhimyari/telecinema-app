@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'emoji_keyboard_picker.dart';
 
-/// Fullscreen reaction palette pinned over the video.
-///
-/// To keep the picture clear it starts **collapsed** as a single reaction icon.
-/// Tapping the icon expands a horizontally **scrollable** strip of the room's
-/// emoji, ending with a `+` button to add a custom one for the session; tapping
-/// the icon again collapses the strip away. Each emoji sends a `reaction` that
-/// floats up via the fullscreen `FloatingReactions` overlay.
-///
-/// Expanded/collapsed state lives in [FullscreenUiCubit] (no StatefulWidget).
+/// Fullscreen reaction palette — a horizontally **scrollable** strip of the
+/// room's emoji, ending with a `+` button to add a custom one for the session.
+/// It has no toggle of its own: it simply appears (at the top of the control
+/// stack) whenever the master controls button is expanded, so the emoji are one
+/// tap away. Each emoji sends a `reaction` that floats up via the fullscreen
+/// `FloatingReactions` overlay.
 class FullscreenReactionBar extends StatelessWidget {
   const FullscreenReactionBar({super.key});
 
@@ -32,8 +28,6 @@ class FullscreenReactionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expanded = context.select<FullscreenUiCubit, bool>((c) => c.state.reactionsExpanded);
-
     return BlocBuilder<WatchCubit, WatchState>(
       buildWhen: (a, b) =>
           a.room?.reactions != b.room?.reactions || a.sessionReactions != b.sessionReactions,
@@ -56,37 +50,22 @@ class FullscreenReactionBar extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(99),
           clipBehavior: Clip.antiAlias,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The always-present toggle. Collapses/expands the strip.
-                _iconButton(
-                  icon: expanded ? Icons.close_rounded : Icons.add_reaction_outlined,
-                  onTap: () => context.read<FullscreenUiCubit>().toggleReactions(),
-                ),
-                if (expanded) _strip(context, emojis),
-              ],
-            ),
-          ),
+          child: _strip(context, emojis),
         );
       },
     );
   }
 
-  /// The scrollable emoji strip revealed when expanded: the room's emoji
-  /// followed by the `+` add button. Capped to ~55% of the screen width so a
-  /// long palette scrolls horizontally instead of covering the video.
+  /// The scrollable emoji strip: the room's emoji followed by the `+` add
+  /// button. Capped to ~60% of the screen width so a long palette scrolls
+  /// horizontally instead of covering the video.
   Widget _strip(BuildContext context, List<String> emojis) {
-    final maxWidth = MediaQuery.sizeOf(context).width * 0.55;
+    final maxWidth = MediaQuery.sizeOf(context).width * 0.6;
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

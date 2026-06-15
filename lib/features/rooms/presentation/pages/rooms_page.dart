@@ -9,6 +9,8 @@ import '/core/shared/status_view.dart';
 import '/injections/injection.dart';
 import '/features/app_update/presentation/widgets/update_button.dart';
 import '/features/operations/presentation/widgets/operations_button.dart';
+import '/features/cache/data/cache_manager.dart';
+import '/features/cache/domain/entities/cached_video.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/favorites/favorites_state.dart';
 import '/routes/routes_names.dart';
@@ -73,10 +75,20 @@ class _RoomsView extends StatelessWidget {
         actions: [
           const UpdateButton(),
           const OperationsButton(),
-          IconButton(
-            tooltip: context.tr(TranslationKeys.cachedVideos),
-            icon: const Icon(Icons.download_for_offline_outlined),
-            onPressed: () => context.pushNamed(RoutesNames.cached),
+          // Only surfaced once something is cached on this device; hidden while
+          // the on-device library is empty.
+          StreamBuilder<List<CachedVideo>>(
+            stream: sl<CacheManager>().changes,
+            initialData: sl<CacheManager>().list(),
+            builder: (context, snapshot) {
+              final items = snapshot.data ?? const <CachedVideo>[];
+              if (items.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: context.tr(TranslationKeys.cachedVideos),
+                icon: const Icon(Icons.download_for_offline_outlined),
+                onPressed: () => context.pushNamed(RoutesNames.cached),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

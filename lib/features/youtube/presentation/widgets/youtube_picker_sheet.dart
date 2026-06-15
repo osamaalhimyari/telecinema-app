@@ -46,6 +46,7 @@ Future<void> startYoutubeRoomFlow(
       'name': video.title,
       'videoUrl': video.url,
       'maxHeight': quality.height,
+      'thumbnail': video.thumbnailUrl,
     },
   );
 }

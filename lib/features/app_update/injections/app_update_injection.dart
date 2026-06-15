@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import '/core/network/api_client.dart';
 import '/core/services/apk_installer.dart';
+import '/logic/socket/socket_cubit.dart';
 import '../data/datasources/app_update_remote_datasource.dart';
 import '../data/repositories/app_update_repository_impl.dart';
 import '../domain/repositories/app_update_repository.dart';
@@ -28,6 +29,7 @@ Future<void> injectAppUpdateSingletons(GetIt sl) async {
       sl<CheckForUpdateUseCase>(),
       sl<AppUpdateRepository>(),
       sl<ApkInstaller>(),
+      sl<SocketCubit>(),
     ),
   );
 }

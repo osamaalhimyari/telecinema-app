@@ -1,10 +1,12 @@
 import '../../data/datasources/watch_socket_datasource.dart';
 import '../entities/chat_message.dart';
+import '../entities/draw_event.dart';
 import '../entities/playback_sync.dart';
 import '../entities/presence_user.dart';
 import '../entities/reaction_event.dart';
 import '../entities/source_change.dart';
 import '../entities/subtitle_settings.dart';
+import '../entities/typing_event.dart';
 
 /// The realtime room contract. Streams surface server events; the `send*`
 /// methods relay user intent. Transport health is observed separately via the
@@ -28,12 +30,21 @@ abstract class WatchRepository {
   Stream<String> get subtitleChanged;
   Stream<SubtitleSettings> get subtitleSettings;
   Stream<ReactionEvent> get reaction;
+  Stream<DrawEvent> get draw;
+  Stream<TypingEvent> get typing;
   Stream<void> get roomDeleted;
   Stream<VoiceEvent> get voice;
 
   void sendControl({required String action, double? currentTime, double? rate});
   void sendChat(String text, {String? clientId});
   void sendReaction(String emoji);
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<List<double>> points,
+    required bool done,
+  });
+  void sendTyping(bool typing);
   void setBuffering(bool buffering);
   void requestResync();
   void changeSource(String url);

@@ -1,9 +1,11 @@
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/presence_user.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/source_change.dart';
 import '../../domain/entities/subtitle_settings.dart';
+import '../../domain/entities/typing_event.dart';
 import '../../domain/repositories/watch_repository.dart';
 import '../datasources/watch_socket_datasource.dart';
 
@@ -44,6 +46,10 @@ class WatchRepositoryImpl implements WatchRepository {
   @override
   Stream<ReactionEvent> get reaction => _ds.reaction;
   @override
+  Stream<DrawEvent> get draw => _ds.draw;
+  @override
+  Stream<TypingEvent> get typing => _ds.typing;
+  @override
   Stream<void> get roomDeleted => _ds.roomDeleted;
   @override
   Stream<VoiceEvent> get voice => _ds.voice;
@@ -55,6 +61,15 @@ class WatchRepositoryImpl implements WatchRepository {
   void sendChat(String text, {String? clientId}) => _ds.sendChat(text, clientId: clientId);
   @override
   void sendReaction(String emoji) => _ds.sendReaction(emoji);
+  @override
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<List<double>> points,
+    required bool done,
+  }) => _ds.sendDraw(strokeId: strokeId, color: color, points: points, done: done);
+  @override
+  void sendTyping(bool typing) => _ds.sendTyping(typing);
   @override
   void setBuffering(bool buffering) => _ds.setBuffering(buffering);
   @override

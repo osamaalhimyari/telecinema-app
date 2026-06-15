@@ -299,11 +299,13 @@ class _DetailView extends StatelessWidget {
       datasource: sl<TopcinemaRemoteDataSource>(),
       category: state.isSeries ? 'series' : 'movies',
       imdbId: id,
+      poster: state.detail?.poster ?? initial?.poster,
     );
   }
 
   void _openPicker(BuildContext context, DetailState state) {
     final name = state.detail?.name ?? initial?.name ?? '';
+    final poster = state.detail?.poster ?? initial?.poster;
     final cubit = context.read<DetailCubit>();
     showSourcePicker(
       context,
@@ -321,6 +323,7 @@ class _DetailView extends StatelessWidget {
             'magnet': magnet,
             'category': state.isSeries ? 'series' : 'movies',
             'imdbId': id,
+            'thumbnail': poster,
           },
         );
       },

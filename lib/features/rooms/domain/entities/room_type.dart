@@ -13,18 +13,26 @@ enum RoomType {
   /// engine; if that can't reach the swarm (or on web), it falls back to the
   /// server's `/stream/:slug`. Either way it plays like an ordinary file room
   /// (real player, full sync/seek), not a WebView embed.
-  torrent;
+  torrent,
+
+  /// A YouTube watch URL. The server resolves it to a direct stream and proxies
+  /// it over `/youtube/:slug`, so it plays like an ordinary file room (our own
+  /// player + full sync/seek), never the YouTube iframe.
+  youtube;
 
   static RoomType fromString(String? value) => switch (value) {
     'external' => RoomType.external,
     'download' => RoomType.download,
     'torrent' => RoomType.torrent,
+    'youtube' => RoomType.youtube,
     _ => RoomType.upload,
   };
 
   bool get isExternal => this == RoomType.external;
 
   bool get isTorrent => this == RoomType.torrent;
+
+  bool get isYoutube => this == RoomType.youtube;
 
   /// Wire value sent to the backend `roomType` field.
   String get wire => name;

@@ -26,11 +26,15 @@ import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
 import '/routes/routes_names.dart';
+import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../widgets/chat_panel.dart';
 import '../widgets/controls_lock_button.dart';
+import '../widgets/draw_toggle_button.dart';
+import '../widgets/drawing_canvas.dart';
+import '../widgets/drawing_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
 import '../widgets/reaction_bar.dart';
@@ -57,6 +61,7 @@ class RoomPage extends StatelessWidget {
           create: (_) => sl<WatchCubit>()..init(room: initialRoom, slug: slug),
         ),
         BlocProvider<VoiceCubit>(create: (_) => sl<VoiceCubit>()),
+        BlocProvider<DrawModeCubit>(create: (_) => DrawModeCubit()),
       ],
       child: const _RoomView(),
     );
@@ -246,10 +251,18 @@ class _RoomScaffold extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  state.room?.name ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Tapping the (possibly truncated) name surfaces it in full as
+                // a snack — handy when the room title is ellipsized.
+                GestureDetector(
+                  onTap: () {
+                    final name = state.room?.name ?? '';
+                    if (name.isNotEmpty) context.showSnack(name);
+                  },
+                  child: Text(
+                    state.room?.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Text(
                   '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
@@ -288,6 +301,10 @@ class _RoomScaffold extends StatelessWidget {
                       FloatingReactions(
                         stream: context.read<WatchCubit>().reactions,
                       ),
+                      DrawingOverlay(
+                        stream: context.read<WatchCubit>().drawings,
+                      ),
+                      const DrawingCanvas(),
                     ],
                   ),
                 ),
@@ -301,6 +318,7 @@ class _RoomScaffold extends StatelessWidget {
                       const DownloadButton(),
                       const SizedBox(width: 4),
                       const VoiceButton(),
+                      const DrawToggleButton(),
                       const ControlsLockButton(),
                       const SizedBox(width: 8),
                     ],

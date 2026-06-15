@@ -96,6 +96,7 @@ class TranslationKeys {
   static const allGenres = 'all_genres';
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
+  static const loadMore = 'load_more';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -124,6 +125,8 @@ class TranslationKeys {
   static const shareRoom = 'share_room';
   static const copyLink = 'copy_link';
   static const linkCopied = 'link_copied';
+  static const copy = 'copy';
+  static const copied = 'copied';
   static const scanToJoin = 'scan_to_join';
 
   // Room / watch screen
@@ -154,6 +157,10 @@ class TranslationKeys {
   static const chatSending = 'chat_sending';
   static const chatRetry = 'chat_retry';
   static const messages = 'messages';
+  static const writing = 'writing';
+
+  // Drawing on video
+  static const draw = 'draw';
 
   // Reactions
   static const reactions = 'reactions';
@@ -237,12 +244,16 @@ class TranslationKeys {
   static const typeUploadDesc = 'type_upload_desc';
   static const typeTorrent = 'type_torrent';
   static const typeTorrentDesc = 'type_torrent_desc';
+  static const typeYoutube = 'type_youtube';
+  static const typeYoutubeDesc = 'type_youtube_desc';
   static const externalUrl = 'external_url';
   static const externalUrlHint = 'external_url_hint';
   static const videoUrl = 'video_url';
   static const videoUrlHint = 'video_url_hint';
   static const magnetUrl = 'magnet_url';
   static const magnetUrlHint = 'magnet_url_hint';
+  static const youtubeLink = 'youtube_link';
+  static const youtubeLinkHint = 'youtube_link_hint';
   static const pickVideo = 'pick_video';
   static const password = 'password';
   static const passwordOptionalHint = 'password_optional_hint';

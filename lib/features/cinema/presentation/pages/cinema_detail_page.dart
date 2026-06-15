@@ -271,6 +271,7 @@ class _CinemaDetailView extends StatelessWidget {
         datasource: datasource,
         isSeries: false,
         imdbId: detail.imdbId,
+        poster: detail.poster,
       );
       return;
     }
@@ -294,6 +295,7 @@ class _CinemaDetailView extends StatelessWidget {
       datasource: datasource,
       isSeries: true,
       imdbId: pick.episode.imdbId ?? detail.imdbId,
+      poster: detail.poster,
     );
   }
 }

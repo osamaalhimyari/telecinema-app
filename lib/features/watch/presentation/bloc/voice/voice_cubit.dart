@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '/logic/identity/identity_cubit.dart';
 import '../../../data/datasources/watch_socket_datasource.dart';
 import '../../../domain/repositories/watch_repository.dart';
 import 'voice_state.dart';
@@ -18,12 +19,18 @@ import 'voice_state.dart';
 /// peers use MediaRecorder/webm, which mobile cannot decode incrementally;
 /// that cross-platform gap is inherent to the relay design.)
 class VoiceCubit extends Cubit<VoiceState> {
-  VoiceCubit(this._repo) : super(const VoiceState()) {
+  VoiceCubit(this._repo, this._identity) : super(const VoiceState()) {
     _sub = _repo.voice.listen(_onVoice);
   }
 
   final WatchRepository _repo;
+  final IdentityCubit _identity;
   final AudioRecorder _recorder = AudioRecorder();
+
+  /// Local id under which we list *ourselves* in [VoiceState.speakers] while
+  /// transmitting, so the speaker also sees their own "speaking" label — not
+  /// only the listeners do. Never collides with a real socket id.
+  static const _meId = 'me';
 
   StreamSubscription<VoiceEvent>? _sub;
 
@@ -88,6 +95,8 @@ class VoiceCubit extends Cubit<VoiceState> {
         path: _recordPath!,
       );
       emit(state.copyWith(micActive: true, permissionDenied: false));
+      // Show ourselves in the speaking indicator too (listeners already see us).
+      _markSpeaking(_meId, _identity.state.trim(), true);
       HapticFeedback.vibrate(); // short buzz — you're live, start talking
       _repo.voiceStart(_mime);
     } catch (_) {
@@ -108,6 +117,7 @@ class VoiceCubit extends Cubit<VoiceState> {
     }
     if (!state.micActive) return;
     emit(state.copyWith(micActive: false));
+    _markSpeaking(_meId, '', false);
 
     String? path;
     try {
