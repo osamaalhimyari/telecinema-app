@@ -26,6 +26,9 @@ abstract class RoomsRemoteDataSource {
   Future<DownloadProgress> downloadProgress(String jobId);
   Future<void> delete(String slug, {String? password});
   Future<String> uploadSubtitle(String slug, String filePath);
+
+  /// Uploads a chat voice clip; returns the stored filename.
+  Future<String> uploadVoice(String slug, String filePath);
 }
 
 class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
@@ -162,6 +165,15 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
     final form = FormData.fromMap({'subtitle': await MultipartFile.fromFile(filePath)});
     final res = await _client.postMultipart('/rooms/$slug/subtitle', data: form);
     if (!res.success) throw ServerException(res.message ?? 'subtitle_upload_failed');
+    final data = res.data;
+    return (data is Map && data['filename'] != null) ? data['filename'].toString() : '';
+  }
+
+  @override
+  Future<String> uploadVoice(String slug, String filePath) async {
+    final form = FormData.fromMap({'voice': await MultipartFile.fromFile(filePath)});
+    final res = await _client.postMultipart('/rooms/$slug/voice', data: form);
+    if (!res.success) throw ServerException(res.message ?? 'voice_upload_failed');
     final data = res.data;
     return (data is Map && data['filename'] != null) ? data['filename'].toString() : '';
   }

@@ -15,6 +15,7 @@ import '/features/rooms/domain/usecases/delete_room_usecase.dart';
 import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
+import '/features/rooms/domain/usecases/upload_voice_usecase.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
@@ -116,6 +117,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._unlockRoom,
     this._deleteRoom,
     this._uploadSubtitle,
+    this._uploadVoice,
     this._storage,
     this._torrentEngine,
     this._favorites,
@@ -128,6 +130,7 @@ class WatchCubit extends Cubit<WatchState> {
   final UnlockRoomUseCase _unlockRoom;
   final DeleteRoomUseCase _deleteRoom;
   final UploadSubtitleUseCase _uploadSubtitle;
+  final UploadVoiceUseCase _uploadVoice;
   final KeyValueStorage _storage;
   final TorrentEngine _torrentEngine;
   final FavoritesCubit _favorites;
@@ -798,6 +801,7 @@ class WatchCubit extends Cubit<WatchState> {
       final idx = state.messages.indexWhere((x) => x.mine && x.clientId == m.clientId);
       if (idx != -1) {
         _sendTimers.remove(m.clientId)?.cancel();
+        _voiceOutbox.remove(m.clientId);
         final updated = [...state.messages];
         updated[idx] = m.copyWith(mine: true, status: ChatStatus.sent);
         emit(state.copyWith(messages: updated));
@@ -862,16 +866,23 @@ class WatchCubit extends Cubit<WatchState> {
     _dispatchChat(clientId, trimmed);
   }
 
-  /// Re-sends a failed message (tap-to-retry from the chat UI).
+  /// Re-sends a failed message (tap-to-retry from the chat UI). For a voice
+  /// message that never finished uploading, this re-runs the upload; once it has
+  /// a server clip, it just re-sends the chat event.
   void retryChat(ChatMessage m) {
     if (!m.mine || m.clientId == null || !m.isPending) return;
     _markChatStatus(m.clientId!, ChatStatus.sending);
-    _dispatchChat(m.clientId!, m.text);
+    if (m.isVoice && m.audioUrl == null) {
+      _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+      return;
+    }
+    _dispatchChat(m.clientId!, m.text, audioUrl: m.audioUrl, durationMs: m.durationMs);
   }
 
-  /// Emits a chat send and (re)arms its delivery timeout.
-  void _dispatchChat(String clientId, String text) {
-    _repo.sendChat(text, clientId: clientId);
+  /// Emits a chat send and (re)arms its delivery timeout. [audioUrl]/[durationMs]
+  /// are set for a voice message (its uploaded clip + length).
+  void _dispatchChat(String clientId, String text, {String? audioUrl, int? durationMs}) {
+    _repo.sendChat(text, clientId: clientId, audioUrl: audioUrl, durationMs: durationMs);
     _sendTimers.remove(clientId)?.cancel();
     _sendTimers[clientId] = Timer(_sendTimeout, () {
       _sendTimers.remove(clientId);
@@ -886,8 +897,58 @@ class WatchCubit extends Cubit<WatchState> {
         state.messages.where((m) => m.mine && m.isPending && m.clientId != null).toList();
     for (final m in pending) {
       _markChatStatus(m.clientId!, ChatStatus.sending);
-      _dispatchChat(m.clientId!, m.text);
+      if (m.isVoice && m.audioUrl == null) {
+        if (_voiceOutbox.containsKey(m.clientId)) _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+      } else {
+        _dispatchChat(m.clientId!, m.text, audioUrl: m.audioUrl, durationMs: m.durationMs);
+      }
     }
+  }
+
+  /// Records the temp recording path per pending voice message, so a failed
+  /// upload can be retried and a reconnect can resume it. Cleared once the clip
+  /// is on the server.
+  final Map<String, String> _voiceOutbox = {};
+
+  /// Sends a recorded voice clip at [path] ([durationMs] long): shows an
+  /// optimistic "sending" voice bubble immediately, uploads the clip, then sends
+  /// a chat message referencing it. Mirrors [sendChat]'s confirm/retry lifecycle.
+  Future<void> sendVoiceMessage(String path, int durationMs) async {
+    if (state.room == null) return;
+    final clientId = '${DateTime.now().microsecondsSinceEpoch}-${_chatSeq++}';
+    final msg = ChatMessage.localVoice(
+      clientId: clientId,
+      name: _identity.state,
+      durationMs: durationMs,
+      ts: DateTime.now().millisecondsSinceEpoch,
+    );
+    emit(state.copyWith(messages: _capped([...state.messages, msg])));
+    _voiceOutbox[clientId] = path;
+    await _uploadAndSendVoice(clientId, durationMs);
+  }
+
+  /// Uploads the queued clip for [clientId]; on success stamps the bubble with
+  /// the server filename and sends the chat event; on failure flags it for retry.
+  Future<void> _uploadAndSendVoice(String clientId, int durationMs) async {
+    final path = _voiceOutbox[clientId];
+    final slug = state.room?.slug;
+    if (path == null || slug == null) return;
+    final res = await _uploadVoice(UploadVoiceParams(slug: slug, filePath: path));
+    if (isClosed) return;
+    res.fold(
+      (_) => _markChatStatus(clientId, ChatStatus.failed),
+      (filename) {
+        _voiceOutbox.remove(clientId);
+        // Stamp the optimistic bubble so a reconnect/retry re-sends (not re-uploads).
+        final idx = state.messages.indexWhere((m) => m.clientId == clientId && m.isPending);
+        if (idx != -1) {
+          final updated = [...state.messages];
+          updated[idx] = updated[idx].copyWith(audioUrl: filename);
+          emit(state.copyWith(messages: updated));
+        }
+        _dispatchChat(clientId, '', audioUrl: filename, durationMs: durationMs);
+      },
+    );
   }
 
   /// Updates the delivery [status] of the pending message with [clientId].

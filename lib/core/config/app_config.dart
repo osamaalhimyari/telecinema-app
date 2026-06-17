@@ -86,6 +86,13 @@ class AppConfig {
       ? null
       : '$baseUrl/subtitles/$filename';
 
+  /// Absolute URL of a chat voice message (served statically from
+  /// `public/voice/`). The chat message carries just the filename.
+  static String? voiceUrl(String? filename) =>
+      (filename == null || filename.isEmpty)
+      ? null
+      : '$baseUrl/voice/$filename';
+
   /// Shareable deep link to a room (`/room/:slug`), matching the go_router
   /// route. Used by the in-room Share action.
   static String roomUrl(String slug) => '$baseUrl/room/$slug';

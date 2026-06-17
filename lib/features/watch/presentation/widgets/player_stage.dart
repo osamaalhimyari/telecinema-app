@@ -5,6 +5,7 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
+import '../bloc/voice_playback/voice_playback_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../pages/fullscreen_player_page.dart';
@@ -99,6 +100,7 @@ class PlayerStage extends StatelessWidget {
     final watch = context.read<WatchCubit>();
     final voice = context.read<VoiceCubit>();
     final draw = context.read<DrawModeCubit>();
+    final playback = context.read<VoicePlaybackCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MultiBlocProvider(
@@ -106,6 +108,7 @@ class PlayerStage extends StatelessWidget {
             BlocProvider<WatchCubit>.value(value: watch),
             BlocProvider<VoiceCubit>.value(value: voice),
             BlocProvider<DrawModeCubit>.value(value: draw),
+            BlocProvider<VoicePlaybackCubit>.value(value: playback),
           ],
           child: const FullscreenPlayerPage(),
         ),

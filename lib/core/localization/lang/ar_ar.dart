@@ -89,9 +89,12 @@ const Map<String, String> arAr = {
   TranslationKeys.browseNoResults: 'لا توجد نتائج',
   TranslationKeys.browseNoResultsHint: 'جرّب عنواناً أو فئة أو تصنيفاً آخر.',
   TranslationKeys.loadMore: 'تحميل المزيد',
+  TranslationKeys.browseSort: 'فرز',
   TranslationKeys.browseSortDefault: 'الافتراضي',
   TranslationKeys.browseSortRelease: 'تاريخ الإصدار',
   TranslationKeys.browseSortRating: 'التقييم',
+  TranslationKeys.browseSortAscending: 'تصاعدي',
+  TranslationKeys.browseSortDescending: 'تنازلي',
   TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
   TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
 
@@ -152,6 +155,10 @@ const Map<String, String> arAr = {
   TranslationKeys.writing: 'يكتب…',
   TranslationKeys.userJoined: 'انضم',
   TranslationKeys.userLeft: 'غادر',
+  TranslationKeys.voiceSlideToCancel: 'اسحب للإلغاء',
+  TranslationKeys.voiceReleaseToCancel: 'أفلت للإلغاء',
+  TranslationKeys.voiceMicPermission: 'إذن الميكروفون مطلوب',
+  TranslationKeys.voiceHoldToRecord: 'سجّل رسالة صوتية',
   TranslationKeys.draw: 'رسم',
 
   TranslationKeys.reactions: 'تفاعلات',

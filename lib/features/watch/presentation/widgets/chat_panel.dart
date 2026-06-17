@@ -10,6 +10,8 @@ import '../bloc/chat_panel/chat_panel_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'typing_indicator.dart';
+import 'voice_composer.dart';
+import 'voice_message_bubble.dart';
 
 class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
@@ -28,41 +30,32 @@ class ChatPanel extends StatelessWidget {
 class _ChatPanelView extends StatelessWidget {
   const _ChatPanelView();
 
-  /// Tiny delivery line under our own messages so we can tell whether one got
-  /// through: a clock while it's in flight, a check once the server confirms it
-  /// reached the room, or a tappable "tap to retry" when the send failed.
-  Widget _status(BuildContext context, ChatMessage m) {
-    final (IconData icon, String labelKey, Color color) = switch (m.status) {
-      ChatStatus.sending => (
-        Icons.schedule_rounded,
-        TranslationKeys.chatSending,
-        context.colors.onSurfaceVariant,
-      ),
-      ChatStatus.sent => (
-        Icons.done_all_rounded,
-        TranslationKeys.chatReceived,
-        context.colors.primary,
-      ),
-      ChatStatus.failed => (
-        Icons.error_outline_rounded,
-        TranslationKeys.chatRetry,
-        context.colors.error,
-      ),
-    };
-    return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            context.tr(labelKey),
-            style: context.text.labelSmall?.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
+  /// Tiny delivery mark shown beside the time on our own messages: a clock while
+  /// it's in flight, a check once the server confirms it reached the room, or a
+  /// tappable "tap to retry" hint when the send failed.
+  Widget _deliveryMark(BuildContext context, ChatMessage m) {
+    switch (m.status) {
+      case ChatStatus.sending:
+        return Icon(
+          Icons.schedule_rounded,
+          size: 12,
+          color: context.colors.onSurfaceVariant,
+        );
+      case ChatStatus.sent:
+        return Icon(Icons.done_all_rounded, size: 13, color: context.colors.primary);
+      case ChatStatus.failed:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 12, color: context.colors.error),
+            const SizedBox(width: 3),
+            Text(
+              context.tr(TranslationKeys.chatRetry),
+              style: context.text.labelSmall?.copyWith(color: context.colors.error),
+            ),
+          ],
+        );
+    }
   }
 
   @override
@@ -126,20 +119,33 @@ class _ChatPanelView extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
+                              if (m.isVoice)
+                                VoiceMessageBubble(message: m)
+                              else
+                                Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  // `m.time` is the server timestamp rendered in
-                                  // this device's own timezone + clock format.
-                                  TimeOfDay.fromDateTime(m.time).format(context),
-                                  style: context.text.labelSmall?.copyWith(
-                                    color: context.colors.onSurfaceVariant,
-                                    fontSize: 10,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      // `m.time` is the server timestamp rendered
+                                      // in this device's own timezone + clock format.
+                                      TimeOfDay.fromDateTime(m.time).format(context),
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: context.colors.onSurfaceVariant,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    // Our own messages get a small delivery mark
+                                    // right beside the time — no extra words.
+                                    if (mine) ...[
+                                      const SizedBox(width: 5),
+                                      _deliveryMark(context, m),
+                                    ],
+                                  ],
                                 ),
                               ),
-                              if (mine) _status(context, m),
                             ],
                           ),
                         ),
@@ -156,24 +162,21 @@ class _ChatPanelView extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: chat.input,
-                    textInputAction: TextInputAction.send,
-                    minLines: 1,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: context.tr(TranslationKeys.chatHint),
-                      isDense: true,
-                    ),
-                    onSubmitted: (_) => chat.send(),
-                  ),
+            // Text field + send, or tap-the-mic to record a voice message.
+            child: VoiceComposer(
+              input: chat.input,
+              onSend: chat.send,
+              field: TextField(
+                controller: chat.input,
+                textInputAction: TextInputAction.send,
+                minLines: 1,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: context.tr(TranslationKeys.chatHint),
+                  isDense: true,
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(onPressed: chat.send, icon: const Icon(Icons.send_rounded)),
-              ],
+                onSubmitted: (_) => chat.send(),
+              ),
             ),
           ),
         ),

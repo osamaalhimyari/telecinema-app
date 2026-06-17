@@ -14,6 +14,8 @@ class ChatMessage extends Equatable {
     this.clientId,
     this.mine = false,
     this.status = ChatStatus.sent,
+    this.audioUrl,
+    this.durationMs,
   });
 
   final String id;
@@ -22,6 +24,16 @@ class ChatMessage extends Equatable {
 
   /// ms since epoch.
   final int ts;
+
+  /// Voice message: the uploaded clip's filename (played via
+  /// `AppConfig.voiceUrl`), with [durationMs] its length. Null for a text
+  /// message. While our own clip is still uploading it is null but [durationMs]
+  /// is already set, so the bubble can render in a "sending" state.
+  final String? audioUrl;
+  final int? durationMs;
+
+  /// True when this is a voice message (text otherwise).
+  bool get isVoice => durationMs != null;
 
   /// Client-generated nonce for messages this device originated. Echoed back by
   /// the server so we can reconcile the optimistic bubble with its delivered
@@ -58,12 +70,32 @@ class ChatMessage extends Equatable {
     status: ChatStatus.sending,
   );
 
+  /// Optimistic bubble for a voice message we're about to upload + send: the
+  /// length is known immediately, [audioUrl] arrives once the upload finishes.
+  factory ChatMessage.localVoice({
+    required String clientId,
+    required String name,
+    required int durationMs,
+    required int ts,
+  }) => ChatMessage(
+    id: clientId,
+    clientId: clientId,
+    name: name,
+    text: '',
+    ts: ts,
+    mine: true,
+    status: ChatStatus.sending,
+    durationMs: durationMs,
+  );
+
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
     id: json['id']?.toString() ?? '${json['ts']}-${json['name']}',
     name: (json['name'] ?? 'Anonymous').toString(),
     text: (json['text'] ?? '').toString(),
     ts: json['ts'] is num ? (json['ts'] as num).toInt() : DateTime.now().millisecondsSinceEpoch,
     clientId: json['clientId']?.toString(),
+    audioUrl: (json['audioUrl']?.toString().isNotEmpty ?? false) ? json['audioUrl'].toString() : null,
+    durationMs: json['durationMs'] is num ? (json['durationMs'] as num).toInt() : null,
   );
 
   ChatMessage copyWith({
@@ -74,6 +106,8 @@ class ChatMessage extends Equatable {
     String? clientId,
     bool? mine,
     ChatStatus? status,
+    String? audioUrl,
+    int? durationMs,
   }) => ChatMessage(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -82,8 +116,10 @@ class ChatMessage extends Equatable {
     clientId: clientId ?? this.clientId,
     mine: mine ?? this.mine,
     status: status ?? this.status,
+    audioUrl: audioUrl ?? this.audioUrl,
+    durationMs: durationMs ?? this.durationMs,
   );
 
   @override
-  List<Object?> get props => [id, name, text, ts, clientId, mine, status];
+  List<Object?> get props => [id, name, text, ts, clientId, mine, status, audioUrl, durationMs];
 }

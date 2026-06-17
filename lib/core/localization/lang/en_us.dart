@@ -91,9 +91,12 @@ const Map<String, String> enUs = {
   TranslationKeys.browseNoResults: 'Nothing found',
   TranslationKeys.browseNoResultsHint: 'Try a different title, category or genre.',
   TranslationKeys.loadMore: 'Load more',
+  TranslationKeys.browseSort: 'Sort',
   TranslationKeys.browseSortDefault: 'Default',
   TranslationKeys.browseSortRelease: 'Release date',
   TranslationKeys.browseSortRating: 'Rating',
+  TranslationKeys.browseSortAscending: 'Ascending',
+  TranslationKeys.browseSortDescending: 'Descending',
   TranslationKeys.torrentSearching: 'Looking for a torrent…',
   TranslationKeys.torrentNotAvailable: 'Not available currently',
 
@@ -155,6 +158,10 @@ const Map<String, String> enUs = {
   TranslationKeys.writing: 'is writing…',
   TranslationKeys.userJoined: 'joined',
   TranslationKeys.userLeft: 'left',
+  TranslationKeys.voiceSlideToCancel: 'Slide to cancel',
+  TranslationKeys.voiceReleaseToCancel: 'Release to cancel',
+  TranslationKeys.voiceMicPermission: 'Microphone permission is required',
+  TranslationKeys.voiceHoldToRecord: 'Record a voice message',
   TranslationKeys.draw: 'Draw',
 
   TranslationKeys.reactions: 'Reactions',

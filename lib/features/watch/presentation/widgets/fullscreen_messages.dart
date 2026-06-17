@@ -12,6 +12,8 @@ import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'typing_indicator.dart';
+import 'voice_composer.dart';
+import 'voice_message_bubble.dart';
 
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
 /// opens/closes the [FullscreenMessagesPanel]; the icon fills in while open.
@@ -208,7 +210,24 @@ class _PanelView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     border: failed ? Border.all(color: context.colors.error) : null,
                   ),
-                  child: Text.rich(
+                  child: m.isVoice
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            m.name,
+                            style: TextStyle(
+                              color: userColorFor(m.name),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          VoiceMessageBubble(message: m, dark: true),
+                        ],
+                      )
+                    : Text.rich(
                     TextSpan(
                       children: [
                         TextSpan(
@@ -269,39 +288,34 @@ class _PanelView extends StatelessWidget {
         10,
         MediaQuery.of(context).viewInsets.bottom + 10,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: context.read<FullscreenMessagesCubit>().input,
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(color: Colors.white),
-              minLines: 1,
-              maxLines: 3,
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: context.tr(TranslationKeys.chatHint),
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              onSubmitted: (_) => _send(context),
+      // Text field + send, or tap-the-mic to record a voice message.
+      child: VoiceComposer(
+        dark: true,
+        input: context.read<FullscreenMessagesCubit>().input,
+        onSend: () => _send(context),
+        field: TextField(
+          controller: context.read<FullscreenMessagesCubit>().input,
+          textInputAction: TextInputAction.send,
+          style: const TextStyle(color: Colors.white),
+          minLines: 1,
+          maxLines: 3,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: context.tr(TranslationKeys.chatHint),
+            hintStyle: const TextStyle(color: Colors.white54),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
             ),
           ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: () => _send(context),
-            icon: const Icon(Icons.send_rounded),
-          ),
-        ],
+          onSubmitted: (_) => _send(context),
+        ),
       ),
     );
   }

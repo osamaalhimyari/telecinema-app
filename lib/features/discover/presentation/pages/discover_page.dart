@@ -44,7 +44,6 @@ class _DiscoverView extends StatelessWidget {
           _searchField(context),
           _categorySelector(context),
           _genreChips(context),
-          _sortRow(context),
           Expanded(
             child: BlocBuilder<DiscoverCubit, DiscoverState>(
               builder: (context, state) {
@@ -72,27 +71,37 @@ class _DiscoverView extends StatelessWidget {
     final controller = cubit.searchController;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: ValueListenableBuilder<TextEditingValue>(
-        valueListenable: controller,
-        builder: (context, value, _) {
-          final hasText = value.text.isNotEmpty;
-          return TextField(
-            controller: controller,
-            textInputAction: TextInputAction.search,
-            onChanged: cubit.setQuery,
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: context.tr(TranslationKeys.browseSearchHint),
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: hasText
-                  ? IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: cubit.clearSearch,
-                    )
-                  : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) {
+                final hasText = value.text.isNotEmpty;
+                return TextField(
+                  controller: controller,
+                  textInputAction: TextInputAction.search,
+                  onChanged: cubit.setQuery,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: context.tr(TranslationKeys.browseSearchHint),
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: hasText
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: cubit.clearSearch,
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+          const SizedBox(width: 8),
+          // Compact sort control beside the search to save a whole row; its menu
+          // holds the sort field plus ascending/descending.
+          _sortButton(context),
+        ],
       ),
     );
   }
@@ -167,45 +176,89 @@ class _DiscoverView extends StatelessWidget {
     );
   }
 
-  /// Sort selector: a row of chips that reorder the loaded titles locally
-  /// (catalogue order / release date / rating). Mirrors the genre chips' style.
-  Widget _sortRow(BuildContext context) {
+  /// Compact sort control beside the search box. Its dropdown lists the sort
+  /// field (Default / Release date / Rating) and, below a divider, the direction
+  /// (Descending / Ascending) — disabled for Default, which has no direction.
+  /// The button itself shows a sort icon plus an up/down arrow for the direction.
+  Widget _sortButton(BuildContext context) {
     return BlocBuilder<DiscoverCubit, DiscoverState>(
-      buildWhen: (a, b) => a.sort != b.sort,
+      buildWhen: (a, b) => a.sort != b.sort || a.sortAscending != b.sortAscending,
       builder: (context, state) {
-        return SizedBox(
-          height: 44,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            children: [
-              for (final sort in BrowseSort.values) ...[
-                ChoiceChip(
-                  avatar: Icon(_sortIcon(sort), size: 16),
-                  label: Text(context.tr(_sortLabel(sort))),
-                  selected: state.sort == sort,
-                  onSelected: (_) => context.read<DiscoverCubit>().setSort(sort),
-                ),
-                const SizedBox(width: 8),
+        final cubit = context.read<DiscoverCubit>();
+        final isDefault = state.sort == BrowseSort.defaultOrder;
+        return PopupMenuButton<String>(
+          tooltip: context.tr(TranslationKeys.browseSort),
+          position: PopupMenuPosition.under,
+          onSelected: (value) {
+            switch (value) {
+              case 'default':
+                cubit.setSort(BrowseSort.defaultOrder);
+              case 'release':
+                cubit.setSort(BrowseSort.releaseDate);
+              case 'rating':
+                cubit.setSort(BrowseSort.rating);
+              case 'desc':
+                cubit.setSortAscending(false);
+              case 'asc':
+                cubit.setSortAscending(true);
+            }
+          },
+          itemBuilder: (context) => [
+            CheckedPopupMenuItem(
+              value: 'default',
+              checked: state.sort == BrowseSort.defaultOrder,
+              child: Text(context.tr(TranslationKeys.browseSortDefault)),
+            ),
+            CheckedPopupMenuItem(
+              value: 'release',
+              checked: state.sort == BrowseSort.releaseDate,
+              child: Text(context.tr(TranslationKeys.browseSortRelease)),
+            ),
+            CheckedPopupMenuItem(
+              value: 'rating',
+              checked: state.sort == BrowseSort.rating,
+              child: Text(context.tr(TranslationKeys.browseSortRating)),
+            ),
+            const PopupMenuDivider(),
+            CheckedPopupMenuItem(
+              value: 'desc',
+              enabled: !isDefault,
+              checked: !state.sortAscending,
+              child: Text(context.tr(TranslationKeys.browseSortDescending)),
+            ),
+            CheckedPopupMenuItem(
+              value: 'asc',
+              enabled: !isDefault,
+              checked: state.sortAscending,
+              child: Text(context.tr(TranslationKeys.browseSortAscending)),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              border: Border.all(color: context.colors.outline),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.sort_rounded, size: 20),
+                if (!isDefault) ...[
+                  const SizedBox(width: 2),
+                  Icon(
+                    state.sortAscending
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: 15,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },
     );
   }
-
-  IconData _sortIcon(BrowseSort sort) => switch (sort) {
-    BrowseSort.defaultOrder => Icons.sort_rounded,
-    BrowseSort.releaseDate => Icons.calendar_today_rounded,
-    BrowseSort.rating => Icons.star_rounded,
-  };
-
-  String _sortLabel(BrowseSort sort) => switch (sort) {
-    BrowseSort.defaultOrder => TranslationKeys.browseSortDefault,
-    BrowseSort.releaseDate => TranslationKeys.browseSortRelease,
-    BrowseSort.rating => TranslationKeys.browseSortRating,
-  };
 
   Widget _grid(BuildContext context, DiscoverState state) {
     final items = state.visibleItems;

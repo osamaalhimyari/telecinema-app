@@ -89,6 +89,12 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     emit(state.copyWith(sort: sort));
   }
 
+  /// Local-only sort direction (ascending vs descending) — no refetch.
+  void setSortAscending(bool ascending) {
+    if (ascending == state.sortAscending) return;
+    emit(state.copyWith(sortAscending: ascending));
+  }
+
   /// Clears the search field text and resets the query (the x button).
   void clearSearch() {
     searchController.clear();

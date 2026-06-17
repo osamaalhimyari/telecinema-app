@@ -102,9 +102,12 @@ class TranslationKeys {
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
   static const loadMore = 'load_more';
+  static const browseSort = 'browse_sort';
   static const browseSortDefault = 'browse_sort_default';
   static const browseSortRelease = 'browse_sort_release';
   static const browseSortRating = 'browse_sort_rating';
+  static const browseSortAscending = 'browse_sort_ascending';
+  static const browseSortDescending = 'browse_sort_descending';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -167,6 +170,12 @@ class TranslationKeys {
   static const chatReceived = 'chat_received';
   static const messages = 'messages';
   static const writing = 'writing';
+
+  // Voice messages
+  static const voiceSlideToCancel = 'voice_slide_to_cancel';
+  static const voiceReleaseToCancel = 'voice_release_to_cancel';
+  static const voiceMicPermission = 'voice_mic_permission';
+  static const voiceHoldToRecord = 'voice_hold_to_record';
 
   // Presence join/leave toasts ("<name> joined" / "<name> left")
   static const userJoined = 'user_joined';

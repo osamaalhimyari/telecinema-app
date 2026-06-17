@@ -18,6 +18,7 @@ class DiscoverState extends Equatable {
     this.items = const [],
     this.selectedGenre,
     this.sort = BrowseSort.defaultOrder,
+    this.sortAscending = false,
     this.cinemetaSkip = 0,
     this.cinemaPage = 1,
     this.cinemetaHasMore = true,
@@ -36,6 +37,10 @@ class DiscoverState extends Equatable {
 
   /// Local ordering applied to [visibleItems].
   final BrowseSort sort;
+
+  /// Sort direction for [sort] (ignored by [BrowseSort.defaultOrder]). Default
+  /// false = descending — newest release / highest rating first.
+  final bool sortAscending;
 
   /// Cinemeta `skip` offset and EgyBest `page` for the next page each.
   final int cinemetaSkip;
@@ -67,9 +72,11 @@ class DiscoverState extends Equatable {
       case BrowseSort.defaultOrder:
         return filtered;
       case BrowseSort.releaseDate:
-        return [...filtered]..sort((a, b) => _year(b).compareTo(_year(a)));
+        final asc = [...filtered]..sort((a, b) => _year(a).compareTo(_year(b)));
+        return sortAscending ? asc : asc.reversed.toList();
       case BrowseSort.rating:
-        return [...filtered]..sort((a, b) => _rating(b).compareTo(_rating(a)));
+        final asc = [...filtered]..sort((a, b) => _rating(a).compareTo(_rating(b)));
+        return sortAscending ? asc : asc.reversed.toList();
     }
   }
 
@@ -97,6 +104,7 @@ class DiscoverState extends Equatable {
     String? selectedGenre,
     bool clearGenre = false,
     BrowseSort? sort,
+    bool? sortAscending,
     int? cinemetaSkip,
     int? cinemaPage,
     bool? cinemetaHasMore,
@@ -112,6 +120,7 @@ class DiscoverState extends Equatable {
       items: items ?? this.items,
       selectedGenre: clearGenre ? null : (selectedGenre ?? this.selectedGenre),
       sort: sort ?? this.sort,
+      sortAscending: sortAscending ?? this.sortAscending,
       cinemetaSkip: cinemetaSkip ?? this.cinemetaSkip,
       cinemaPage: cinemaPage ?? this.cinemaPage,
       cinemetaHasMore: cinemetaHasMore ?? this.cinemetaHasMore,
@@ -129,6 +138,7 @@ class DiscoverState extends Equatable {
     items,
     selectedGenre,
     sort,
+    sortAscending,
     cinemetaSkip,
     cinemaPage,
     cinemetaHasMore,

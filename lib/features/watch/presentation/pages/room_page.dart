@@ -28,6 +28,7 @@ import '/logic/socket/socket_status_indicator.dart';
 import '/routes/routes_names.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
+import '../bloc/voice_playback/voice_playback_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../widgets/chat_panel.dart';
@@ -64,6 +65,8 @@ class RoomPage extends StatelessWidget {
         ),
         BlocProvider<VoiceCubit>(create: (_) => sl<VoiceCubit>()),
         BlocProvider<DrawModeCubit>(create: (_) => DrawModeCubit()),
+        // Shared chat voice-message player (one clip plays at a time).
+        BlocProvider<VoicePlaybackCubit>(create: (_) => VoicePlaybackCubit()),
       ],
       child: const _RoomView(),
     );
@@ -152,15 +155,17 @@ class _RoomViewState extends State<_RoomView> {
   @override
   Widget build(BuildContext context) {
     final content = BlocListener<WatchCubit, WatchState>(
-      listenWhen: (a, b) => a.phase != b.phase,
+      listenWhen: (a, b) =>
+          a.phase != b.phase || a.videoReady != b.videoReady,
       listener: (context, state) {
         if (state.phase == WatchPhase.deleted) {
           context.showSnack(context.tr(TranslationKeys.roomDeleted));
           if (context.canPop()) context.pop();
-        } else if (state.phase == WatchPhase.ready) {
-          // Re-arm auto-PiP now that the video surface exists — the initState
-          // post-frame call runs while the room is still initializing, which on
-          // some devices is too early for the system to honor auto-enter.
+        } else if (state.phase == WatchPhase.ready || state.videoReady) {
+          // Re-arm auto-PiP once the room is ready AND again once the video
+          // surface actually exists — the initState post-frame call (and even the
+          // `ready` phase) can run before the surface is up, which on some devices
+          // is too early for the system to honor auto-enter.
           _enableAutoPip();
         }
       },
@@ -223,23 +228,34 @@ class _PipVideoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.watch<WatchCubit>();
     final controller = cubit.videoController;
-    return ColoredBox(
-      color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (controller == null)
-            const SizedBox.expand()
-          else
-            Video(
-              controller: controller,
-              controls: NoVideoControls,
-              fit: BoxFit.contain,
-            ),
-          FloatingReactions(stream: cubit.reactions),
-          FloatingChatOverlay(stream: cubit.incomingChat),
-          PresenceNotices(stream: cubit.presenceNotices),
-        ],
+    // The PiP window is rendered outside the Scaffold/Material of the room, so
+    // its text (chat + join/leave) and emoji would otherwise paint with Flutter's
+    // "no Material" debug style — the yellow underline. A transparent Material
+    // (with an explicit Directionality) supplies a real default text style and
+    // kills the underline, without adding any background of its own.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
+        type: MaterialType.transparency,
+        child: ColoredBox(
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (controller == null)
+                const SizedBox.expand()
+              else
+                Video(
+                  controller: controller,
+                  controls: NoVideoControls,
+                  fit: BoxFit.contain,
+                ),
+              FloatingReactions(stream: cubit.reactions),
+              FloatingChatOverlay(stream: cubit.incomingChat),
+              PresenceNotices(stream: cubit.presenceNotices),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -337,20 +353,25 @@ class _RoomScaffold extends StatelessWidget {
                   },
                 ),
                 const WaitBanner(),
+                // Action buttons row — emojis moved to their own row below it.
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.only(top: 6),
                   child: Row(
                     children: [
-                      const Expanded(child: ReactionBar()),
+                      const Spacer(),
+                      const VoiceButton(),
                       const SizedBox(width: 4),
                       const DownloadButton(),
-                      const SizedBox(width: 4),
-                      const VoiceButton(),
                       const DrawToggleButton(),
                       const ControlsLockButton(),
                       const SizedBox(width: 8),
                     ],
                   ),
+                ),
+                // Emoji reaction strip, on its own row under the buttons.
+                const Padding(
+                  padding: EdgeInsets.only(top: 2, bottom: 6),
+                  child: ReactionBar(),
                 ),
                 TabBar(
                   tabs: [
