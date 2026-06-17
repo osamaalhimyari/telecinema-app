@@ -221,6 +221,9 @@ const Map<String, String> arAr = {
   TranslationKeys.typeYoutube: 'يوتيوب',
   TranslationKeys.typeYoutubeDesc:
       'الصق رابط يوتيوب — يقوم الخادم بتنزيله ثم يفتح الغرفة، ويُشغَّل بأدوات تحكّم الغرفة.',
+  TranslationKeys.typeTelegram: 'تيليجرام',
+  TranslationKeys.typeTelegramDesc:
+      'الصق رابط منشور قناة تيليجرام عامة — يقوم الخادم بجلب الفيديو ثم يفتح الغرفة.',
   TranslationKeys.externalUrl: 'رابط التضمين',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'رابط الفيديو',
@@ -229,6 +232,8 @@ const Map<String, String> arAr = {
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
   TranslationKeys.youtubeLink: 'رابط يوتيوب',
   TranslationKeys.youtubeLinkHint: 'https://youtube.com/watch?v=…',
+  TranslationKeys.telegramLink: 'رابط منشور تيليجرام',
+  TranslationKeys.telegramLinkHint: 'https://t.me/channel/123',
   TranslationKeys.pickVideo: 'اختر فيديو',
   TranslationKeys.password: 'كلمة المرور',
   TranslationKeys.passwordOptionalHint: 'اختياري — اتركه فارغاً لغرفة مفتوحة',

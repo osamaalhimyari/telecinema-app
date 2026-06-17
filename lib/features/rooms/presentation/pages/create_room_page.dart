@@ -140,7 +140,11 @@ class _CreateRoomForm extends StatelessWidget {
     // videoUrl is the watch URL; the server routes a YouTube host to yt-dlp
     // automatically and the create cubit polls the job like any other download.
     final isYoutube = state.type == RoomType.youtube;
-    final submitType = isYoutube ? RoomType.download : state.type;
+    // A Telegram post link is submitted as a `download` too — the server detects
+    // the t.me URL and resolves the public post's direct video before fetching,
+    // so it lands as a normal file room like any other download.
+    final isTelegram = state.type == RoomType.telegram;
+    final submitType = (isYoutube || isTelegram) ? RoomType.download : state.type;
 
     context.read<CreateRoomCubit>().submit(
       CreateRoomParams(
@@ -154,9 +158,11 @@ class _CreateRoomForm extends StatelessWidget {
             : null,
         videoUrl: isYoutube
             ? form.youtubeUrl.text.trim()
-            : (state.type == RoomType.download && !downloadIsMagnet
-                  ? downloadText
-                  : null),
+            : isTelegram
+                  ? form.telegramUrl.text.trim()
+                  : (state.type == RoomType.download && !downloadIsMagnet
+                        ? downloadText
+                        : null),
         magnet: state.type == RoomType.torrent
             ? form.magnet.text.trim()
             : (state.type == RoomType.download && downloadIsMagnet
@@ -498,6 +504,8 @@ class _CreateRoomForm extends StatelessWidget {
                     TranslationKeys.typeDownload),
                 _typeItem(context, RoomType.youtube, Icons.smart_display_outlined,
                     TranslationKeys.typeYoutube),
+                _typeItem(context, RoomType.telegram, Icons.send_rounded,
+                    TranslationKeys.typeTelegram),
                 _typeItem(context, RoomType.upload, Icons.upload_rounded,
                     TranslationKeys.typeUpload),
               ],
@@ -647,6 +655,36 @@ class _CreateRoomForm extends StatelessWidget {
                     final ok = t.startsWith('http') &&
                         (t.contains('youtube.com') || t.contains('youtu.be'));
                     return ok ? null : context.tr(TranslationKeys.youtubeLinkHint);
+                  },
+                ),
+              ],
+            );
+          case RoomType.telegram:
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(TranslationKeys.typeTelegramDesc),
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: form.telegramUrl,
+                  keyboardType: TextInputType.url,
+                  minLines: 1,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: context.tr(TranslationKeys.telegramLink),
+                    hintText: context.tr(TranslationKeys.telegramLinkHint),
+                    prefixIcon: const Icon(Icons.send_rounded),
+                    suffixIcon: _copyButton(context, form.telegramUrl),
+                  ),
+                  validator: (v) {
+                    if (type != RoomType.telegram) return null;
+                    final t = v?.trim().toLowerCase() ?? '';
+                    final ok = t.startsWith('http') &&
+                        (t.contains('t.me/') || t.contains('telegram.me/'));
+                    return ok ? null : context.tr(TranslationKeys.telegramLinkHint);
                   },
                 ),
               ],

@@ -228,6 +228,9 @@ const Map<String, String> enUs = {
   TranslationKeys.typeYoutube: 'YouTube',
   TranslationKeys.typeYoutubeDesc:
       'Paste a YouTube link — the server downloads it and opens the room, played with the room controls.',
+  TranslationKeys.typeTelegram: 'Telegram',
+  TranslationKeys.typeTelegramDesc:
+      'Paste a public Telegram channel post link — the server fetches its video and opens the room.',
   TranslationKeys.externalUrl: 'Embed URL',
   TranslationKeys.externalUrlHint: 'https://…',
   TranslationKeys.videoUrl: 'Video link',
@@ -236,6 +239,8 @@ const Map<String, String> enUs = {
   TranslationKeys.magnetUrlHint: 'magnet:?xt=urn:btih:…',
   TranslationKeys.youtubeLink: 'YouTube link',
   TranslationKeys.youtubeLinkHint: 'https://youtube.com/watch?v=…',
+  TranslationKeys.telegramLink: 'Telegram post link',
+  TranslationKeys.telegramLinkHint: 'https://t.me/channel/123',
   TranslationKeys.pickVideo: 'Choose a video',
   TranslationKeys.password: 'Password',
   TranslationKeys.passwordOptionalHint:

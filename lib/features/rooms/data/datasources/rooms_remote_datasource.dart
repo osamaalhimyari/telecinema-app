@@ -80,6 +80,10 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       RoomType.download => 'download',
       RoomType.torrent => 'torrent',
       RoomType.youtube => 'youtube',
+      // The UI submits a Telegram room as a `download` (the t.me link goes in
+      // videoUrl and the server resolves it), so this branch is never actually
+      // reached — mapped to `download` to stay safe and keep the switch total.
+      RoomType.telegram => 'download',
       RoomType.upload => 'upload',
     };
 

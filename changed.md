@@ -17,6 +17,10 @@
 - 🇬🇧 New **"YouTube"** room type: paste a YouTube link when creating a room and the server streams it (no full download) through a proxy, played with **your app's own synced controls** — not YouTube's player. Up to 720p. YouTube browsing stays hidden; the only entry point is this link field.
 - 🇸🇦 نوع غرفة جديد **«يوتيوب»**: الصق رابط يوتيوب عند إنشاء الغرفة فيبثّه الخادم (بدون تنزيل كامل) عبر وسيط، ويُشغَّل بأدوات تحكّم تطبيقك المتزامنة — وليس مشغّل يوتيوب. حتى 720p. تصفّح يوتيوب يبقى مخفيًا؛ المدخل الوحيد هو حقل الرابط هذا.
 
+## 📨 Telegram room type / نوع غرفة تيليجرام
+- 🇬🇧 New **"Telegram"** room type beside YouTube: paste a link to a **public Telegram channel post** that contains a video and the server fetches it into the room, played with your app's synced controls. Works for web-playable videos in public channels; very large files posted as documents (shown as "VIEW IN TELEGRAM") can't be fetched and show a clear message.
+- 🇸🇦 نوع غرفة جديد **«تيليجرام»** بجانب يوتيوب: الصق رابط **منشور قناة تيليجرام عامة** يحتوي فيديو فيجلبه الخادم إلى الغرفة، ويُشغَّل بأدوات تطبيقك المتزامنة. يعمل مع الفيديوهات القابلة للتشغيل في القنوات العامة؛ أمّا الملفات الكبيرة جدًا المنشورة كمستندات (تظهر كـ «VIEW IN TELEGRAM») فلا يمكن جلبها وتظهر رسالة واضحة.
+
 ## 🎨 Draw on the video / الرسم على الفيديو
 - 🇬🇧 You can now draw on the video and everyone sees the strokes appear live, then they fade out **in place** (static, like reactions but without moving). Works in both the normal and fullscreen players, with a **color palette** to pick your pen.
 - 🇸🇦 يمكنك الآن الرسم على الفيديو ويرى الجميع الرسم مباشرةً، ثم يختفي **في مكانه** (ثابت مثل الإيموجي لكن دون حركة). يعمل في المشغّل العادي وملء الشاشة، مع **لوحة ألوان** لاختيار لون القلم.

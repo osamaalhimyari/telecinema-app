@@ -246,6 +246,8 @@ class TranslationKeys {
   static const typeTorrentDesc = 'type_torrent_desc';
   static const typeYoutube = 'type_youtube';
   static const typeYoutubeDesc = 'type_youtube_desc';
+  static const typeTelegram = 'type_telegram';
+  static const typeTelegramDesc = 'type_telegram_desc';
   static const externalUrl = 'external_url';
   static const externalUrlHint = 'external_url_hint';
   static const videoUrl = 'video_url';
@@ -254,6 +256,8 @@ class TranslationKeys {
   static const magnetUrlHint = 'magnet_url_hint';
   static const youtubeLink = 'youtube_link';
   static const youtubeLinkHint = 'youtube_link_hint';
+  static const telegramLink = 'telegram_link';
+  static const telegramLinkHint = 'telegram_link_hint';
   static const pickVideo = 'pick_video';
   static const password = 'password';
   static const passwordOptionalHint = 'password_optional_hint';

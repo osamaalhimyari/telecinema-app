@@ -61,6 +61,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
   final videoUrl = TextEditingController();
   final magnet = TextEditingController();
   final youtubeUrl = TextEditingController();
+  final telegramUrl = TextEditingController();
   final password = TextEditingController();
 
   void setType(RoomType type) => emit(state.copyWith(type: type));
@@ -112,6 +113,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
     videoUrl.dispose();
     magnet.dispose();
     youtubeUrl.dispose();
+    telegramUrl.dispose();
     password.dispose();
     return super.close();
   }
