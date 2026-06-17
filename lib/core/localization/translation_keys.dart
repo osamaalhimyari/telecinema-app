@@ -15,6 +15,11 @@ class TranslationKeys {
   static const save = 'save';
   static const ok = 'ok';
 
+  // Exit-app confirmation (Android back at the home shell)
+  static const exitAppTitle = 'exit_app_title';
+  static const exitAppMessage = 'exit_app_message';
+  static const exitApp = 'exit_app';
+
   // Network / failure keys (must match DioApiClient + repository mappings)
   static const errorTimeout = 'error_timeout';
   static const errorNoInternet = 'error_no_internet';
@@ -97,6 +102,9 @@ class TranslationKeys {
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
   static const loadMore = 'load_more';
+  static const browseSortDefault = 'browse_sort_default';
+  static const browseSortRelease = 'browse_sort_release';
+  static const browseSortRating = 'browse_sort_rating';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -156,8 +164,13 @@ class TranslationKeys {
   static const chatThrottled = 'chat_throttled';
   static const chatSending = 'chat_sending';
   static const chatRetry = 'chat_retry';
+  static const chatReceived = 'chat_received';
   static const messages = 'messages';
   static const writing = 'writing';
+
+  // Presence join/leave toasts ("<name> joined" / "<name> left")
+  static const userJoined = 'user_joined';
+  static const userLeft = 'user_left';
 
   // Drawing on video
   static const draw = 'draw';

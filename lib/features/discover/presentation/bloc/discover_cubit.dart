@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/services/locale_service.dart';
 import '/features/browse/domain/entities/browse_category.dart';
+import '/features/browse/domain/entities/browse_sort.dart';
 import '/features/browse/domain/entities/catalog_item.dart';
 import '/features/browse/domain/usecases/get_catalog_usecase.dart';
 import '/features/browse/domain/usecases/get_meta_detail_usecase.dart';
@@ -30,9 +31,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     this._getMetaDetail,
     this._cinema,
     this._locale,
-  ) : super(const DiscoverState()) {
-    scrollController.addListener(_onScroll);
-  }
+  ) : super(const DiscoverState());
 
   final GetCatalogUseCase _getCatalog;
   final SearchCatalogUseCase _search;
@@ -47,13 +46,6 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   Timer? _debounce;
   final Map<String, String> _ratingCache = {};
   final Set<String> _ratingPending = {};
-
-  void _onScroll() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent - 400) {
-      loadMore();
-    }
-  }
 
   Future<void> load() async {
     emit(
@@ -90,6 +82,12 @@ class DiscoverCubit extends Cubit<DiscoverState> {
 
   void setGenre(String? genre) =>
       emit(state.copyWith(selectedGenre: genre, clearGenre: genre == null));
+
+  /// Local-only ordering of the loaded items — no refetch.
+  void setSort(BrowseSort sort) {
+    if (sort == state.sort) return;
+    emit(state.copyWith(sort: sort));
+  }
 
   /// Clears the search field text and resets the query (the x button).
   void clearSearch() {
@@ -314,7 +312,6 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   @override
   Future<void> close() {
     _debounce?.cancel();
-    scrollController.removeListener(_onScroll);
     scrollController.dispose();
     searchController.dispose();
     return super.close();

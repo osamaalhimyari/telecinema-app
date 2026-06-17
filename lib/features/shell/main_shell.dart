@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:go_router/go_router.dart';
 
 import '/core/extensions/context_extensions.dart';
@@ -22,11 +23,45 @@ class MainShell extends StatelessWidget {
     );
   }
 
+  /// Intercepts the system back gesture at the home shell (where there is
+  /// nothing left to pop, so back would close the app). On a secondary tab it
+  /// just returns to the first tab; on the first tab it asks before exiting.
+  Future<void> _onPop(BuildContext context, bool didPop) async {
+    if (didPop) return;
+    if (navigationShell.currentIndex != 0) {
+      navigationShell.goBranch(0, initialLocation: true);
+      return;
+    }
+    final exit = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr(TranslationKeys.exitAppTitle)),
+        content: Text(ctx.tr(TranslationKeys.exitAppMessage)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.tr(TranslationKeys.cancel)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(ctx.tr(TranslationKeys.exitApp)),
+          ),
+        ],
+      ),
+    );
+    if (exit ?? false) await SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
+    return PopScope(
+      // Always intercept: we decide in [_onPop] whether to switch tabs or
+      // confirm exiting, so the shell never pops straight out of the app.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) => _onPop(context, didPop),
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onTap,
         destinations: [
@@ -52,6 +87,7 @@ class MainShell extends StatelessWidget {
             label: context.tr(TranslationKeys.favoritesTab),
           ),
         ],
+        ),
       ),
     );
   }

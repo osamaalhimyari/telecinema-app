@@ -6,6 +6,7 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
 import '/features/browse/domain/entities/browse_category.dart';
+import '/features/browse/domain/entities/browse_sort.dart';
 import '/features/browse/domain/entities/catalog_item.dart';
 import '/features/browse/presentation/widgets/browse_shimmer.dart';
 import '/features/browse/presentation/widgets/poster_card.dart';
@@ -43,6 +44,7 @@ class _DiscoverView extends StatelessWidget {
           _searchField(context),
           _categorySelector(context),
           _genreChips(context),
+          _sortRow(context),
           Expanded(
             child: BlocBuilder<DiscoverCubit, DiscoverState>(
               builder: (context, state) {
@@ -165,6 +167,46 @@ class _DiscoverView extends StatelessWidget {
     );
   }
 
+  /// Sort selector: a row of chips that reorder the loaded titles locally
+  /// (catalogue order / release date / rating). Mirrors the genre chips' style.
+  Widget _sortRow(BuildContext context) {
+    return BlocBuilder<DiscoverCubit, DiscoverState>(
+      buildWhen: (a, b) => a.sort != b.sort,
+      builder: (context, state) {
+        return SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            children: [
+              for (final sort in BrowseSort.values) ...[
+                ChoiceChip(
+                  avatar: Icon(_sortIcon(sort), size: 16),
+                  label: Text(context.tr(_sortLabel(sort))),
+                  selected: state.sort == sort,
+                  onSelected: (_) => context.read<DiscoverCubit>().setSort(sort),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _sortIcon(BrowseSort sort) => switch (sort) {
+    BrowseSort.defaultOrder => Icons.sort_rounded,
+    BrowseSort.releaseDate => Icons.calendar_today_rounded,
+    BrowseSort.rating => Icons.star_rounded,
+  };
+
+  String _sortLabel(BrowseSort sort) => switch (sort) {
+    BrowseSort.defaultOrder => TranslationKeys.browseSortDefault,
+    BrowseSort.releaseDate => TranslationKeys.browseSortRelease,
+    BrowseSort.rating => TranslationKeys.browseSortRating,
+  };
+
   Widget _grid(BuildContext context, DiscoverState state) {
     final items = state.visibleItems;
     if (items.isEmpty) {
@@ -174,33 +216,45 @@ class _DiscoverView extends StatelessWidget {
         message: context.tr(TranslationKeys.browseNoResultsHint),
       );
     }
-    return Stack(
-      children: [
-        GridView.builder(
-          controller: context.read<DiscoverCubit>().scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
-            childAspectRatio: 0.58,
+    // Paginating is only possible on the unfiltered catalogue, not a search.
+    final canLoadMore = state.query.isEmpty && state.hasMore;
+    return CustomScrollView(
+      controller: context.read<DiscoverCubit>().scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 180,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: 0.58,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return PosterCard(item: item, onTap: () => _openDetail(context, item));
+            },
           ),
-          itemCount: items.length,
-          itemBuilder: (context, i) {
-            final item = items[i];
-            return PosterCard(item: item, onTap: () => _openDetail(context, item));
-          },
         ),
-        if (state.loadingMore)
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 12,
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+        // An explicit "Load more" button (no auto-load on scroll) — the user
+        // controls when the next page is fetched.
+        if (canLoadMore)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: Center(
+                child: state.loadingMore
+                    ? const SizedBox(
+                        width: 26,
+                        height: 26,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () => context.read<DiscoverCubit>().loadMore(),
+                        icon: const Icon(Icons.expand_more_rounded),
+                        label: Text(context.tr(TranslationKeys.loadMore)),
+                      ),
               ),
             ),
           ),

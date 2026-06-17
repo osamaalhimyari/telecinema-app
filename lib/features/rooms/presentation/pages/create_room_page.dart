@@ -8,6 +8,8 @@ import '/core/constants/categories.dart';
 import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '/features/youtube/data/datasources/youtube_remote_datasource.dart';
+import '/features/youtube/presentation/widgets/youtube_stream_picker.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/create_room_params.dart';
@@ -23,6 +25,7 @@ class CreateRoomPage extends StatelessWidget {
     this.initialName,
     this.initialMagnet,
     this.initialVideoUrl,
+    this.initialYoutubeUrl,
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
@@ -40,6 +43,7 @@ class CreateRoomPage extends StatelessWidget {
   final String? initialName;
   final String? initialMagnet;
   final String? initialVideoUrl;
+  final String? initialYoutubeUrl;
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
@@ -53,6 +57,7 @@ class CreateRoomPage extends StatelessWidget {
         initialName: initialName,
         initialMagnet: initialMagnet,
         initialVideoUrl: initialVideoUrl,
+        initialYoutubeUrl: initialYoutubeUrl,
         initialCategory: initialCategory,
         initialImdbId: initialImdbId,
         initialMaxHeight: initialMaxHeight,
@@ -67,6 +72,7 @@ class _CreateRoomView extends StatelessWidget {
     this.initialName,
     this.initialMagnet,
     this.initialVideoUrl,
+    this.initialYoutubeUrl,
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
@@ -76,6 +82,7 @@ class _CreateRoomView extends StatelessWidget {
   final String? initialName;
   final String? initialMagnet;
   final String? initialVideoUrl;
+  final String? initialYoutubeUrl;
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
@@ -88,6 +95,7 @@ class _CreateRoomView extends StatelessWidget {
         initialName: initialName,
         initialMagnet: initialMagnet,
         initialVideoUrl: initialVideoUrl,
+        initialYoutubeUrl: initialYoutubeUrl,
         initialCategory: initialCategory,
       ),
       child: _CreateRoomForm(
@@ -117,12 +125,43 @@ class _CreateRoomForm extends StatelessWidget {
     }
   }
 
-  void _submit(BuildContext context) {
+  Future<void> _submit(BuildContext context) async {
     final form = context.read<CreateRoomFormCubit>();
     final state = form.state;
     if (!form.formKey.currentState!.validate()) return;
     if (state.type == RoomType.upload && state.videoPath == null) {
       context.showSnack(context.tr(TranslationKeys.pickVideo));
+      return;
+    }
+
+    // A YouTube room is created by extracting the direct video+audio CDN URLs
+    // ON-DEVICE (the server's IP is bot-blocked by YouTube), letting the viewer
+    // pick a quality, then submitting them as an ordinary `download` room the
+    // server downloads + muxes — no server-side yt-dlp. All YouTube logic stays
+    // in the isolated youtube feature; here we just call its picker and submit
+    // the resolved links. A null pick (resolve failed / cancelled) just aborts.
+    if (state.type == RoomType.youtube) {
+      final picked = await pickYoutubeStreams(
+        context,
+        form.youtubeUrl.text.trim(),
+        sl<YoutubeRemoteDataSource>(),
+      );
+      if (picked == null || !context.mounted) return;
+      context.read<CreateRoomCubit>().submit(
+        CreateRoomParams(
+          name: form.name.text.trim(),
+          type: RoomType.download,
+          password: form.password.text.trim().isEmpty
+              ? null
+              : form.password.text.trim(),
+          videoUrl: picked.videoUrl,
+          audioUrl: picked.audioUrl,
+          reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
+          category: state.category,
+          imdbId: initialImdbId,
+          thumbnail: initialThumbnail,
+        ),
+      );
       return;
     }
 
@@ -133,18 +172,11 @@ class _CreateRoomForm extends StatelessWidget {
     final downloadText = form.videoUrl.text.trim();
     final downloadIsMagnet = downloadText.startsWith('magnet:');
 
-    // A YouTube room is created by DOWNLOADING the video to the server (yt-dlp),
-    // exactly like a pasted download link — not by proxying a live stream, which
-    // needs the server to resolve a googlevideo URL on demand and fails on hosts
-    // without yt-dlp. So the YouTube tab is submitted as a `download` whose
-    // videoUrl is the watch URL; the server routes a YouTube host to yt-dlp
-    // automatically and the create cubit polls the job like any other download.
-    final isYoutube = state.type == RoomType.youtube;
     // A Telegram post link is submitted as a `download` too — the server detects
     // the t.me URL and resolves the public post's direct video before fetching,
     // so it lands as a normal file room like any other download.
     final isTelegram = state.type == RoomType.telegram;
-    final submitType = (isYoutube || isTelegram) ? RoomType.download : state.type;
+    final submitType = isTelegram ? RoomType.download : state.type;
 
     context.read<CreateRoomCubit>().submit(
       CreateRoomParams(
@@ -156,13 +188,11 @@ class _CreateRoomForm extends StatelessWidget {
         externalUrl: state.type == RoomType.external
             ? form.externalUrl.text.trim()
             : null,
-        videoUrl: isYoutube
-            ? form.youtubeUrl.text.trim()
-            : isTelegram
-                  ? form.telegramUrl.text.trim()
-                  : (state.type == RoomType.download && !downloadIsMagnet
-                        ? downloadText
-                        : null),
+        videoUrl: isTelegram
+            ? form.telegramUrl.text.trim()
+            : (state.type == RoomType.download && !downloadIsMagnet
+                  ? downloadText
+                  : null),
         magnet: state.type == RoomType.torrent
             ? form.magnet.text.trim()
             : (state.type == RoomType.download && downloadIsMagnet
@@ -172,8 +202,8 @@ class _CreateRoomForm extends StatelessWidget {
         reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
         category: state.category,
         imdbId: initialImdbId,
-        // Server download height cap. The manual YouTube paste leaves it null
-        // (server default); the YouTube search picker pre-fills initialMaxHeight.
+        // Server download height cap, used only by the (legacy) catalogue
+        // download hand-off; null for a manual paste.
         maxHeight: submitType == RoomType.download ? initialMaxHeight : null,
         // The movie/series poster (from the catalogue). Null → server picks a
         // random placeholder.

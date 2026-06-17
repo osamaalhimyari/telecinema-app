@@ -28,26 +28,37 @@ class ChatPanel extends StatelessWidget {
 class _ChatPanelView extends StatelessWidget {
   const _ChatPanelView();
 
-  /// Tiny delivery line under our own pending messages: a spinner while it's in
-  /// flight, or a tappable "tap to retry" when the send failed.
+  /// Tiny delivery line under our own messages so we can tell whether one got
+  /// through: a clock while it's in flight, a check once the server confirms it
+  /// reached the room, or a tappable "tap to retry" when the send failed.
   Widget _status(BuildContext context, ChatMessage m) {
-    final failed = m.status == ChatStatus.failed;
+    final (IconData icon, String labelKey, Color color) = switch (m.status) {
+      ChatStatus.sending => (
+        Icons.schedule_rounded,
+        TranslationKeys.chatSending,
+        context.colors.onSurfaceVariant,
+      ),
+      ChatStatus.sent => (
+        Icons.done_all_rounded,
+        TranslationKeys.chatReceived,
+        context.colors.primary,
+      ),
+      ChatStatus.failed => (
+        Icons.error_outline_rounded,
+        TranslationKeys.chatRetry,
+        context.colors.error,
+      ),
+    };
     return Padding(
       padding: const EdgeInsets.only(top: 3),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            failed ? Icons.error_outline_rounded : Icons.schedule_rounded,
-            size: 12,
-            color: failed ? context.colors.error : context.colors.onSurfaceVariant,
-          ),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
-            failed ? context.tr(TranslationKeys.chatRetry) : context.tr(TranslationKeys.chatSending),
-            style: context.text.labelSmall?.copyWith(
-              color: failed ? context.colors.error : context.colors.onSurfaceVariant,
-            ),
+            context.tr(labelKey),
+            style: context.text.labelSmall?.copyWith(color: color),
           ),
         ],
       ),
@@ -85,8 +96,11 @@ class _ChatPanelView extends StatelessWidget {
                   final m = state.messages[i];
                   final mine = m.mine || m.name == me;
                   final failed = m.status == ChatStatus.failed;
+                  // Streamer-style: every message — including our own — is shown
+                  // the same way, left-aligned with a colored username, so you
+                  // read your messages just like the ones you receive.
                   return Align(
-                    alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: failed ? () => context.read<WatchCubit>().retryChat(m) : null,
                       child: Opacity(
@@ -96,7 +110,7 @@ class _ChatPanelView extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           constraints: const BoxConstraints(maxWidth: 280),
                           decoration: BoxDecoration(
-                            color: mine ? context.colors.primary.withValues(alpha: 0.38) : context.colors.surface,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: failed ? context.colors.error : context.colors.outline,
@@ -105,14 +119,13 @@ class _ChatPanelView extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!mine)
-                                Text(
-                                  m.name,
-                                  style: context.text.labelMedium?.copyWith(
-                                    color: userColorFor(m.name),
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              Text(
+                                m.name,
+                                style: context.text.labelMedium?.copyWith(
+                                  color: userColorFor(m.name),
+                                  fontWeight: FontWeight.w700,
                                 ),
+                              ),
                               Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
@@ -126,7 +139,7 @@ class _ChatPanelView extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (mine && m.isPending) _status(context, m),
+                              if (mine) _status(context, m),
                             ],
                           ),
                         ),

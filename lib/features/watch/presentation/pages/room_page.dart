@@ -35,8 +35,10 @@ import '../widgets/controls_lock_button.dart';
 import '../widgets/draw_toggle_button.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/drawing_overlay.dart';
+import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
+import '../widgets/presence_notices.dart';
 import '../widgets/reaction_bar.dart';
 import '../widgets/subtitle/subtitle_settings_sheet.dart';
 import '../widgets/unlock_overlay.dart';
@@ -210,22 +212,35 @@ class _RoomViewState extends State<_RoomView> {
   }
 }
 
-/// The minimal video-only view shown inside the Android PiP window.
+/// The video view shown inside the Android PiP window. Reactions, chat and
+/// join/leave notices float over it too, so backgrounding the app from portrait
+/// keeps them visible — matching the fullscreen surface (which Android captures
+/// whole, overlays and all).
 class _PipVideoView extends StatelessWidget {
   const _PipVideoView();
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<WatchCubit>().videoController;
+    final cubit = context.watch<WatchCubit>();
+    final controller = cubit.videoController;
     return ColoredBox(
       color: Colors.black,
-      child: controller == null
-          ? const SizedBox.expand()
-          : Video(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (controller == null)
+            const SizedBox.expand()
+          else
+            Video(
               controller: controller,
               controls: NoVideoControls,
               fit: BoxFit.contain,
             ),
+          FloatingReactions(stream: cubit.reactions),
+          FloatingChatOverlay(stream: cubit.incomingChat),
+          PresenceNotices(stream: cubit.presenceNotices),
+        ],
+      ),
     );
   }
 }
@@ -287,26 +302,39 @@ class _RoomScaffold extends StatelessWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            // The video takes the top half of the screen in portrait; the
-            // reaction bar, tabs and (now smaller) chat share the rest.
-            final playerHeight = constraints.maxHeight * 0.5;
             return Column(
               children: [
-                SizedBox(
-                  height: playerHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const PlayerStage(),
-                      FloatingReactions(
-                        stream: context.read<WatchCubit>().reactions,
+                // The player is sized to the video's real aspect ratio (16:9
+                // until it's known) rather than a fixed half-screen, and capped
+                // so a tall/portrait video can't dominate — the reaction bar,
+                // tabs and chat take the rest.
+                BlocSelector<WatchCubit, WatchState, double>(
+                  selector: (s) => s.videoAspectRatio,
+                  builder: (context, aspectRatio) {
+                    final ar = aspectRatio > 0 ? aspectRatio : 16 / 9;
+                    final maxHeight = constraints.maxHeight * 0.6;
+                    final playerHeight =
+                        (constraints.maxWidth / ar).clamp(0.0, maxHeight);
+                    return SizedBox(
+                      height: playerHeight,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const PlayerStage(),
+                          FloatingReactions(
+                            stream: context.read<WatchCubit>().reactions,
+                          ),
+                          PresenceNotices(
+                            stream: context.read<WatchCubit>().presenceNotices,
+                          ),
+                          DrawingOverlay(
+                            stream: context.read<WatchCubit>().drawings,
+                          ),
+                          const DrawingCanvas(),
+                        ],
                       ),
-                      DrawingOverlay(
-                        stream: context.read<WatchCubit>().drawings,
-                      ),
-                      const DrawingCanvas(),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const WaitBanner(),
                 Padding(

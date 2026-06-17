@@ -114,6 +114,9 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.password != null && params.password!.isNotEmpty) 'password': params.password,
       if (params.externalUrl != null) 'externalUrl': params.externalUrl,
       if (params.videoUrl != null) 'videoUrl': params.videoUrl,
+      // Present only for a YouTube download whose video+audio were resolved
+      // on-device; the server downloads both and muxes them.
+      if (params.audioUrl != null) 'audioUrl': params.audioUrl,
       if (params.magnet != null) 'magnet': params.magnet,
       if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
       if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,

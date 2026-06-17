@@ -22,6 +22,7 @@ class WatchState extends Equatable {
     this.isBuffering = false,
     this.videoReady = false,
     this.videoError = false,
+    this.videoAspectRatio = 16 / 9,
     this.preparingTorrent = false,
     this.viewerCount = 0,
     this.presence = const [],
@@ -53,6 +54,10 @@ class WatchState extends Equatable {
   final bool isBuffering;
   final bool videoReady;
   final bool videoError;
+
+  /// Real video aspect ratio (width / height) once known, else 16:9. Drives the
+  /// portrait player height so the video isn't boxed into a fixed half-screen.
+  final double videoAspectRatio;
 
   /// True while the on-device torrent engine is resolving the magnet (fetching
   /// swarm metadata) before the player can open the local stream URL.
@@ -116,6 +121,7 @@ class WatchState extends Equatable {
     bool? isBuffering,
     bool? videoReady,
     bool? videoError,
+    double? videoAspectRatio,
     bool? preparingTorrent,
     int? viewerCount,
     List<PresenceUser>? presence,
@@ -143,6 +149,7 @@ class WatchState extends Equatable {
       isBuffering: isBuffering ?? this.isBuffering,
       videoReady: videoReady ?? this.videoReady,
       videoError: videoError ?? this.videoError,
+      videoAspectRatio: videoAspectRatio ?? this.videoAspectRatio,
       preparingTorrent: preparingTorrent ?? this.preparingTorrent,
       viewerCount: viewerCount ?? this.viewerCount,
       presence: presence ?? this.presence,
@@ -173,6 +180,7 @@ class WatchState extends Equatable {
     isBuffering,
     videoReady,
     videoError,
+    videoAspectRatio,
     preparingTorrent,
     viewerCount,
     presence,

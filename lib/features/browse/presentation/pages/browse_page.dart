@@ -8,6 +8,7 @@ import '/core/shared/status_view.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/browse_category.dart';
+import '../../domain/entities/browse_sort.dart';
 import '../../domain/entities/catalog_item.dart';
 import '../bloc/browse/browse_cubit.dart';
 import '../bloc/browse/browse_state.dart';
@@ -40,6 +41,7 @@ class _BrowseView extends StatelessWidget {
           _searchField(context),
           _categorySelector(context),
           _genreChips(context),
+          _sortRow(context),
           Expanded(
             child: BlocBuilder<BrowseCubit, BrowseState>(
               builder: (context, state) {
@@ -162,6 +164,46 @@ class _BrowseView extends StatelessWidget {
     );
   }
 
+  /// Sort selector: a row of chips that reorder the loaded titles locally
+  /// (catalogue order / release date / rating). Mirrors the genre chips' style.
+  Widget _sortRow(BuildContext context) {
+    return BlocBuilder<BrowseCubit, BrowseState>(
+      buildWhen: (a, b) => a.sort != b.sort,
+      builder: (context, state) {
+        return SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            children: [
+              for (final sort in BrowseSort.values) ...[
+                ChoiceChip(
+                  avatar: Icon(_sortIcon(sort), size: 16),
+                  label: Text(context.tr(_sortLabel(sort))),
+                  selected: state.sort == sort,
+                  onSelected: (_) => context.read<BrowseCubit>().setSort(sort),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _sortIcon(BrowseSort sort) => switch (sort) {
+    BrowseSort.defaultOrder => Icons.sort_rounded,
+    BrowseSort.releaseDate => Icons.calendar_today_rounded,
+    BrowseSort.rating => Icons.star_rounded,
+  };
+
+  String _sortLabel(BrowseSort sort) => switch (sort) {
+    BrowseSort.defaultOrder => TranslationKeys.browseSortDefault,
+    BrowseSort.releaseDate => TranslationKeys.browseSortRelease,
+    BrowseSort.rating => TranslationKeys.browseSortRating,
+  };
+
   Widget _grid(BuildContext context, BrowseState state) {
     final items = state.visibleItems;
     if (items.isEmpty) {
@@ -195,9 +237,8 @@ class _BrowseView extends StatelessWidget {
             },
           ),
         ),
-        // A footer that auto-loads on scroll, but is also a tappable button so
-        // a short page (e.g. only a couple of results) can still fetch more
-        // without anything to scroll.
+        // An explicit "Load more" button (no auto-load on scroll) — the user
+        // controls when the next page is fetched.
         if (canLoadMore)
           SliverToBoxAdapter(
             child: Padding(

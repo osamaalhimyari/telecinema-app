@@ -10,6 +10,9 @@ const Map<String, String> enUs = {
   TranslationKeys.close: 'Close',
   TranslationKeys.save: 'Save',
   TranslationKeys.ok: 'OK',
+  TranslationKeys.exitAppTitle: 'Exit app?',
+  TranslationKeys.exitAppMessage: 'Are you sure you want to close Watch Party?',
+  TranslationKeys.exitApp: 'Exit',
 
   TranslationKeys.errorTimeout: 'The server took too long to respond.',
   TranslationKeys.errorNoInternet: 'No internet connection.',
@@ -88,6 +91,9 @@ const Map<String, String> enUs = {
   TranslationKeys.browseNoResults: 'Nothing found',
   TranslationKeys.browseNoResultsHint: 'Try a different title, category or genre.',
   TranslationKeys.loadMore: 'Load more',
+  TranslationKeys.browseSortDefault: 'Default',
+  TranslationKeys.browseSortRelease: 'Release date',
+  TranslationKeys.browseSortRating: 'Rating',
   TranslationKeys.torrentSearching: 'Looking for a torrent…',
   TranslationKeys.torrentNotAvailable: 'Not available currently',
 
@@ -144,8 +150,11 @@ const Map<String, String> enUs = {
   TranslationKeys.chatThrottled: 'You\'re sending messages too fast.',
   TranslationKeys.chatSending: 'Sending…',
   TranslationKeys.chatRetry: 'Not sent · tap to retry',
+  TranslationKeys.chatReceived: 'Received',
   TranslationKeys.messages: 'Messages',
   TranslationKeys.writing: 'is writing…',
+  TranslationKeys.userJoined: 'joined',
+  TranslationKeys.userLeft: 'left',
   TranslationKeys.draw: 'Draw',
 
   TranslationKeys.reactions: 'Reactions',

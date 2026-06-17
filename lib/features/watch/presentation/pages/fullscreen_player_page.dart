@@ -13,6 +13,7 @@ import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
 import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
+import '../widgets/presence_notices.dart';
 import '../widgets/video_surface.dart';
 
 /// Full-screen, landscape view of the room's video. Reuses the room's
@@ -55,6 +56,7 @@ class _FullscreenView extends StatelessWidget {
           // reach the player.
           FloatingReactions(stream: watch.reactions),
           FloatingChatOverlay(stream: watch.incomingChat),
+          PresenceNotices(stream: watch.presenceNotices),
 
           // Drawings render over the video (pointer-transparent); the canvas
           // above captures touches only while draw mode is on. Both sit *under*

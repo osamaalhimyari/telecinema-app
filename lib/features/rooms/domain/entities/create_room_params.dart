@@ -14,6 +14,7 @@ class CreateRoomParams {
     this.password,
     this.externalUrl,
     this.videoUrl,
+    this.audioUrl,
     this.magnet,
     this.localVideoPath,
     this.reactions,
@@ -28,6 +29,13 @@ class CreateRoomParams {
   final String? password;
   final String? externalUrl;
   final String? videoUrl;
+
+  /// Companion audio stream for a YouTube `download` room: when set, [videoUrl]
+  /// is a video-only googlevideo URL (resolved on-device) and the server muxes
+  /// the two with ffmpeg. Null for every other source (the single [videoUrl]
+  /// already carries audio).
+  final String? audioUrl;
+
   final String? magnet;
   final String? localVideoPath;
   final List<String>? reactions;

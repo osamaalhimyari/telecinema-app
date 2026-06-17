@@ -114,7 +114,7 @@ class _ChatBubbleState extends State<_ChatBubble> with SingleTickerProviderState
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         constraints: const BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
+          color: Colors.black.withValues(alpha: 0.38),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text.rich(

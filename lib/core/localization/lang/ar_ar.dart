@@ -10,6 +10,9 @@ const Map<String, String> arAr = {
   TranslationKeys.close: 'إغلاق',
   TranslationKeys.save: 'حفظ',
   TranslationKeys.ok: 'حسناً',
+  TranslationKeys.exitAppTitle: 'الخروج من التطبيق؟',
+  TranslationKeys.exitAppMessage: 'هل أنت متأكد أنك تريد إغلاق Watch Party؟',
+  TranslationKeys.exitApp: 'خروج',
 
   TranslationKeys.errorTimeout: 'استغرق الخادم وقتاً طويلاً للرد.',
   TranslationKeys.errorNoInternet: 'لا يوجد اتصال بالإنترنت.',
@@ -86,6 +89,9 @@ const Map<String, String> arAr = {
   TranslationKeys.browseNoResults: 'لا توجد نتائج',
   TranslationKeys.browseNoResultsHint: 'جرّب عنواناً أو فئة أو تصنيفاً آخر.',
   TranslationKeys.loadMore: 'تحميل المزيد',
+  TranslationKeys.browseSortDefault: 'الافتراضي',
+  TranslationKeys.browseSortRelease: 'تاريخ الإصدار',
+  TranslationKeys.browseSortRating: 'التقييم',
   TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
   TranslationKeys.torrentNotAvailable: 'غير متوفر حالياً',
 
@@ -141,8 +147,11 @@ const Map<String, String> arAr = {
   TranslationKeys.chatThrottled: 'أنت ترسل الرسائل بسرعة كبيرة.',
   TranslationKeys.chatSending: 'جارٍ الإرسال…',
   TranslationKeys.chatRetry: 'لم تُرسل · اضغط للإعادة',
+  TranslationKeys.chatReceived: 'تم الاستلام',
   TranslationKeys.messages: 'الرسائل',
   TranslationKeys.writing: 'يكتب…',
+  TranslationKeys.userJoined: 'انضم',
+  TranslationKeys.userLeft: 'غادر',
   TranslationKeys.draw: 'رسم',
 
   TranslationKeys.reactions: 'تفاعلات',
