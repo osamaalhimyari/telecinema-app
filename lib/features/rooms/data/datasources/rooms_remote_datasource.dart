@@ -189,13 +189,25 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
     int? durationMs,
     String? name,
   }) async {
+    // The clip rides the multipart body; its metadata (sender name, length,
+    // client nonce) goes on the query string instead of as form fields. The
+    // server reads all three with `request.input(...)` either way, but query
+    // params are parsed independently of the multipart stream — so the name
+    // never gets dropped (which showed received clips as an empty "Anonymous"
+    // message) and the duration always arrives (so it renders as a voice clip).
+    final query = <String, String>{
+      if (clientId != null && clientId.isNotEmpty) 'clientId': clientId,
+      if (durationMs != null) 'durationMs': durationMs.toString(),
+      if (name != null && name.isNotEmpty) 'name': name,
+    };
     final form = FormData.fromMap({
       'voice': await MultipartFile.fromFile(filePath),
-      'clientId': ?clientId,
-      'durationMs': ?durationMs?.toString(),
-      if (name != null && name.isNotEmpty) 'name': name,
     });
-    final res = await _client.postMultipart('/rooms/$slug/voice', data: form);
+    final res = await _client.postMultipart(
+      '/rooms/$slug/voice',
+      data: form,
+      queryParameters: query.isEmpty ? null : query,
+    );
     if (!res.success) throw ServerException(res.message ?? 'voice_upload_failed');
     final data = res.data;
     return (data is Map && data['filename'] != null) ? data['filename'].toString() : '';

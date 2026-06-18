@@ -75,12 +75,12 @@ class MainShell extends StatelessWidget {
             //   selectedIcon: const Icon(Icons.play_circle_rounded),
             //   label: context.tr(TranslationKeys.youtubeTab),
             // ),
-            // Live TV — isolated YacineTV tab (branch index 1 in [router]).
-            NavigationDestination(
-              icon: const Icon(Icons.live_tv_outlined),
-              selectedIcon: const Icon(Icons.live_tv_rounded),
-              label: context.tr(TranslationKeys.tvTab),
-            ),
+            //// Live TV — isolated YacineTV tab (branch index 1 in [router]).
+        // NavigationDestination(
+        //   icon: const Icon(Icons.live_tv_outlined),
+        //   selectedIcon: const Icon(Icons.live_tv_rounded),
+        //   label: context.tr(TranslationKeys.tvTab),
+        // ),
             // Browse — unified IMDB + Cinema catalogue (branch index 2).
             NavigationDestination(
               icon: const Icon(Icons.movie_outlined),

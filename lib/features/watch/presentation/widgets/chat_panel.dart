@@ -87,6 +87,12 @@ class _ChatPanelView extends StatelessWidget {
                 itemCount: state.messages.length,
                 itemBuilder: (context, i) {
                   final m = state.messages[i];
+                  // Defensive: never render a blank row (no text and no clip).
+                  // A voice clip always has an audioUrl/duration, so it stays a
+                  // voice bubble; this only drops a genuinely empty message.
+                  if (!m.isVoice && m.text.trim().isEmpty) {
+                    return const SizedBox.shrink();
+                  }
                   final mine = m.mine || m.name == me;
                   final failed = m.status == ChatStatus.failed;
                   // Streamer-style: every message — including our own — is shown

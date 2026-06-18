@@ -32,8 +32,12 @@ class ChatMessage extends Equatable {
   final String? audioUrl;
   final int? durationMs;
 
-  /// True when this is a voice message (text otherwise).
-  bool get isVoice => durationMs != null;
+  /// True when this is a voice message (text otherwise). Keyed off EITHER the
+  /// clip ([audioUrl]) or its known length ([durationMs]): a received clip whose
+  /// duration didn't survive the wire must still render as a voice bubble, not
+  /// an empty text bubble — and our own optimistic bubble has only the length
+  /// (the url arrives once the upload finishes).
+  bool get isVoice => audioUrl != null || durationMs != null;
 
   /// Client-generated nonce for messages this device originated. Echoed back by
   /// the server so we can reconcile the optimistic bubble with its delivered
