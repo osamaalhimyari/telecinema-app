@@ -16,6 +16,9 @@ class RoutesNames {
   /// Saved movies/series (third bottom-nav tab).
   static const favorites = 'favorites';
 
+  /// Live TV catalogue (YacineTV) — its own bottom-nav tab.
+  static const tv = 'tv';
+
   /// YouTube search → server-download room creation (fourth bottom-nav tab).
   static const youtube = 'youtube';
 

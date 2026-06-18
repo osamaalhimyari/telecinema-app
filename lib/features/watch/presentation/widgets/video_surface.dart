@@ -176,17 +176,20 @@ class _VideoSurfaceState extends State<VideoSurface> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  iconSize: 32,
-                  color: Colors.white,
-                  tooltip: '-10s',
-                  icon: const Icon(Icons.replay_10_rounded),
-                  onPressed: () {
-                    cubit.seekBy(const Duration(seconds: -10));
-                    _restartHideTimer();
-                  },
-                ),
-                const SizedBox(width: 20),
+                // Live TV has no timeline — skip the ±10s seek buttons.
+                if (!state.isLive) ...[
+                  IconButton(
+                    iconSize: 32,
+                    color: Colors.white,
+                    tooltip: '-10s',
+                    icon: const Icon(Icons.replay_10_rounded),
+                    onPressed: () {
+                      cubit.seekBy(const Duration(seconds: -10));
+                      _restartHideTimer();
+                    },
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 IconButton.filled(
                   iconSize: 36,
                   style: IconButton.styleFrom(backgroundColor: Colors.white24),
@@ -197,17 +200,19 @@ class _VideoSurfaceState extends State<VideoSurface> {
                     _restartHideTimer();
                   },
                 ),
-                const SizedBox(width: 20),
-                IconButton(
-                  iconSize: 32,
-                  color: Colors.white,
-                  tooltip: '+10s',
-                  icon: const Icon(Icons.forward_10_rounded),
-                  onPressed: () {
-                    cubit.seekBy(const Duration(seconds: 10));
-                    _restartHideTimer();
-                  },
-                ),
+                if (!state.isLive) ...[
+                  const SizedBox(width: 20),
+                  IconButton(
+                    iconSize: 32,
+                    color: Colors.white,
+                    tooltip: '+10s',
+                    icon: const Icon(Icons.forward_10_rounded),
+                    onPressed: () {
+                      cubit.seekBy(const Duration(seconds: 10));
+                      _restartHideTimer();
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -216,29 +221,36 @@ class _VideoSurfaceState extends State<VideoSurface> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Text(_fmt(pos), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 3,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                    ),
-                    child: Slider(
-                      value: pos.inMilliseconds.clamp(0, dur.inMilliseconds).toDouble(),
-                      max: dur.inMilliseconds.toDouble().clamp(1, double.infinity),
-                      activeColor: context.colors.primary,
-                      inactiveColor: Colors.white30,
-                      onChanged: (v) {
-                        cubit.emitLocalSeekPreview(Duration(milliseconds: v.toInt()));
-                        _restartHideTimer();
-                      },
-                      onChangeEnd: (v) => cubit.seekTo(Duration(milliseconds: v.toInt())),
+                // Live TV: no scrubber/time/speed (the stream rides the live
+                // edge) — just a LIVE badge, then the PiP/fullscreen controls.
+                if (state.isLive) ...[
+                  _liveLabel(context),
+                  const Spacer(),
+                ] else ...[
+                  Text(_fmt(pos), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                      ),
+                      child: Slider(
+                        value: pos.inMilliseconds.clamp(0, dur.inMilliseconds).toDouble(),
+                        max: dur.inMilliseconds.toDouble().clamp(1, double.infinity),
+                        activeColor: context.colors.primary,
+                        inactiveColor: Colors.white30,
+                        onChanged: (v) {
+                          cubit.emitLocalSeekPreview(Duration(milliseconds: v.toInt()));
+                          _restartHideTimer();
+                        },
+                        onChangeEnd: (v) => cubit.seekTo(Duration(milliseconds: v.toInt())),
+                      ),
                     ),
                   ),
-                ),
-                Text(_fmt(dur), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                _speedMenu(context, state, cubit),
+                  Text(_fmt(dur), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  _speedMenu(context, state, cubit),
+                ],
                 if (!widget.fullscreen && _pipSupported)
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -261,6 +273,26 @@ class _VideoSurfaceState extends State<VideoSurface> {
           ),
           const SizedBox(height: 4),
         ],
+      ),
+    );
+  }
+
+  /// Small red "LIVE" pill shown in place of the scrubber for live-TV rooms.
+  Widget _liveLabel(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.red.shade600,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        context.tr(TranslationKeys.tvLive),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

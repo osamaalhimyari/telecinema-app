@@ -96,6 +96,9 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       // videoUrl and the server resolves it), so this branch is never actually
       // reached — mapped to `download` to stay safe and keep the switch total.
       RoomType.telegram => 'download',
+      // Live-TV: the packed stream string travels in `videoUrl` and the server
+      // stores it verbatim as the room's `externalUrl`.
+      RoomType.tv => 'tv',
       RoomType.upload => 'upload',
     };
 

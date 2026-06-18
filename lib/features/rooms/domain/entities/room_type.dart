@@ -24,7 +24,13 @@ enum RoomType {
   /// scrapes the post's web preview for the direct CDN URL and downloads it
   /// into an ordinary file room — submitted on the wire as a `download` whose
   /// `videoUrl` is the `t.me/...` link (the server detects and resolves it).
-  telegram;
+  telegram,
+
+  /// A live-TV channel (YacineTV). The stream URL + per-channel headers + the
+  /// channel's tree path are packed into the room's `externalUrl`; the app
+  /// plays it natively (HLS, no seek) and re-resolves a fresh URL when the
+  /// token expires.
+  tv;
 
   static RoomType fromString(String? value) => switch (value) {
     'external' => RoomType.external,
@@ -32,6 +38,7 @@ enum RoomType {
     'torrent' => RoomType.torrent,
     'youtube' => RoomType.youtube,
     'telegram' => RoomType.telegram,
+    'tv' => RoomType.tv,
     _ => RoomType.upload,
   };
 
@@ -42,6 +49,9 @@ enum RoomType {
   bool get isYoutube => this == RoomType.youtube;
 
   bool get isTelegram => this == RoomType.telegram;
+
+  /// A live-TV room — plays a remote HLS stream with custom headers, no seek.
+  bool get isTv => this == RoomType.tv;
 
   /// Wire value sent to the backend `roomType` field.
   String get wire => name;

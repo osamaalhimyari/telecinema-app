@@ -51,6 +51,14 @@ const Map<String, String> enUs = {
   TranslationKeys.browseTab: 'Browse',
   TranslationKeys.favoritesTab: 'Favorites',
   TranslationKeys.youtubeTab: 'YouTube',
+  TranslationKeys.tvTab: 'Live TV',
+
+  TranslationKeys.tvTitle: 'Live TV',
+  TranslationKeys.tvChannels: 'channels',
+  TranslationKeys.tvEmpty: 'No channels available',
+  TranslationKeys.tvLive: 'LIVE',
+  TranslationKeys.tvChannelUnavailable:
+      'This channel could not be played. Its stream may have expired — pull to refresh the list and try again.',
 
   TranslationKeys.cinemaTitle: 'Cinema',
   TranslationKeys.cinemaSearchHint: 'Search movies & series',

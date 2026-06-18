@@ -9,6 +9,8 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '/core/config/app_config.dart';
 import '/core/constants/app_constants.dart';
+import '/core/livetv/live_stream.dart';
+import '/core/livetv/live_stream_resolver.dart';
 import '/core/localization/translation_keys.dart';
 import '/features/cache/data/cache_manager.dart';
 import '/features/rooms/domain/usecases/delete_room_usecase.dart';
@@ -123,6 +125,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._favorites,
     this._identity,
     this._cache,
+    this._liveResolver,
   ) : super(const WatchState());
 
   final WatchRepository _repo;
@@ -136,8 +139,21 @@ class WatchCubit extends Cubit<WatchState> {
   final FavoritesCubit _favorites;
   final IdentityCubit _identity;
   final CacheManager _cache;
+  final LiveStreamResolver _liveResolver;
 
   Player? _player;
+
+  // ── Live-TV (roomType.tv) ────────────────────────────────────────────────
+  /// Unpacked source of a live-TV room (stream URL + headers + channel path).
+  /// Null for every other room type.
+  LiveStreamRef? _tvRef;
+
+  /// Guards against overlapping token refreshes, and caps attempts so a truly
+  /// dead channel surfaces an error instead of looping. Reset once the stream
+  /// actually plays (position advances).
+  bool _tvRefreshing = false;
+  int _tvRefreshAttempts = 0;
+  static const _tvMaxRefreshAttempts = 2;
 
   /// The render handle for the [Video] widget. Lives as long as the player.
   VideoController? _videoController;
@@ -285,6 +301,24 @@ class WatchCubit extends Cubit<WatchState> {
     _repo.join(room.slug);
     if (state.isExternal) return;
 
+    // Live-TV room: play the remote HLS stream natively with its per-channel
+    // headers. No local cache / torrent path applies; sync rides the socket like
+    // any other room, only without seeking (handled in `_applyToVideo`).
+    if (room.roomType.isTv) {
+      final ref = room.liveStream;
+      _tvRef = ref;
+      if (ref != null) {
+        _initVideo(
+          ref.url,
+          httpHeaders: ref.headers.isEmpty ? null : ref.headers,
+          autoplay: true,
+        );
+      } else {
+        emit(state.copyWith(videoError: true));
+      }
+      return;
+    }
+
     // Prefer a finished local copy: play straight from disk so this viewer never
     // buffers (and never trips the room's wait-for-slowest gate), while sync,
     // chat and reactions keep flowing over the socket exactly as for a stream.
@@ -401,9 +435,10 @@ class WatchCubit extends Cubit<WatchState> {
   // Video (file rooms)
   // ===========================================================================
 
-  Future<void> _initVideo(String url) async {
+  Future<void> _initVideo(String url, {Map<String, String>? httpHeaders, bool autoplay = false}) async {
     // Tear down any previous player first — this method is re-entered when a
-    // stalled torrent stream falls back to the server stream. Clear the handles
+    // stalled torrent stream falls back to the server stream (or a live-TV
+    // token is refreshed). Clear the handles
     // and show the loading state before disposing, so the UI never paints a
     // disposed controller during the swap.
     for (final s in _playerSubs) {
@@ -444,6 +479,9 @@ class WatchCubit extends Cubit<WatchState> {
         // flag — libmpv can emit a transient error on a stream that then plays
         // fine (which is why PiP kept playing while the inline view showed an
         // error). Genuine failures never advance, so this never hides them.
+        // For live TV it also re-arms the token-refresh budget: the stream is
+        // alive, so a *later* expiry gets a fresh round of refresh attempts.
+        if (p > Duration.zero) _tvRefreshAttempts = 0;
         emit(state.copyWith(position: p, videoError: p > Duration.zero ? false : null));
       }),
       player.stream.duration.listen((d) {
@@ -467,12 +505,13 @@ class WatchCubit extends Cubit<WatchState> {
       player.stream.rate.listen((r) => emit(state.copyWith(playbackRate: r))),
       // A real load failure surfaces as "video unavailable"; the progress
       // signals above clear it again the instant the media actually moves — so a
-      // stuck stream is reported honestly instead of spinning forever.
-      player.stream.error.listen((_) => emit(state.copyWith(videoError: true))),
+      // stuck stream is reported honestly instead of spinning forever. For live
+      // TV, an error usually means the signed token expired → try to refresh it.
+      player.stream.error.listen((_) => _onVideoError()),
     ]);
 
     try {
-      await player.open(Media(url), play: false);
+      await player.open(Media(url, httpHeaders: httpHeaders), play: autoplay);
       emit(state.copyWith(videoReady: true, videoError: false));
       if (_pendingSync != null) {
         await _applyToVideo(_pendingSync!);
@@ -490,8 +529,60 @@ class WatchCubit extends Cubit<WatchState> {
         await s.cancel();
       }
       _playerSubs.clear();
+      _onVideoError();
+    }
+  }
+
+  /// Central handler for a playback failure. A live-TV room first tries to
+  /// refresh its (likely expired) stream token; everything else just surfaces
+  /// the error.
+  void _onVideoError() {
+    if (state.room?.roomType.isTv ?? false) {
+      _refreshTvStream();
+    } else {
       emit(state.copyWith(videoError: true));
     }
+  }
+
+  /// Re-resolves a fresh, currently-valid stream for a live-TV room when its
+  /// signed token expires, then re-opens the player on it. The resolver also
+  /// persists the new URL to the room, so other viewers (and late joiners) keep
+  /// working. Capped at [_tvMaxRefreshAttempts] consecutive tries so a genuinely
+  /// dead channel reports an error instead of looping forever; the budget resets
+  /// once the stream plays again (see the position listener).
+  Future<void> _refreshTvStream() async {
+    final ref = _tvRef;
+    final slug = state.room?.slug;
+    if (_tvRefreshing ||
+        ref == null ||
+        ref.path.isEmpty ||
+        slug == null ||
+        _tvRefreshAttempts >= _tvMaxRefreshAttempts) {
+      emit(state.copyWith(videoError: true));
+      return;
+    }
+    _tvRefreshing = true;
+    _tvRefreshAttempts++;
+    // Show loading rather than the error card while we re-resolve.
+    emit(state.copyWith(videoError: false, videoReady: false));
+    LiveStream? fresh;
+    try {
+      fresh = await _liveResolver.refresh(slug: slug, path: ref.path);
+    } catch (_) {
+      fresh = null;
+    }
+    _tvRefreshing = false;
+    if (isClosed) return;
+    if (fresh == null) {
+      emit(state.copyWith(videoError: true));
+      return;
+    }
+    _tvRef = LiveStreamRef(url: fresh.url, headers: fresh.headers, path: ref.path);
+    await _initVideo(
+      fresh.url,
+      httpHeaders: fresh.headers.isEmpty ? null : fresh.headers,
+      autoplay: true,
+    );
   }
 
   /// Loads an external subtitle track into the file-room player (libmpv via
@@ -670,6 +761,12 @@ class WatchCubit extends Cubit<WatchState> {
     // bail rather than drive a disposed player.
     final gen = _playerGeneration;
     bool stale() => isClosed || _playerGeneration != gen;
+
+    // Live TV (HLS) can't be frame-synced — every viewer sits at their own live
+    // edge, and rate/seek/play-state would only fight the stream. So a live room
+    // drives playback locally (autoplay on open); the "together" part — chat,
+    // presence, reactions — still flows over the socket. Nothing to apply here.
+    if (state.room?.roomType.isTv ?? false) return;
 
     if (s.playbackRate > 0 && (p.state.rate - s.playbackRate).abs() > 0.01) {
       await p.setRate(s.playbackRate);

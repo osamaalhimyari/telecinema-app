@@ -105,6 +105,10 @@ class WatchState extends Equatable {
   final bool controlsLocked;
 
   bool get isExternal => room?.isExternal ?? false;
+
+  /// Live-TV room — plays a remote HLS stream natively; no scrub/seek timeline.
+  bool get isLive => room?.isTv ?? false;
+
   bool get someoneWaiting => waiting.isNotEmpty;
 
   WatchState copyWith({

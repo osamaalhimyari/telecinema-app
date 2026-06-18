@@ -740,6 +740,10 @@ class _CreateRoomForm extends StatelessWidget {
                 ),
               ],
             );
+          // Live-TV rooms are created from the TV tab, never this form, so there
+          // is no source field to show — but the switch must stay exhaustive.
+          case RoomType.tv:
+            return const SizedBox.shrink();
         }
       },
     );

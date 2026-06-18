@@ -49,6 +49,14 @@ const Map<String, String> arAr = {
   TranslationKeys.browseTab: 'استكشاف',
   TranslationKeys.favoritesTab: 'المفضلة',
   TranslationKeys.youtubeTab: 'يوتيوب',
+  TranslationKeys.tvTab: 'البث المباشر',
+
+  TranslationKeys.tvTitle: 'البث المباشر',
+  TranslationKeys.tvChannels: 'قناة',
+  TranslationKeys.tvEmpty: 'لا توجد قنوات متاحة',
+  TranslationKeys.tvLive: 'مباشر',
+  TranslationKeys.tvChannelUnavailable:
+      'تعذّر تشغيل هذه القناة. ربما انتهت صلاحية البث — اسحب لتحديث القائمة وحاول مجددًا.',
 
   TranslationKeys.cinemaTitle: 'سينما',
   TranslationKeys.cinemaSearchHint: 'ابحث عن أفلام ومسلسلات',

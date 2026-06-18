@@ -58,6 +58,14 @@ class TranslationKeys {
   static const browseTab = 'browse_tab';
   static const favoritesTab = 'favorites_tab';
   static const youtubeTab = 'youtube_tab';
+  static const tvTab = 'tv_tab';
+
+  // Live TV (isolated YacineTV catalogue → on-device native player)
+  static const tvTitle = 'tv_title';
+  static const tvChannels = 'tv_channels';
+  static const tvEmpty = 'tv_empty';
+  static const tvLive = 'tv_live';
+  static const tvChannelUnavailable = 'tv_channel_unavailable';
 
   // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
   static const cinemaTitle = 'cinema_title';
