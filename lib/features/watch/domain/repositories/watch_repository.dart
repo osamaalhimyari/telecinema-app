@@ -36,7 +36,7 @@ abstract class WatchRepository {
   Stream<VoiceEvent> get voice;
 
   void sendControl({required String action, double? currentTime, double? rate});
-  void sendChat(String text, {String? clientId});
+  void sendChat(String text, {String? clientId, String? audioUrl, int? durationMs});
   void sendReaction(String emoji);
   void sendDraw({
     required String strokeId,

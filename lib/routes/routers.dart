@@ -77,6 +77,7 @@ final router = GoRouter(
           initialName: prefill['name'] as String?,
           initialMagnet: prefill['magnet'] as String?,
           initialVideoUrl: prefill['videoUrl'] as String?,
+          initialYoutubeUrl: prefill['youtubeUrl'] as String?,
           initialCategory: prefill['category'] as String?,
           initialImdbId: prefill['imdbId'] as String?,
           initialMaxHeight: prefill['maxHeight'] as int?,

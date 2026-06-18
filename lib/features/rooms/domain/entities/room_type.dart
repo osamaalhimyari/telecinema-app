@@ -18,13 +18,20 @@ enum RoomType {
   /// A YouTube watch URL. The server resolves it to a direct stream and proxies
   /// it over `/youtube/:slug`, so it plays like an ordinary file room (our own
   /// player + full sync/seek), never the YouTube iframe.
-  youtube;
+  youtube,
+
+  /// A link to a public Telegram channel post that holds a video. The server
+  /// scrapes the post's web preview for the direct CDN URL and downloads it
+  /// into an ordinary file room — submitted on the wire as a `download` whose
+  /// `videoUrl` is the `t.me/...` link (the server detects and resolves it).
+  telegram;
 
   static RoomType fromString(String? value) => switch (value) {
     'external' => RoomType.external,
     'download' => RoomType.download,
     'torrent' => RoomType.torrent,
     'youtube' => RoomType.youtube,
+    'telegram' => RoomType.telegram,
     _ => RoomType.upload,
   };
 
@@ -33,6 +40,8 @@ enum RoomType {
   bool get isTorrent => this == RoomType.torrent;
 
   bool get isYoutube => this == RoomType.youtube;
+
+  bool get isTelegram => this == RoomType.telegram;
 
   /// Wire value sent to the backend `roomType` field.
   String get wire => name;

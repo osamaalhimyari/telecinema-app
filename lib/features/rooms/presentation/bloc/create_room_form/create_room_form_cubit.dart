@@ -28,6 +28,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
     String? initialName,
     String? initialMagnet,
     String? initialVideoUrl,
+    String? initialYoutubeUrl,
     String? initialCategory,
   }) : super(const CreateRoomFormState()) {
     var type = RoomType.torrent;
@@ -41,6 +42,12 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
     if (initialVideoUrl != null) {
       videoUrl.text = initialVideoUrl;
       type = RoomType.download;
+    }
+    // The YouTube search flow hands a watch URL straight to the YouTube tab,
+    // where it's resolved to direct download links on submit.
+    if (initialYoutubeUrl != null) {
+      youtubeUrl.text = initialYoutubeUrl;
+      type = RoomType.youtube;
     }
     if (initialCategory != null && kCategories.contains(initialCategory)) {
       category = initialCategory;
@@ -61,6 +68,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
   final videoUrl = TextEditingController();
   final magnet = TextEditingController();
   final youtubeUrl = TextEditingController();
+  final telegramUrl = TextEditingController();
   final password = TextEditingController();
 
   void setType(RoomType type) => emit(state.copyWith(type: type));
@@ -112,6 +120,7 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
     videoUrl.dispose();
     magnet.dispose();
     youtubeUrl.dispose();
+    telegramUrl.dispose();
     password.dispose();
     return super.close();
   }

@@ -15,6 +15,11 @@ class TranslationKeys {
   static const save = 'save';
   static const ok = 'ok';
 
+  // Exit-app confirmation (Android back at the home shell)
+  static const exitAppTitle = 'exit_app_title';
+  static const exitAppMessage = 'exit_app_message';
+  static const exitApp = 'exit_app';
+
   // Network / failure keys (must match DioApiClient + repository mappings)
   static const errorTimeout = 'error_timeout';
   static const errorNoInternet = 'error_no_internet';
@@ -97,6 +102,12 @@ class TranslationKeys {
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
   static const loadMore = 'load_more';
+  static const browseSort = 'browse_sort';
+  static const browseSortDefault = 'browse_sort_default';
+  static const browseSortRelease = 'browse_sort_release';
+  static const browseSortRating = 'browse_sort_rating';
+  static const browseSortAscending = 'browse_sort_ascending';
+  static const browseSortDescending = 'browse_sort_descending';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -156,8 +167,19 @@ class TranslationKeys {
   static const chatThrottled = 'chat_throttled';
   static const chatSending = 'chat_sending';
   static const chatRetry = 'chat_retry';
+  static const chatReceived = 'chat_received';
   static const messages = 'messages';
   static const writing = 'writing';
+
+  // Voice messages
+  static const voiceSlideToCancel = 'voice_slide_to_cancel';
+  static const voiceReleaseToCancel = 'voice_release_to_cancel';
+  static const voiceMicPermission = 'voice_mic_permission';
+  static const voiceHoldToRecord = 'voice_hold_to_record';
+
+  // Presence join/leave toasts ("<name> joined" / "<name> left")
+  static const userJoined = 'user_joined';
+  static const userLeft = 'user_left';
 
   // Drawing on video
   static const draw = 'draw';
@@ -246,6 +268,8 @@ class TranslationKeys {
   static const typeTorrentDesc = 'type_torrent_desc';
   static const typeYoutube = 'type_youtube';
   static const typeYoutubeDesc = 'type_youtube_desc';
+  static const typeTelegram = 'type_telegram';
+  static const typeTelegramDesc = 'type_telegram_desc';
   static const externalUrl = 'external_url';
   static const externalUrlHint = 'external_url_hint';
   static const videoUrl = 'video_url';
@@ -254,6 +278,8 @@ class TranslationKeys {
   static const magnetUrlHint = 'magnet_url_hint';
   static const youtubeLink = 'youtube_link';
   static const youtubeLinkHint = 'youtube_link_hint';
+  static const telegramLink = 'telegram_link';
+  static const telegramLinkHint = 'telegram_link_hint';
   static const pickVideo = 'pick_video';
   static const password = 'password';
   static const passwordOptionalHint = 'password_optional_hint';

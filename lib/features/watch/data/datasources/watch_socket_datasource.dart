@@ -124,8 +124,14 @@ class WatchSocketDataSource {
     });
   }
 
-  void sendChat(String text, {String? clientId}) =>
-      _socket.emitEvent('chat', {'text': text, 'clientId': ?clientId});
+  void sendChat(String text, {String? clientId, String? audioUrl, int? durationMs}) =>
+      _socket.emitEvent('chat', {
+        'text': text,
+        'clientId': ?clientId,
+        // Voice message: the uploaded clip filename + its length.
+        'audioUrl': ?audioUrl,
+        'durationMs': ?durationMs,
+      });
 
   void sendReaction(String emoji) => _socket.emitEvent('reaction', {'emoji': emoji});
 

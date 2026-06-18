@@ -58,7 +58,8 @@ class WatchRepositoryImpl implements WatchRepository {
   void sendControl({required String action, double? currentTime, double? rate}) =>
       _ds.sendControl(action: action, currentTime: currentTime, rate: rate);
   @override
-  void sendChat(String text, {String? clientId}) => _ds.sendChat(text, clientId: clientId);
+  void sendChat(String text, {String? clientId, String? audioUrl, int? durationMs}) =>
+      _ds.sendChat(text, clientId: clientId, audioUrl: audioUrl, durationMs: durationMs);
   @override
   void sendReaction(String emoji) => _ds.sendReaction(emoji);
   @override

@@ -15,6 +15,7 @@ import '../domain/usecases/get_room_usecase.dart';
 import '../domain/usecases/get_rooms_usecase.dart';
 import '../domain/usecases/unlock_room_usecase.dart';
 import '../domain/usecases/upload_subtitle_usecase.dart';
+import '../domain/usecases/upload_voice_usecase.dart';
 import '../presentation/bloc/create_room/create_room_cubit.dart';
 import '../presentation/bloc/rooms_list/rooms_list_cubit.dart';
 
@@ -40,6 +41,9 @@ Future<void> injectRoomsSingletons(GetIt sl) async {
   sl.registerLazySingleton<DeleteRoomUseCase>(() => DeleteRoomUseCase(sl<RoomsRepository>()));
   sl.registerLazySingleton<UploadSubtitleUseCase>(
     () => UploadSubtitleUseCase(sl<RoomsRepository>()),
+  );
+  sl.registerLazySingleton<UploadVoiceUseCase>(
+    () => UploadVoiceUseCase(sl<RoomsRepository>()),
   );
   // Factory — carries a mutable upload-progress callback per CreateRoomCubit.
   sl.registerFactory<CreateRoomUseCase>(() => CreateRoomUseCase(sl<RoomsRepository>()));

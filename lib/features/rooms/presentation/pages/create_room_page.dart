@@ -8,6 +8,8 @@ import '/core/constants/categories.dart';
 import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '/features/youtube/data/datasources/youtube_remote_datasource.dart';
+import '/features/youtube/presentation/widgets/youtube_stream_picker.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/create_room_params.dart';
@@ -23,6 +25,7 @@ class CreateRoomPage extends StatelessWidget {
     this.initialName,
     this.initialMagnet,
     this.initialVideoUrl,
+    this.initialYoutubeUrl,
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
@@ -40,6 +43,7 @@ class CreateRoomPage extends StatelessWidget {
   final String? initialName;
   final String? initialMagnet;
   final String? initialVideoUrl;
+  final String? initialYoutubeUrl;
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
@@ -53,6 +57,7 @@ class CreateRoomPage extends StatelessWidget {
         initialName: initialName,
         initialMagnet: initialMagnet,
         initialVideoUrl: initialVideoUrl,
+        initialYoutubeUrl: initialYoutubeUrl,
         initialCategory: initialCategory,
         initialImdbId: initialImdbId,
         initialMaxHeight: initialMaxHeight,
@@ -67,6 +72,7 @@ class _CreateRoomView extends StatelessWidget {
     this.initialName,
     this.initialMagnet,
     this.initialVideoUrl,
+    this.initialYoutubeUrl,
     this.initialCategory,
     this.initialImdbId,
     this.initialMaxHeight,
@@ -76,6 +82,7 @@ class _CreateRoomView extends StatelessWidget {
   final String? initialName;
   final String? initialMagnet;
   final String? initialVideoUrl;
+  final String? initialYoutubeUrl;
   final String? initialCategory;
   final String? initialImdbId;
   final int? initialMaxHeight;
@@ -88,6 +95,7 @@ class _CreateRoomView extends StatelessWidget {
         initialName: initialName,
         initialMagnet: initialMagnet,
         initialVideoUrl: initialVideoUrl,
+        initialYoutubeUrl: initialYoutubeUrl,
         initialCategory: initialCategory,
       ),
       child: _CreateRoomForm(
@@ -117,12 +125,43 @@ class _CreateRoomForm extends StatelessWidget {
     }
   }
 
-  void _submit(BuildContext context) {
+  Future<void> _submit(BuildContext context) async {
     final form = context.read<CreateRoomFormCubit>();
     final state = form.state;
     if (!form.formKey.currentState!.validate()) return;
     if (state.type == RoomType.upload && state.videoPath == null) {
       context.showSnack(context.tr(TranslationKeys.pickVideo));
+      return;
+    }
+
+    // A YouTube room is created by extracting the direct video+audio CDN URLs
+    // ON-DEVICE (the server's IP is bot-blocked by YouTube), letting the viewer
+    // pick a quality, then submitting them as an ordinary `download` room the
+    // server downloads + muxes — no server-side yt-dlp. All YouTube logic stays
+    // in the isolated youtube feature; here we just call its picker and submit
+    // the resolved links. A null pick (resolve failed / cancelled) just aborts.
+    if (state.type == RoomType.youtube) {
+      final picked = await pickYoutubeStreams(
+        context,
+        form.youtubeUrl.text.trim(),
+        sl<YoutubeRemoteDataSource>(),
+      );
+      if (picked == null || !context.mounted) return;
+      context.read<CreateRoomCubit>().submit(
+        CreateRoomParams(
+          name: form.name.text.trim(),
+          type: RoomType.download,
+          password: form.password.text.trim().isEmpty
+              ? null
+              : form.password.text.trim(),
+          videoUrl: picked.videoUrl,
+          audioUrl: picked.audioUrl,
+          reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
+          category: state.category,
+          imdbId: initialImdbId,
+          thumbnail: initialThumbnail,
+        ),
+      );
       return;
     }
 
@@ -133,18 +172,24 @@ class _CreateRoomForm extends StatelessWidget {
     final downloadText = form.videoUrl.text.trim();
     final downloadIsMagnet = downloadText.startsWith('magnet:');
 
+    // A Telegram post link is submitted as a `download` too — the server detects
+    // the t.me URL and resolves the public post's direct video before fetching,
+    // so it lands as a normal file room like any other download.
+    final isTelegram = state.type == RoomType.telegram;
+    final submitType = isTelegram ? RoomType.download : state.type;
+
     context.read<CreateRoomCubit>().submit(
       CreateRoomParams(
         name: form.name.text.trim(),
-        type: state.type,
+        type: submitType,
         password: form.password.text.trim().isEmpty
             ? null
             : form.password.text.trim(),
         externalUrl: state.type == RoomType.external
             ? form.externalUrl.text.trim()
             : null,
-        videoUrl: state.type == RoomType.youtube
-            ? form.youtubeUrl.text.trim()
+        videoUrl: isTelegram
+            ? form.telegramUrl.text.trim()
             : (state.type == RoomType.download && !downloadIsMagnet
                   ? downloadText
                   : null),
@@ -157,8 +202,9 @@ class _CreateRoomForm extends StatelessWidget {
         reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
         category: state.category,
         imdbId: initialImdbId,
-        // Only meaningful for a server download (the YouTube flow sets it).
-        maxHeight: state.type == RoomType.download ? initialMaxHeight : null,
+        // Server download height cap, used only by the (legacy) catalogue
+        // download hand-off; null for a manual paste.
+        maxHeight: submitType == RoomType.download ? initialMaxHeight : null,
         // The movie/series poster (from the catalogue). Null → server picks a
         // random placeholder.
         thumbnail: initialThumbnail,
@@ -488,6 +534,8 @@ class _CreateRoomForm extends StatelessWidget {
                     TranslationKeys.typeDownload),
                 _typeItem(context, RoomType.youtube, Icons.smart_display_outlined,
                     TranslationKeys.typeYoutube),
+                _typeItem(context, RoomType.telegram, Icons.send_rounded,
+                    TranslationKeys.typeTelegram),
                 _typeItem(context, RoomType.upload, Icons.upload_rounded,
                     TranslationKeys.typeUpload),
               ],
@@ -637,6 +685,36 @@ class _CreateRoomForm extends StatelessWidget {
                     final ok = t.startsWith('http') &&
                         (t.contains('youtube.com') || t.contains('youtu.be'));
                     return ok ? null : context.tr(TranslationKeys.youtubeLinkHint);
+                  },
+                ),
+              ],
+            );
+          case RoomType.telegram:
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(TranslationKeys.typeTelegramDesc),
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: form.telegramUrl,
+                  keyboardType: TextInputType.url,
+                  minLines: 1,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: context.tr(TranslationKeys.telegramLink),
+                    hintText: context.tr(TranslationKeys.telegramLinkHint),
+                    prefixIcon: const Icon(Icons.send_rounded),
+                    suffixIcon: _copyButton(context, form.telegramUrl),
+                  ),
+                  validator: (v) {
+                    if (type != RoomType.telegram) return null;
+                    final t = v?.trim().toLowerCase() ?? '';
+                    final ok = t.startsWith('http') &&
+                        (t.contains('t.me/') || t.contains('telegram.me/'));
+                    return ok ? null : context.tr(TranslationKeys.telegramLinkHint);
                   },
                 ),
               ],

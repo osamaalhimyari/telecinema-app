@@ -4,18 +4,18 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/browse_category.dart';
+import '../../../domain/entities/browse_sort.dart';
 import '../../../domain/entities/catalog_item.dart';
 import '../../../domain/usecases/get_catalog_usecase.dart';
 import '../../../domain/usecases/search_catalog_usecase.dart';
 import 'browse_state.dart';
 
 /// Drives the Browse grid: category toggle (All/Movies/Series), debounced title
-/// search, dynamic genre chips and skip-based infinite scroll. "All" fans out to
-/// both the movie and series catalogues and merges them, de-duplicated by id.
+/// search, dynamic genre chips, local sort, and skip-based pagination via an
+/// explicit "Load more" button (no auto-load on scroll). "All" fans out to both
+/// the movie and series catalogues and merges them, de-duplicated by id.
 class BrowseCubit extends Cubit<BrowseState> {
-  BrowseCubit(this._getCatalog, this._search) : super(const BrowseState()) {
-    scrollController.addListener(_onScroll);
-  }
+  BrowseCubit(this._getCatalog, this._search) : super(const BrowseState());
 
   final GetCatalogUseCase _getCatalog;
   final SearchCatalogUseCase _search;
@@ -25,13 +25,6 @@ class BrowseCubit extends Cubit<BrowseState> {
   final ScrollController scrollController = ScrollController();
 
   Timer? _debounce;
-
-  void _onScroll() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent - 400) {
-      loadMore();
-    }
-  }
 
   /// Initial load / full reload for the current category + query.
   Future<void> load() async {
@@ -69,6 +62,12 @@ class BrowseCubit extends Cubit<BrowseState> {
   /// Local-only genre filter — no refetch.
   void setGenre(String? genre) =>
       emit(state.copyWith(selectedGenre: genre, clearGenre: genre == null));
+
+  /// Local-only ordering of the loaded items — no refetch.
+  void setSort(BrowseSort sort) {
+    if (sort == state.sort) return;
+    emit(state.copyWith(sort: sort));
+  }
 
   /// Clears the search field text and resets the query (the x button).
   void clearSearch() {
@@ -144,7 +143,6 @@ class BrowseCubit extends Cubit<BrowseState> {
   @override
   Future<void> close() {
     _debounce?.cancel();
-    scrollController.removeListener(_onScroll);
     scrollController.dispose();
     searchController.dispose();
     return super.close();

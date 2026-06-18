@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '/core/extensions/context_extensions.dart';
+import '/core/localization/translation_keys.dart';
 import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
 import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
+import '../bloc/watch_state.dart';
 import '../widgets/controls_lock_button.dart';
 import '../widgets/draw_toggle_button.dart';
 import '../widgets/drawing_canvas.dart';
@@ -13,6 +16,7 @@ import '../widgets/floating_reactions.dart';
 import '../widgets/fullscreen_controls.dart';
 import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
+import '../widgets/presence_notices.dart';
 import '../widgets/video_surface.dart';
 
 /// Full-screen, landscape view of the room's video. Reuses the room's
@@ -55,6 +59,15 @@ class _FullscreenView extends StatelessWidget {
           // reach the player.
           FloatingReactions(stream: watch.reactions),
           FloatingChatOverlay(stream: watch.incomingChat),
+          PresenceNotices(stream: watch.presenceNotices),
+
+          // "X is writing…" floats over the video while the messages panel is
+          // closed (the open panel shows its own indicator).
+          BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
+            buildWhen: (a, b) => a.messagesOpen != b.messagesOpen,
+            builder: (context, state) =>
+                state.messagesOpen ? const SizedBox.shrink() : const _FloatingTyping(),
+          ),
 
           // Drawings render over the video (pointer-transparent); the canvas
           // above captures touches only while draw mode is on. Both sit *under*
@@ -146,6 +159,53 @@ class _FullscreenView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "X is writing…" as a translucent pill at the bottom-left of the fullscreen
+/// video, mirroring the floating chat. Pointer-transparent and self-hides when
+/// nobody is typing.
+class _FloatingTyping extends StatelessWidget {
+  const _FloatingTyping();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.bottomLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 12, bottom: 44),
+            child: BlocBuilder<WatchCubit, WatchState>(
+              buildWhen: (a, b) => a.typingUsers != b.typingUsers,
+              builder: (context, state) {
+                final names =
+                    state.typingUsers.values.where((n) => n.trim().isNotEmpty).toList();
+                if (names.isEmpty) return const SizedBox.shrink();
+                final label = '${names.join(', ')} ${context.tr(TranslationKeys.writing)}';
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }

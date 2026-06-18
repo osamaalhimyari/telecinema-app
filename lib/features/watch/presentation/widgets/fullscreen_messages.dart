@@ -12,6 +12,8 @@ import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'typing_indicator.dart';
+import 'voice_composer.dart';
+import 'voice_message_bubble.dart';
 
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
 /// opens/closes the [FullscreenMessagesPanel]; the icon fills in while open.
@@ -90,7 +92,9 @@ class _PanelView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final panelWidth = (width * 0.42).clamp(280.0, 420.0);
+    // Narrow streamer-style sidebar — keep it slim so it covers as little of the
+    // video as possible.
+    final panelWidth = (width * 0.30).clamp(230.0, 320.0);
 
     // Jump to the latest messages whenever the panel is (re)opened — fired when
     // the parent's `messagesOpen` flips false -> true (was `didUpdateWidget`).
@@ -113,7 +117,9 @@ class _PanelView extends StatelessWidget {
                 width: panelWidth,
                 height: double.infinity,
                 child: Material(
-                  color: Colors.black.withValues(alpha: 0.62),
+                  // Lighter scrim so more of the video shows through behind the
+                  // streamer-style chat.
+                  color: Colors.black.withValues(alpha: 0.34),
                   child: SafeArea(
                     left: false,
                     child: Column(
@@ -188,34 +194,27 @@ class _PanelView extends StatelessWidget {
             final m = state.messages[i];
             final mine = m.mine || m.name == me;
             final failed = m.status == ChatStatus.failed;
-            return Align(
-              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-              child: GestureDetector(
-                onTap: failed
-                    ? () => context.read<WatchCubit>().retryChat(m)
-                    : null,
-                child: Opacity(
-                  opacity: m.status == ChatStatus.sending ? 0.6 : 1,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 3),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    decoration: BoxDecoration(
-                      color: mine
-                          ? context.colors.primary.withValues(alpha: 0.35)
-                          : Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: failed
-                          ? Border.all(color: context.colors.error)
-                          : null,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!mine)
+            // Streamer-style: every message (including our own) reads as one
+            // left-aligned line with a colored username — so you see your own
+            // messages exactly like the ones you receive.
+            return GestureDetector(
+              onTap: failed ? () => context.read<WatchCubit>().retryChat(m) : null,
+              child: Opacity(
+                opacity: m.status == ChatStatus.sending ? 0.6 : 1,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: failed ? Border.all(color: context.colors.error) : null,
+                  ),
+                  child: m.isVoice
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text(
                             m.name,
                             style: TextStyle(
@@ -224,37 +223,49 @@ class _PanelView extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                        Text(
-                          m.text,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          const SizedBox(height: 2),
+                          VoiceMessageBubble(message: m, dark: true),
+                        ],
+                      )
+                    : Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${m.name}  ',
+                          style: TextStyle(
+                            color: userColorFor(m.name),
+                            fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            // Server timestamp in this device's local timezone.
-                            TimeOfDay.fromDateTime(m.time).format(context),
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 10,
-                            ),
-                          ),
+                        TextSpan(
+                          text: m.text,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        if (mine && m.isPending)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Text(
-                              failed
-                                  ? context.tr(TranslationKeys.chatRetry)
-                                  : context.tr(TranslationKeys.chatSending),
-                              style: TextStyle(
-                                color: failed
-                                    ? context.colors.error
-                                    : Colors.white70,
-                                fontSize: 11,
-                              ),
+                        // Delivery indicator on our own messages, so we can tell
+                        // whether one reached the room: a check once confirmed,
+                        // else a sending / tap-to-retry hint.
+                        if (mine)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: switch (m.status) {
+                                ChatStatus.sent => const Icon(
+                                  Icons.done_all_rounded,
+                                  size: 13,
+                                  color: Colors.white70,
+                                ),
+                                ChatStatus.sending => const Icon(
+                                  Icons.schedule_rounded,
+                                  size: 12,
+                                  color: Colors.white70,
+                                ),
+                                ChatStatus.failed => Text(
+                                  context.tr(TranslationKeys.chatRetry),
+                                  style: TextStyle(color: context.colors.error, fontSize: 11),
+                                ),
+                              },
                             ),
                           ),
                       ],
@@ -277,39 +288,34 @@ class _PanelView extends StatelessWidget {
         10,
         MediaQuery.of(context).viewInsets.bottom + 10,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: context.read<FullscreenMessagesCubit>().input,
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(color: Colors.white),
-              minLines: 1,
-              maxLines: 3,
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: context.tr(TranslationKeys.chatHint),
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              onSubmitted: (_) => _send(context),
+      // Text field + send, or tap-the-mic to record a voice message.
+      child: VoiceComposer(
+        dark: true,
+        input: context.read<FullscreenMessagesCubit>().input,
+        onSend: () => _send(context),
+        field: TextField(
+          controller: context.read<FullscreenMessagesCubit>().input,
+          textInputAction: TextInputAction.send,
+          style: const TextStyle(color: Colors.white),
+          minLines: 1,
+          maxLines: 3,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: context.tr(TranslationKeys.chatHint),
+            hintStyle: const TextStyle(color: Colors.white54),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
             ),
           ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: () => _send(context),
-            icon: const Icon(Icons.send_rounded),
-          ),
-        ],
+          onSubmitted: (_) => _send(context),
+        ),
       ),
     );
   }

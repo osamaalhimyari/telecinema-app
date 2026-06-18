@@ -15,6 +15,7 @@ import '/features/rooms/domain/usecases/delete_room_usecase.dart';
 import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
+import '/features/rooms/domain/usecases/upload_voice_usecase.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
@@ -23,6 +24,8 @@ import '/logic/storage/shared_prefs_storage.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
+import '../../domain/entities/presence_notice.dart';
+import '../../domain/entities/presence_user.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/subtitle_settings.dart';
 import '../../domain/entities/typing_event.dart';
@@ -114,6 +117,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._unlockRoom,
     this._deleteRoom,
     this._uploadSubtitle,
+    this._uploadVoice,
     this._storage,
     this._torrentEngine,
     this._favorites,
@@ -126,6 +130,7 @@ class WatchCubit extends Cubit<WatchState> {
   final UnlockRoomUseCase _unlockRoom;
   final DeleteRoomUseCase _deleteRoom;
   final UploadSubtitleUseCase _uploadSubtitle;
+  final UploadVoiceUseCase _uploadVoice;
   final KeyValueStorage _storage;
   final TorrentEngine _torrentEngine;
   final FavoritesCubit _favorites;
@@ -177,9 +182,28 @@ class WatchCubit extends Cubit<WatchState> {
   String newStrokeId() => 'd${DateTime.now().microsecondsSinceEpoch}-${_drawSeq++}';
 
   /// Transient feed of *incoming* chat for the fullscreen floating overlay.
-  /// (Messages are still appended to `state.messages` for the chat panel.)
+  /// (Messages are still appended to `state.messages` for the chat panel.) Our
+  /// own sends are floated too, so the sender sees their message in the stream
+  /// like any other — see [sendChat].
   final _incomingChat = StreamController<ChatMessage>.broadcast();
   Stream<ChatMessage> get incomingChat => _incomingChat.stream;
+
+  /// Transient "X joined / left" notices, derived by diffing presence lists.
+  final _presenceNotices = StreamController<PresenceNotice>.broadcast();
+  Stream<PresenceNotice> get presenceNotices => _presenceNotices.stream;
+
+  /// Socket ids seen in the last presence snapshot, plus the snapshot itself, so
+  /// the next one can be diffed into join/leave notices. Null until the first
+  /// snapshot (our own join), which seeds silently — the people already in the
+  /// room are not announced.
+  Set<String>? _knownPresenceIds;
+  List<PresenceUser> _prevPresence = const [];
+
+  /// Latest video pixel dimensions, used to publish [WatchState.videoAspectRatio]
+  /// so the portrait layout can size the player to the real video instead of a
+  /// fixed fraction of the screen.
+  int? _videoWidth;
+  int? _videoHeight;
 
   Stream<String?> get chatThrottled => _repo.chatThrottled;
 
@@ -347,7 +371,7 @@ class WatchCubit extends Cubit<WatchState> {
         if (up) _flushChatOutbox();
       }),
       _repo.viewerCount.listen((n) => emit(state.copyWith(viewerCount: n))),
-      _repo.presence.listen((u) => emit(state.copyWith(presence: u))),
+      _repo.presence.listen(_onPresence),
       _repo.waitState.listen((u) => emit(state.copyWith(waiting: u))),
       _repo.sourceChanged.listen(_onSourceChanged),
       _repo.subtitleChanged.listen((f) {
@@ -394,6 +418,10 @@ class WatchCubit extends Cubit<WatchState> {
       await previous.dispose();
     }
 
+    // Forget the previous video's dimensions; the new player's streams refill them.
+    _videoWidth = null;
+    _videoHeight = null;
+
     final player = Player(
       configuration: const PlayerConfiguration(
         // A larger demuxer buffer keeps more of the stream cached, so backward
@@ -420,6 +448,16 @@ class WatchCubit extends Cubit<WatchState> {
       }),
       player.stream.duration.listen((d) {
         if (d > Duration.zero) emit(state.copyWith(duration: d));
+      }),
+      // Real video dimensions → published aspect ratio, so the portrait layout
+      // sizes the player to the actual video rather than a fixed half-screen.
+      player.stream.width.listen((w) {
+        _videoWidth = w;
+        _emitAspectRatio();
+      }),
+      player.stream.height.listen((h) {
+        _videoHeight = h;
+        _emitAspectRatio();
       }),
       player.stream.playing.listen((playing) {
         // A video that is actually playing cannot be "unavailable".
@@ -705,9 +743,55 @@ class WatchCubit extends Cubit<WatchState> {
     _repo.sendControl(action: 'rate', rate: rate);
   }
 
+  /// Recomputes [WatchState.videoAspectRatio] from the latest reported video
+  /// dimensions, ignoring the frequent no-op repeats from the player streams.
+  void _emitAspectRatio() {
+    final w = _videoWidth, h = _videoHeight;
+    if (w == null || h == null || w <= 0 || h <= 0) return;
+    final ar = w / h;
+    if ((state.videoAspectRatio - ar).abs() > 0.001) {
+      emit(state.copyWith(videoAspectRatio: ar));
+    }
+  }
+
   // ===========================================================================
   // Social + room ops
   // ===========================================================================
+
+  /// Diffs a fresh presence snapshot against the previous one into transient
+  /// "X joined / left" notices. The server only sends the full `room_users`
+  /// list, so joins/leaves are inferred here. The first snapshot (our own join)
+  /// seeds silently; a full id turnover (a reconnect re-keys every socket) also
+  /// reseeds without announcing, so nobody is spuriously re-announced.
+  void _onPresence(List<PresenceUser> users) {
+    emit(state.copyWith(presence: users));
+
+    final newIds = {for (final u in users) u.id};
+    final prevIds = _knownPresenceIds;
+    final reconnect =
+        prevIds != null && prevIds.isNotEmpty && newIds.intersection(prevIds).isEmpty;
+
+    if (prevIds != null && !reconnect) {
+      final me = _identity.state;
+      for (final u in users) {
+        if (!prevIds.contains(u.id) && u.name != me) {
+          _emitNotice(PresenceNotice(name: u.name, joined: true));
+        }
+      }
+      for (final u in _prevPresence) {
+        if (!newIds.contains(u.id) && u.name != me) {
+          _emitNotice(PresenceNotice(name: u.name, joined: false));
+        }
+      }
+    }
+
+    _knownPresenceIds = newIds;
+    _prevPresence = users;
+  }
+
+  void _emitNotice(PresenceNotice notice) {
+    if (!_presenceNotices.isClosed) _presenceNotices.add(notice);
+  }
 
   /// A delivered message from the server (possibly our own, echoed back).
   void _onChat(ChatMessage m) {
@@ -717,6 +801,7 @@ class WatchCubit extends Cubit<WatchState> {
       final idx = state.messages.indexWhere((x) => x.mine && x.clientId == m.clientId);
       if (idx != -1) {
         _sendTimers.remove(m.clientId)?.cancel();
+        _voiceOutbox.remove(m.clientId);
         final updated = [...state.messages];
         updated[idx] = m.copyWith(mine: true, status: ChatStatus.sent);
         emit(state.copyWith(messages: updated));
@@ -774,13 +859,22 @@ class WatchCubit extends Cubit<WatchState> {
       ts: DateTime.now().millisecondsSinceEpoch,
     );
     emit(state.copyWith(messages: _capped([...state.messages, msg])));
+    // Float our own message too, so the sender sees it in the fullscreen overlay
+    // among everyone else's (the server echo is reconciled in `_onChat`, which
+    // returns before re-floating, so it never double-shows).
+    if (!_incomingChat.isClosed) _incomingChat.add(msg);
     _dispatchChat(clientId, trimmed);
   }
 
-  /// Re-sends a failed message (tap-to-retry from the chat UI).
+  /// Re-sends a failed message (tap-to-retry from the chat UI). A voice message
+  /// re-runs its file upload (which re-delivers it); a text message re-emits.
   void retryChat(ChatMessage m) {
     if (!m.mine || m.clientId == null || !m.isPending) return;
     _markChatStatus(m.clientId!, ChatStatus.sending);
+    if (m.isVoice) {
+      _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+      return;
+    }
     _dispatchChat(m.clientId!, m.text);
   }
 
@@ -796,12 +890,80 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Re-sends every still-pending outgoing message — called when the socket
   /// reconnects. The server dedupes by `clientId`, so re-sends are harmless.
+  /// Voice notes re-upload (their file is the delivery); text re-emits.
   void _flushChatOutbox() {
     final pending =
         state.messages.where((m) => m.mine && m.isPending && m.clientId != null).toList();
     for (final m in pending) {
       _markChatStatus(m.clientId!, ChatStatus.sending);
-      _dispatchChat(m.clientId!, m.text);
+      if (m.isVoice) {
+        if (_voiceOutbox.containsKey(m.clientId)) _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+      } else {
+        _dispatchChat(m.clientId!, m.text);
+      }
+    }
+  }
+
+  /// Records the temp recording path per pending voice message, so a failed
+  /// upload can be retried and a reconnect can resume it. Cleared once the clip
+  /// is on the server.
+  final Map<String, String> _voiceOutbox = {};
+
+  /// Sends a recorded voice clip at [path] ([durationMs] long): shows an
+  /// optimistic "sending" voice bubble immediately, uploads the clip, then sends
+  /// a chat message referencing it. Mirrors [sendChat]'s confirm/retry lifecycle.
+  Future<void> sendVoiceMessage(String path, int durationMs) async {
+    if (state.room == null) return;
+    final clientId = '${DateTime.now().microsecondsSinceEpoch}-${_chatSeq++}';
+    final msg = ChatMessage.localVoice(
+      clientId: clientId,
+      name: _identity.state,
+      durationMs: durationMs,
+      ts: DateTime.now().millisecondsSinceEpoch,
+    );
+    emit(state.copyWith(messages: _capped([...state.messages, msg])));
+    _voiceOutbox[clientId] = path;
+    await _uploadAndSendVoice(clientId, durationMs);
+  }
+
+  /// Uploads the queued clip for [clientId]; on success stamps the bubble with
+  /// the server filename and sends the chat event; on failure flags it for retry.
+  Future<void> _uploadAndSendVoice(String clientId, int durationMs) async {
+    final path = _voiceOutbox[clientId];
+    final slug = state.room?.slug;
+    if (path == null || slug == null) return;
+    // The upload is the whole delivery: the server stores the clip AND
+    // broadcasts the chat message to the room. So success here = delivered — no
+    // socket send. Time-boxed so a stalled upload flips to "failed" (retryable)
+    // instead of spinning forever.
+    try {
+      final res = await _uploadVoice(
+        UploadVoiceParams(
+          slug: slug,
+          filePath: path,
+          clientId: clientId,
+          durationMs: durationMs,
+          name: _identity.state,
+        ),
+      ).timeout(const Duration(seconds: 30));
+      if (isClosed) return;
+      res.fold(
+        (_) => _markChatStatus(clientId, ChatStatus.failed),
+        (filename) {
+          _voiceOutbox.remove(clientId);
+          // Mark our optimistic bubble delivered and attach the clip url. The
+          // server's broadcast echo (if/when it arrives) reconciles by clientId
+          // and is idempotent — so this never double-shows.
+          final idx = state.messages.indexWhere((m) => m.clientId == clientId && m.isPending);
+          if (idx != -1) {
+            final updated = [...state.messages];
+            updated[idx] = updated[idx].copyWith(audioUrl: filename, status: ChatStatus.sent);
+            emit(state.copyWith(messages: updated));
+          }
+        },
+      );
+    } catch (_) {
+      if (!isClosed) _markChatStatus(clientId, ChatStatus.failed);
     }
   }
 
@@ -965,6 +1127,7 @@ class WatchCubit extends Cubit<WatchState> {
     await _reactions.close();
     await _draw.close();
     await _incomingChat.close();
+    await _presenceNotices.close();
     return super.close();
   }
 }

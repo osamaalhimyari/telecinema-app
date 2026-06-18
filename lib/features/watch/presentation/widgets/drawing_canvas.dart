@@ -80,11 +80,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 onPanCancel: _end,
               ),
             ),
+            // Anchored at the TOP, not the bottom, so it never covers the
+            // subtitle/translation that sits along the bottom of the video.
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
-              child: SafeArea(top: false, child: _palette(context)),
+              top: 0,
+              child: SafeArea(bottom: false, child: _palette(context)),
             ),
           ],
         );
@@ -95,7 +97,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   Widget _palette(BuildContext context) {
     return Center(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(top: 14),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.55),
