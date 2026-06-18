@@ -27,8 +27,17 @@ abstract class RoomsRemoteDataSource {
   Future<void> delete(String slug, {String? password});
   Future<String> uploadSubtitle(String slug, String filePath);
 
-  /// Uploads a chat voice clip; returns the stored filename.
-  Future<String> uploadVoice(String slug, String filePath);
+  /// Uploads a chat voice clip (the server stores it AND broadcasts the chat
+  /// message to the room). Returns the stored filename. [clientId]/[durationMs]/
+  /// [name] ride along so the broadcast message reconciles with the sender's
+  /// optimistic bubble and shows the right length + author.
+  Future<String> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  });
 }
 
 class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
@@ -170,8 +179,19 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
   }
 
   @override
-  Future<String> uploadVoice(String slug, String filePath) async {
-    final form = FormData.fromMap({'voice': await MultipartFile.fromFile(filePath)});
+  Future<String> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  }) async {
+    final form = FormData.fromMap({
+      'voice': await MultipartFile.fromFile(filePath),
+      'clientId': ?clientId,
+      'durationMs': ?durationMs?.toString(),
+      if (name != null && name.isNotEmpty) 'name': name,
+    });
     final res = await _client.postMultipart('/rooms/$slug/voice', data: form);
     if (!res.success) throw ServerException(res.message ?? 'voice_upload_failed');
     final data = res.data;

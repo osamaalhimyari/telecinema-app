@@ -29,6 +29,13 @@ abstract class RoomsRepository {
   /// filename. The server also broadcasts `subtitle_changed` over the socket.
   Future<Either<Failure, String>> uploadSubtitle(String slug, String filePath);
 
-  /// Upload a chat voice clip; returns the stored filename.
-  Future<Either<Failure, String>> uploadVoice(String slug, String filePath);
+  /// Upload a chat voice clip; returns the stored filename. The server stores
+  /// the file and broadcasts the chat message to the room.
+  Future<Either<Failure, String>> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  });
 }
