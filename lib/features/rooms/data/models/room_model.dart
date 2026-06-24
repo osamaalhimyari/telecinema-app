@@ -74,6 +74,6 @@ class RoomModel {
         /* fall through to default */
       }
     }
-    return const ['👍', '❤️', '😂', '😮', '😢', '😑'];
+    return const ['👍', '👎', '❤️', '😂', '😮', '😢', '😑'];
   }
 }

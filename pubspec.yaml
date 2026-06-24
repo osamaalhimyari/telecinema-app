@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # The `+N` build number is the Android versionCode the in-app updater compares
 # on — it MUST increase on every release you publish to the admin dashboard.
-version: 1.0.5+9
+version: 1.0.5+10
 
 environment:
   sdk: ^3.11.0
@@ -16,9 +16,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  cupertino_icons: ^1.0.5
 
   # ---- State management / DI / functional core ----
-  bloc: ^9.2.0
   flutter_bloc: ^9.1.1
   hydrated_bloc: ^11.0.0
   equatable: ^2.0.8
@@ -60,9 +60,6 @@ dependencies:
   # ---- In-app updates (sideloaded APK self-update; Android) ----
   open_filex: ^4.5.0 # hands the downloaded APK to the system installer (bundles its own FileProvider)
   permission_handler: ^11.3.1 # the REQUEST_INSTALL_PACKAGES "install unknown apps" grant
-  url_launcher: ^6.3.2
-  intl: ^0.20.2
-  cupertino_icons: ^1.0.8
   simple_pip_mode: ^1.1.0
   rust_lib_watch_aprty_app:
     path: packages/rust_builder

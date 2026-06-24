@@ -299,4 +299,12 @@ const Map<String, String> arAr = {
       'يلزم إصدار جديد لمتابعة استخدام TeleCinema. يرجى التحديث للمتابعة.',
   TranslationKeys.updateInstallHint:
       'إذا أظهر أندرويد أن التطبيق غير آمن، اضغط «مزيد من التفاصيل» ثم «تثبيت على أي حال».',
+
+  // Bookmarks
+  TranslationKeys.addBookmark: 'إضافة إشارة مرجعية',
+  TranslationKeys.bookmarkSaved: 'تم حفظ الإشارة المرجعية',
+  TranslationKeys.bookmarks: 'الإشارات المرجعية',
+  TranslationKeys.bookmarkName: 'اسم الإشارة المرجعية',
+  TranslationKeys.bookmarkNameHint: 'مثال: مشهدي المفضل',
+  TranslationKeys.noBookmarks: 'لا توجد إشارات مرجعية بعد',
 };

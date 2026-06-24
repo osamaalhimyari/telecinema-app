@@ -307,4 +307,12 @@ const Map<String, String> enUs = {
       'A new version is required to keep using TeleCinema. Please update to continue.',
   TranslationKeys.updateInstallHint:
       'If Android says the app is unsafe, tap "More details" → "Install anyway".',
+
+  // Bookmarks
+  TranslationKeys.addBookmark: 'Add bookmark',
+  TranslationKeys.bookmarkSaved: 'Bookmark saved',
+  TranslationKeys.bookmarks: 'Bookmarks',
+  TranslationKeys.bookmarkName: 'Bookmark name',
+  TranslationKeys.bookmarkNameHint: 'e.g. My favorite scene',
+  TranslationKeys.noBookmarks: 'No bookmarks yet',
 };

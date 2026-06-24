@@ -35,6 +35,7 @@ class WatchState extends Equatable {
     this.subtitleUrl,
     this.subtitleSettings = const SubtitleSettings.defaults(),
     this.lastSync,
+    this.bookmarkVersion = 0,
     this.controlsLocked = false,
   });
 
@@ -98,6 +99,10 @@ class WatchState extends Equatable {
   /// iframe's real position.
   final PlaybackSync? lastSync;
 
+  /// Incremented each time bookmarks change so UI that depends on them can
+  /// rebuild even though bookmarks are stored outside [WatchState].
+  final int bookmarkVersion;
+
   /// Per-user, local-only touch lock. When true, the video's tap layer and
   /// playback controls are disabled (so a faulty screen's ghost-touches can't
   /// play/pause/seek) — emoji, chat and the mic stay fully usable. Never synced
@@ -138,6 +143,7 @@ class WatchState extends Equatable {
     String? subtitleUrl,
     SubtitleSettings? subtitleSettings,
     PlaybackSync? lastSync,
+    int? bookmarkVersion,
     bool? controlsLocked,
   }) {
     return WatchState(
@@ -145,7 +151,9 @@ class WatchState extends Equatable {
       room: room ?? this.room,
       errorKey: errorKey ?? this.errorKey,
       unlockBusy: unlockBusy ?? this.unlockBusy,
-      unlockErrorKey: clearUnlockError ? null : (unlockErrorKey ?? this.unlockErrorKey),
+      unlockErrorKey: clearUnlockError
+          ? null
+          : (unlockErrorKey ?? this.unlockErrorKey),
       isPlaying: isPlaying ?? this.isPlaying,
       playbackRate: playbackRate ?? this.playbackRate,
       position: position ?? this.position,
@@ -166,6 +174,7 @@ class WatchState extends Equatable {
       subtitleUrl: subtitleUrl ?? this.subtitleUrl,
       subtitleSettings: subtitleSettings ?? this.subtitleSettings,
       lastSync: lastSync ?? this.lastSync,
+      bookmarkVersion: bookmarkVersion ?? this.bookmarkVersion,
       controlsLocked: controlsLocked ?? this.controlsLocked,
     );
   }
@@ -197,6 +206,7 @@ class WatchState extends Equatable {
     subtitleUrl,
     subtitleSettings,
     lastSync,
+    bookmarkVersion,
     controlsLocked,
   ];
 }

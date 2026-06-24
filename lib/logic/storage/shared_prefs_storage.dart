@@ -39,4 +39,5 @@ class StorageKeys {
   static const favorites = 'favorites';
   static const recentSlugs = 'recent_slugs';
   static String roomUnlocked(String slug) => 'room_unlocked_$slug';
+  static String bookmarks(String slug) => 'bookmarks_$slug';
 }

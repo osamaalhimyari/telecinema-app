@@ -7,12 +7,14 @@ import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
 import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import '../widgets/bookmark_button.dart';
 import '../widgets/controls_lock_button.dart';
 import '../widgets/draw_toggle_button.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/drawing_overlay.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
+import '../widgets/fullscreen_bookmarks_panel.dart';
 import '../widgets/fullscreen_controls.dart';
 import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
@@ -66,7 +68,9 @@ class _FullscreenView extends StatelessWidget {
           BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
             buildWhen: (a, b) => a.messagesOpen != b.messagesOpen,
             builder: (context, state) =>
-                state.messagesOpen ? const SizedBox.shrink() : const _FloatingTyping(),
+                state.messagesOpen || state.bookmarksOpen
+                    ? const SizedBox.shrink()
+                    : const _FloatingTyping(),
           ),
 
           // Drawings render over the video (pointer-transparent); the canvas
@@ -116,7 +120,12 @@ class _FullscreenView extends StatelessWidget {
                               ),
                               const SizedBox(height: 10),
                               const FullscreenVoiceButton(),
-                              const SizedBox(height: 10),
+const SizedBox(height: 10),
+FullscreenBookmarkButton(
+  open: state.bookmarksOpen,
+  onTap: ui.toggleBookmarks,
+),
+const SizedBox(height: 10),
                               const FullscreenDrawButton(),
                               const SizedBox(height: 10),
                               const FullscreenLockButton(),
@@ -156,6 +165,15 @@ class _FullscreenView extends StatelessWidget {
             builder: (context, state) => FullscreenMessagesPanel(
               open: state.messagesOpen,
               onClose: ui.closeMessages,
+            ),
+          ),
+
+          // The bookmarks side panel slides in from the right when open.
+          BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
+            buildWhen: (a, b) => a.bookmarksOpen != b.bookmarksOpen,
+            builder: (context, state) => FullscreenBookmarksPanel(
+              open: state.bookmarksOpen,
+              onClose: ui.closeBookmarks,
             ),
           ),
         ],

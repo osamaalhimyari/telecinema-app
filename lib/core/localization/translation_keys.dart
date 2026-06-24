@@ -330,4 +330,12 @@ class TranslationKeys {
   static const updateRequiredTitle = 'update_required_title';
   static const updateRequiredBody = 'update_required_body';
   static const updateInstallHint = 'update_install_hint';
+
+  // Bookmarks
+  static const addBookmark = 'add_bookmark';
+  static const bookmarkSaved = 'bookmark_saved';
+  static const bookmarks = 'bookmarks';
+  static const bookmarkName = 'bookmark_name';
+  static const bookmarkNameHint = 'bookmark_name_hint';
+  static const noBookmarks = 'no_bookmarks';
 }

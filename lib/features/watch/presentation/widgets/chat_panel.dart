@@ -164,25 +164,22 @@ class _ChatPanelView extends StatelessWidget {
           ),
         ),
         const TypingIndicator(),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-            // Text field + send, or tap-the-mic to record a voice message.
-            child: VoiceComposer(
-              input: chat.input,
-              onSend: chat.send,
-              field: TextField(
-                controller: chat.input,
-                textInputAction: TextInputAction.send,
-                minLines: 1,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: context.tr(TranslationKeys.chatHint),
-                  isDense: true,
-                ),
-                onSubmitted: (_) => chat.send(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(12, 6, 12, 10 + MediaQuery.of(context).viewPadding.bottom),
+          // Text field + send, or tap-the-mic to record a voice message.
+          child: VoiceComposer(
+            input: chat.input,
+            onSend: chat.send,
+            field: TextField(
+              controller: chat.input,
+              textInputAction: TextInputAction.send,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: context.tr(TranslationKeys.chatHint),
+                isDense: true,
               ),
+              onSubmitted: (_) => chat.send(),
             ),
           ),
         ),

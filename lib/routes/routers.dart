@@ -9,7 +9,7 @@ import '/features/cinema/presentation/pages/cinema_detail_page.dart';
 import '/features/discover/presentation/pages/discover_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
-import '/features/tv/presentation/pages/tv_groups_page.dart';
+// import '/features/tv/presentation/pages/tv_groups_page.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
 import '../features/rooms/presentation/pages/rooms_page.dart';
@@ -45,15 +45,15 @@ final router = GoRouter(
         ),
         // Live TV — isolated YacineTV catalogue (groups → channels → on-device
         // player). Drill-down + player pages push on the root navigator.
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              name: RoutesNames.tv,
-              path: '/tv',
-              builder: (_, _) => const TvGroupsPage(),
-            ),
-          ],
-        ),
+        // StatefulShellBranch(
+        //   routes: [
+        //     GoRoute(
+        //       name: RoutesNames.tv,
+        //       path: '/tv',
+        //       builder: (_, _) => const TvGroupsPage(),
+        //     ),
+        //   ],
+        // ),
         // Browse — the unified tab: one grid merging the IMDB (Cinemeta) and
         // Cinema (EgyBest) catalogues. Each card opens its own detail page.
         StatefulShellBranch(
