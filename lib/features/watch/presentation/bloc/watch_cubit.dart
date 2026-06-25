@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui' show Offset;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -9,6 +10,8 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '/core/config/app_config.dart';
 import '/core/constants/app_constants.dart';
+import '/core/livetv/live_stream.dart';
+import '/core/livetv/live_stream_resolver.dart';
 import '/core/localization/translation_keys.dart';
 import '/features/cache/data/cache_manager.dart';
 import '/features/rooms/domain/usecases/delete_room_usecase.dart';
@@ -21,6 +24,7 @@ import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
 import '/logic/storage/shared_prefs_storage.dart';
+import '../../domain/entities/bookmark.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
@@ -48,16 +52,30 @@ const _laughEmojis = {'😂', '🤣'};
 /// decorative ones — without listing each rendered string.
 const _heartRunes = <int>{
   0x2764, 0x2763, 0x2665, // ❤ ❣ ♥
-  0x1F90D, 0x1F9E1, 0x1F49B, 0x1F49A, 0x1F499, 0x1F49C, 0x1F90E, 0x1F5A4, // colored
-  0x1F496, 0x1F497, 0x1F493, 0x1F49E, 0x1F495, 0x1F498, 0x1F49D, 0x1F49F, // decorative
+  0x1F90D,
+  0x1F9E1,
+  0x1F49B,
+  0x1F49A,
+  0x1F499,
+  0x1F49C,
+  0x1F90E,
+  0x1F5A4, // colored
+  0x1F496,
+  0x1F497,
+  0x1F493,
+  0x1F49E,
+  0x1F495,
+  0x1F498,
+  0x1F49D,
+  0x1F49F, // decorative
   0x1F494, // 💔 broken
 };
 
 /// Heart-ish faces the user grouped with hearts (not hearts themselves).
-const _heartFaces = {'😘', '🥰'};
+const _heartFaces = {'😘', '🥰', '😍', '🍆'};
 
 /// Scared / anguished faces → a trembling shiver.
-const _scaredEmojis = {'😦', '😧', '😨', '😱', '😰'};
+const _scaredEmojis = {'😦', '😧', '😨', '😱', '😰', '😮', '😯'};
 
 bool _isLaugh(String emoji) => _laughEmojis.contains(emoji);
 
@@ -123,6 +141,7 @@ class WatchCubit extends Cubit<WatchState> {
     this._favorites,
     this._identity,
     this._cache,
+    this._liveResolver,
   ) : super(const WatchState());
 
   final WatchRepository _repo;
@@ -136,8 +155,21 @@ class WatchCubit extends Cubit<WatchState> {
   final FavoritesCubit _favorites;
   final IdentityCubit _identity;
   final CacheManager _cache;
+  final LiveStreamResolver _liveResolver;
 
   Player? _player;
+
+  // ── Live-TV (roomType.tv) ────────────────────────────────────────────────
+  /// Unpacked source of a live-TV room (stream URL + headers + channel path).
+  /// Null for every other room type.
+  LiveStreamRef? _tvRef;
+
+  /// Guards against overlapping token refreshes, and caps attempts so a truly
+  /// dead channel surfaces an error instead of looping. Reset once the stream
+  /// actually plays (position advances).
+  bool _tvRefreshing = false;
+  int _tvRefreshAttempts = 0;
+  static const _tvMaxRefreshAttempts = 2;
 
   /// The render handle for the [Video] widget. Lives as long as the player.
   VideoController? _videoController;
@@ -170,6 +202,11 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Transient floating-reaction feed for the overlay (not part of state).
   final _reactions = StreamController<ReactionEvent>.broadcast();
+
+  /// Stale bookmark cache — loaded once from storage, invalidated on any
+  /// save/delete/update so the next read re-fetches from disk.
+  List<Bookmark>? _cachedBookmarks;
+  String? _cachedBookmarkSlug;
   Stream<ReactionEvent> get reactions => _reactions.stream;
 
   /// Transient drawing-segment feed for the drawing overlay (not part of
@@ -179,7 +216,8 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Monotonic counter feeding unique stroke ids for this session.
   int _drawSeq = 0;
-  String newStrokeId() => 'd${DateTime.now().microsecondsSinceEpoch}-${_drawSeq++}';
+  String newStrokeId() =>
+      'd${DateTime.now().microsecondsSinceEpoch}-${_drawSeq++}';
 
   /// Transient feed of *incoming* chat for the fullscreen floating overlay.
   /// (Messages are still appended to `state.messages` for the chat panel.) Our
@@ -245,13 +283,20 @@ class WatchCubit extends Cubit<WatchState> {
       if (r == null) return;
     }
 
-    emit(state.copyWith(room: r, externalUrl: r.externalUrl, subtitleUrl: r.subtitleUrl));
+    emit(
+      state.copyWith(
+        room: r,
+        externalUrl: r.externalUrl,
+        subtitleUrl: r.subtitleUrl,
+      ),
+    );
 
     // Opening a room (even a still-locked one) counts as recently watched.
     _favorites.recordRecent(r.slug);
 
     final unlocked =
-        !r.hasPassword || (_storage.getBool(StorageKeys.roomUnlocked(r.slug)) ?? false);
+        !r.hasPassword ||
+        (_storage.getBool(StorageKeys.roomUnlocked(r.slug)) ?? false);
     if (!unlocked) {
       emit(state.copyWith(phase: WatchPhase.locked));
       return;
@@ -262,7 +307,9 @@ class WatchCubit extends Cubit<WatchState> {
   Future<void> unlock(String password) async {
     final slug = state.room!.slug;
     emit(state.copyWith(unlockBusy: true, clearUnlockError: true));
-    final res = await _unlockRoom(UnlockRoomParams(slug: slug, password: password));
+    final res = await _unlockRoom(
+      UnlockRoomParams(slug: slug, password: password),
+    );
     res.fold(
       (f) => emit(state.copyWith(unlockBusy: false, unlockErrorKey: f.message)),
       (ok) {
@@ -271,7 +318,10 @@ class WatchCubit extends Cubit<WatchState> {
           _enterRoom();
         } else {
           emit(
-            state.copyWith(unlockBusy: false, unlockErrorKey: TranslationKeys.incorrectPassword),
+            state.copyWith(
+              unlockBusy: false,
+              unlockErrorKey: TranslationKeys.incorrectPassword,
+            ),
           );
         }
       },
@@ -279,11 +329,34 @@ class WatchCubit extends Cubit<WatchState> {
   }
 
   void _enterRoom() {
-    emit(state.copyWith(phase: WatchPhase.ready, unlockBusy: false, clearUnlockError: true));
+    emit(
+      state.copyWith(
+        phase: WatchPhase.ready,
+        unlockBusy: false,
+        clearUnlockError: true,
+      ),
+    );
     _subscribe();
     final room = state.room!;
     _repo.join(room.slug);
     if (state.isExternal) return;
+
+    // Live-TV room: play through the server-side HLS relay (`/livetv/:slug`),
+    // which fetches the ISP-blocked, header-gated origin stream for us — so the
+    // device needs no per-channel headers. We keep the unpacked source ref only
+    // for its channel path, used to re-resolve an expired token on-device. No
+    // local cache / torrent path applies; sync rides the socket like any other
+    // room, only without seeking (handled in `_applyToVideo`).
+    if (room.roomType.isTv) {
+      _tvRef = room.liveStream;
+      final relayUrl = room.videoUrl; // → $baseUrl/livetv/:slug
+      if (relayUrl != null) {
+        _initVideo(relayUrl, autoplay: true);
+      } else {
+        emit(state.copyWith(videoError: true));
+      }
+      return;
+    }
 
     // Prefer a finished local copy: play straight from disk so this viewer never
     // buffers (and never trips the room's wait-for-slowest gate), while sync,
@@ -293,7 +366,9 @@ class WatchCubit extends Cubit<WatchState> {
       // media_kit/libmpv wants a proper file:// URI (esp. on Windows/desktop),
       // not a bare path.
       final subPath = _cache.cachedSubtitlePath(room.slug);
-      if (subPath != null) emit(state.copyWith(subtitleUrl: Uri.file(subPath).toString()));
+      if (subPath != null) {
+        emit(state.copyWith(subtitleUrl: Uri.file(subPath).toString()));
+      }
       _initVideo(Uri.file(cachedPath).toString());
       return;
     }
@@ -304,7 +379,10 @@ class WatchCubit extends Cubit<WatchState> {
     // exactly like file rooms — only the *source* differs. Web has no native
     // engine, so it falls back to the server stream (room.videoUrl).
     final magnet = room.magnet;
-    if (!kIsWeb && room.roomType.isTorrent && magnet != null && magnet.isNotEmpty) {
+    if (!kIsWeb &&
+        room.roomType.isTorrent &&
+        magnet != null &&
+        magnet.isNotEmpty) {
       _initTorrentVideo(magnet);
       return;
     }
@@ -393,7 +471,9 @@ class WatchCubit extends Cubit<WatchState> {
         if (!_draw.isClosed) _draw.add(d);
       }),
       _repo.typing.listen(_onTyping),
-      _repo.roomDeleted.listen((_) => emit(state.copyWith(phase: WatchPhase.deleted))),
+      _repo.roomDeleted.listen(
+        (_) => emit(state.copyWith(phase: WatchPhase.deleted)),
+      ),
     ]);
   }
 
@@ -401,9 +481,10 @@ class WatchCubit extends Cubit<WatchState> {
   // Video (file rooms)
   // ===========================================================================
 
-  Future<void> _initVideo(String url) async {
+  Future<void> _initVideo(String url, {bool autoplay = false}) async {
     // Tear down any previous player first — this method is re-entered when a
-    // stalled torrent stream falls back to the server stream. Clear the handles
+    // stalled torrent stream falls back to the server stream (or a live-TV
+    // token is refreshed). Clear the handles
     // and show the loading state before disposing, so the UI never paints a
     // disposed controller during the swap.
     for (final s in _playerSubs) {
@@ -444,7 +525,15 @@ class WatchCubit extends Cubit<WatchState> {
         // flag — libmpv can emit a transient error on a stream that then plays
         // fine (which is why PiP kept playing while the inline view showed an
         // error). Genuine failures never advance, so this never hides them.
-        emit(state.copyWith(position: p, videoError: p > Duration.zero ? false : null));
+        // For live TV it also re-arms the token-refresh budget: the stream is
+        // alive, so a *later* expiry gets a fresh round of refresh attempts.
+        if (p > Duration.zero) _tvRefreshAttempts = 0;
+        emit(
+          state.copyWith(
+            position: p,
+            videoError: p > Duration.zero ? false : null,
+          ),
+        );
       }),
       player.stream.duration.listen((d) {
         if (d > Duration.zero) emit(state.copyWith(duration: d));
@@ -461,18 +550,24 @@ class WatchCubit extends Cubit<WatchState> {
       }),
       player.stream.playing.listen((playing) {
         // A video that is actually playing cannot be "unavailable".
-        emit(state.copyWith(isPlaying: playing, videoError: playing ? false : null));
+        emit(
+          state.copyWith(
+            isPlaying: playing,
+            videoError: playing ? false : null,
+          ),
+        );
       }),
       player.stream.buffering.listen(_onBuffering),
       player.stream.rate.listen((r) => emit(state.copyWith(playbackRate: r))),
       // A real load failure surfaces as "video unavailable"; the progress
       // signals above clear it again the instant the media actually moves — so a
-      // stuck stream is reported honestly instead of spinning forever.
-      player.stream.error.listen((_) => emit(state.copyWith(videoError: true))),
+      // stuck stream is reported honestly instead of spinning forever. For live
+      // TV, an error usually means the signed token expired → try to refresh it.
+      player.stream.error.listen((_) => _onVideoError()),
     ]);
 
     try {
-      await player.open(Media(url), play: false);
+      await player.open(Media(url), play: autoplay);
       emit(state.copyWith(videoReady: true, videoError: false));
       if (_pendingSync != null) {
         await _applyToVideo(_pendingSync!);
@@ -480,7 +575,9 @@ class WatchCubit extends Cubit<WatchState> {
       }
       // A subtitle the room already had (or one uploaded before the player was
       // ready) is loaded once the media is open.
-      if (state.subtitleUrl != null) await _applySubtitleToPlayer(state.subtitleUrl);
+      if (state.subtitleUrl != null) {
+        await _applySubtitleToPlayer(state.subtitleUrl);
+      }
     } catch (_) {
       // open() failed: tear down this player's listeners so they can't keep
       // emitting against a dead player. Leave _player/_videoController in place
@@ -490,6 +587,61 @@ class WatchCubit extends Cubit<WatchState> {
         await s.cancel();
       }
       _playerSubs.clear();
+      _onVideoError();
+    }
+  }
+
+  /// Central handler for a playback failure. A live-TV room first tries to
+  /// refresh its (likely expired) stream token; everything else just surfaces
+  /// the error.
+  void _onVideoError() {
+    if (state.room?.roomType.isTv ?? false) {
+      _refreshTvStream();
+    } else {
+      emit(state.copyWith(videoError: true));
+    }
+  }
+
+  /// Re-resolves a fresh, currently-valid stream for a live-TV room when its
+  /// signed token expires, then re-opens the player on it. The resolver also
+  /// persists the new URL to the room, so other viewers (and late joiners) keep
+  /// working. Capped at [_tvMaxRefreshAttempts] consecutive tries so a genuinely
+  /// dead channel reports an error instead of looping forever; the budget resets
+  /// once the stream plays again (see the position listener).
+  Future<void> _refreshTvStream() async {
+    // A refresh is already underway — don't pile on (and don't flash an error).
+    if (_tvRefreshing) return;
+    final ref = _tvRef;
+    final slug = state.room?.slug;
+    if (ref == null ||
+        ref.path.isEmpty ||
+        slug == null ||
+        _tvRefreshAttempts >= _tvMaxRefreshAttempts) {
+      emit(state.copyWith(videoError: true));
+      return;
+    }
+    _tvRefreshing = true;
+    _tvRefreshAttempts++;
+    // Show loading rather than the error card while we re-resolve.
+    emit(state.copyWith(videoError: false, videoReady: false));
+    LiveStream? fresh;
+    try {
+      fresh = await _liveResolver.refresh(slug: slug, path: ref.path);
+    } catch (_) {
+      fresh = null;
+    }
+    _tvRefreshing = false;
+    if (isClosed) return;
+    if (fresh == null) {
+      emit(state.copyWith(videoError: true));
+      return;
+    }
+    // The resolver persisted the fresh stream to the room, so replay through the
+    // relay — the same `/livetv/:slug` URL now serves the refreshed stream.
+    final relayUrl = state.room?.videoUrl;
+    if (relayUrl != null) {
+      await _initVideo(relayUrl, autoplay: true);
+    } else {
       emit(state.copyWith(videoError: true));
     }
   }
@@ -502,7 +654,9 @@ class WatchCubit extends Cubit<WatchState> {
     if (p == null) return;
     try {
       await p.setSubtitleTrack(
-        (url == null || url.isEmpty) ? SubtitleTrack.no() : SubtitleTrack.uri(url),
+        (url == null || url.isEmpty)
+            ? SubtitleTrack.no()
+            : SubtitleTrack.uri(url),
       );
       // A freshly-loaded track must inherit the room's current timing offset.
       await _applySubtitleOffsetToPlayer(state.subtitleSettings.offset);
@@ -539,7 +693,11 @@ class WatchCubit extends Cubit<WatchState> {
     emit(state.copyWith(subtitleSettings: s));
     _applySubtitleOffsetToPlayer(s.offset);
     if (broadcast) {
-      _repo.setSubtitleSettings(offset: s.offset, weight: s.weight, size: s.size);
+      _repo.setSubtitleSettings(
+        offset: s.offset,
+        weight: s.weight,
+        size: s.size,
+      );
     }
   }
 
@@ -560,7 +718,10 @@ class WatchCubit extends Cubit<WatchState> {
     try {
       await platform.setProperty('hwdec', 'auto-safe');
       await platform.setProperty('cache', 'yes');
-      await platform.setProperty('demuxer-max-back-bytes', '${48 * 1024 * 1024}');
+      await platform.setProperty(
+        'demuxer-max-back-bytes',
+        '${48 * 1024 * 1024}',
+      );
     } catch (_) {
       /* property unsupported on this backend — ignore */
     }
@@ -624,7 +785,9 @@ class WatchCubit extends Cubit<WatchState> {
     if (state.isExternal) {
       // Embed rooms can't be seeked cross-origin; the WebView simply tracks
       // the virtual clock (lastSync) for the subtitle overlay.
-      emit(state.copyWith(isPlaying: s.isPlaying, playbackRate: s.playbackRate));
+      emit(
+        state.copyWith(isPlaying: s.isPlaying, playbackRate: s.playbackRate),
+      );
       return;
     }
     _applyToVideo(s);
@@ -671,6 +834,12 @@ class WatchCubit extends Cubit<WatchState> {
     final gen = _playerGeneration;
     bool stale() => isClosed || _playerGeneration != gen;
 
+    // Live TV (HLS) can't be frame-synced — every viewer sits at their own live
+    // edge, and rate/seek/play-state would only fight the stream. So a live room
+    // drives playback locally (autoplay on open); the "together" part — chat,
+    // presence, reactions — still flows over the socket. Nothing to apply here.
+    if (state.room?.roomType.isTv ?? false) return;
+
     if (s.playbackRate > 0 && (p.state.rate - s.playbackRate).abs() > 0.01) {
       await p.setRate(s.playbackRate);
       if (stale()) return;
@@ -714,13 +883,17 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Update only the displayed position while the user drags the slider —
   /// avoids spamming `control` events until the drag ends.
-  void emitLocalSeekPreview(Duration position) => emit(state.copyWith(position: position));
+  void emitLocalSeekPreview(Duration position) =>
+      emit(state.copyWith(position: position));
 
   Future<void> seekTo(Duration position) async {
     final p = _player;
     if (p == null) return;
     await p.seek(position);
-    _repo.sendControl(action: 'seek', currentTime: position.inMilliseconds / 1000.0);
+    _repo.sendControl(
+      action: 'seek',
+      currentTime: position.inMilliseconds / 1000.0,
+    );
   }
 
   /// Skip by [delta] (e.g. ±10s), clamped to the video's bounds. Like a manual
@@ -769,7 +942,9 @@ class WatchCubit extends Cubit<WatchState> {
     final newIds = {for (final u in users) u.id};
     final prevIds = _knownPresenceIds;
     final reconnect =
-        prevIds != null && prevIds.isNotEmpty && newIds.intersection(prevIds).isEmpty;
+        prevIds != null &&
+        prevIds.isNotEmpty &&
+        newIds.intersection(prevIds).isEmpty;
 
     if (prevIds != null && !reconnect) {
       final me = _identity.state;
@@ -798,7 +973,9 @@ class WatchCubit extends Cubit<WatchState> {
     // Our own message coming back: reconcile the optimistic bubble in place
     // (confirm it) instead of appending a duplicate — and don't float it.
     if (m.clientId != null) {
-      final idx = state.messages.indexWhere((x) => x.mine && x.clientId == m.clientId);
+      final idx = state.messages.indexWhere(
+        (x) => x.mine && x.clientId == m.clientId,
+      );
       if (idx != -1) {
         _sendTimers.remove(m.clientId)?.cancel();
         _voiceOutbox.remove(m.clientId);
@@ -823,10 +1000,14 @@ class WatchCubit extends Cubit<WatchState> {
     final knownIds = {
       for (final m in history) ...[m.id, if (m.clientId != null) m.clientId!],
     };
-    final merged = [for (final m in history) m.copyWith(mine: m.mine || m.name == mine)];
+    final merged = [
+      for (final m in history) m.copyWith(mine: m.mine || m.name == mine),
+    ];
     for (final local in state.messages) {
       final stillUnsent =
-          local.mine && local.isPending && !(local.clientId != null && knownIds.contains(local.clientId));
+          local.mine &&
+          local.isPending &&
+          !(local.clientId != null && knownIds.contains(local.clientId));
       if (stillUnsent) merged.add(local);
     }
     emit(state.copyWith(messages: _capped(merged)));
@@ -892,12 +1073,15 @@ class WatchCubit extends Cubit<WatchState> {
   /// reconnects. The server dedupes by `clientId`, so re-sends are harmless.
   /// Voice notes re-upload (their file is the delivery); text re-emits.
   void _flushChatOutbox() {
-    final pending =
-        state.messages.where((m) => m.mine && m.isPending && m.clientId != null).toList();
+    final pending = state.messages
+        .where((m) => m.mine && m.isPending && m.clientId != null)
+        .toList();
     for (final m in pending) {
       _markChatStatus(m.clientId!, ChatStatus.sending);
       if (m.isVoice) {
-        if (_voiceOutbox.containsKey(m.clientId)) _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+        if (_voiceOutbox.containsKey(m.clientId)) {
+          _uploadAndSendVoice(m.clientId!, m.durationMs ?? 0);
+        }
       } else {
         _dispatchChat(m.clientId!, m.text);
       }
@@ -947,21 +1131,23 @@ class WatchCubit extends Cubit<WatchState> {
         ),
       ).timeout(const Duration(seconds: 30));
       if (isClosed) return;
-      res.fold(
-        (_) => _markChatStatus(clientId, ChatStatus.failed),
-        (filename) {
-          _voiceOutbox.remove(clientId);
-          // Mark our optimistic bubble delivered and attach the clip url. The
-          // server's broadcast echo (if/when it arrives) reconciles by clientId
-          // and is idempotent — so this never double-shows.
-          final idx = state.messages.indexWhere((m) => m.clientId == clientId && m.isPending);
-          if (idx != -1) {
-            final updated = [...state.messages];
-            updated[idx] = updated[idx].copyWith(audioUrl: filename, status: ChatStatus.sent);
-            emit(state.copyWith(messages: updated));
-          }
-        },
-      );
+      res.fold((_) => _markChatStatus(clientId, ChatStatus.failed), (filename) {
+        _voiceOutbox.remove(clientId);
+        // Mark our optimistic bubble delivered and attach the clip url. The
+        // server's broadcast echo (if/when it arrives) reconciles by clientId
+        // and is idempotent — so this never double-shows.
+        final idx = state.messages.indexWhere(
+          (m) => m.clientId == clientId && m.isPending,
+        );
+        if (idx != -1) {
+          final updated = [...state.messages];
+          updated[idx] = updated[idx].copyWith(
+            audioUrl: filename,
+            status: ChatStatus.sent,
+          );
+          emit(state.copyWith(messages: updated));
+        }
+      });
     } catch (_) {
       if (!isClosed) _markChatStatus(clientId, ChatStatus.failed);
     }
@@ -969,7 +1155,9 @@ class WatchCubit extends Cubit<WatchState> {
 
   /// Updates the delivery [status] of the pending message with [clientId].
   void _markChatStatus(String clientId, ChatStatus status) {
-    final idx = state.messages.indexWhere((m) => m.clientId == clientId && m.isPending);
+    final idx = state.messages.indexWhere(
+      (m) => m.clientId == clientId && m.isPending,
+    );
     if (idx == -1) return;
     final updated = [...state.messages];
     updated[idx] = updated[idx].copyWith(status: status);
@@ -997,12 +1185,21 @@ class WatchCubit extends Cubit<WatchState> {
     _repo.sendDraw(
       strokeId: strokeId,
       color: color,
-      points: [for (final p in points) [p.dx, p.dy]],
+      points: [
+        for (final p in points) [p.dx, p.dy],
+      ],
       done: done,
     );
     if (!_draw.isClosed) {
       _draw.add(
-        DrawEvent(id: 'me', name: '', strokeId: strokeId, color: color, points: points, done: done),
+        DrawEvent(
+          id: 'me',
+          name: '',
+          strokeId: strokeId,
+          color: color,
+          points: points,
+          done: done,
+        ),
       );
     }
   }
@@ -1020,7 +1217,12 @@ class WatchCubit extends Cubit<WatchState> {
       _typingTimers[e.id] = Timer(_typingTtl, () {
         _typingTimers.remove(e.id);
         if (isClosed) return;
-        emit(state.copyWith(typingUsers: Map<String, String>.from(state.typingUsers)..remove(e.id)));
+        emit(
+          state.copyWith(
+            typingUsers: Map<String, String>.from(state.typingUsers)
+              ..remove(e.id),
+          ),
+        );
       });
     } else {
       next.remove(e.id);
@@ -1038,7 +1240,9 @@ class WatchCubit extends Cubit<WatchState> {
       return;
     }
     final now = DateTime.now();
-    final stale = _selfTypingSentAt == null || now.difference(_selfTypingSentAt!) > _selfTypingResend;
+    final stale =
+        _selfTypingSentAt == null ||
+        now.difference(_selfTypingSentAt!) > _selfTypingResend;
     if (!_selfTyping || stale) {
       _selfTyping = true;
       _selfTypingSentAt = now;
@@ -1072,7 +1276,8 @@ class WatchCubit extends Cubit<WatchState> {
   /// Toggles the per-user touch lock (local only — never sent to the room).
   /// While locked, [VideoSurface] ignores taps on the video and its playback
   /// controls, so a faulty screen can't trigger play/pause/seek.
-  void toggleControlsLock() => emit(state.copyWith(controlsLocked: !state.controlsLocked));
+  void toggleControlsLock() =>
+      emit(state.copyWith(controlsLocked: !state.controlsLocked));
 
   void changeSource(String url) {
     final trimmed = url.trim();
@@ -1097,6 +1302,78 @@ class WatchCubit extends Cubit<WatchState> {
       emit(state.copyWith(phase: WatchPhase.deleted));
       return null;
     });
+  }
+
+  // ===========================================================================
+  // Bookmarks — local-only, per-room, persisted via KeyValueStorage
+  // ===========================================================================
+
+  List<Bookmark> loadBookmarks() {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return [];
+    if (_cachedBookmarks != null && _cachedBookmarkSlug == slug) {
+      return _cachedBookmarks!;
+    }
+    final raw = _storage.getString(StorageKeys.bookmarks(slug));
+    if (raw == null || raw.isEmpty) {
+      _cachedBookmarks = [];
+      _cachedBookmarkSlug = slug;
+      return [];
+    }
+    try {
+      final list = jsonDecode(raw) as List;
+      _cachedBookmarks = list
+          .map((e) => Bookmark.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _cachedBookmarkSlug = slug;
+      return _cachedBookmarks!;
+    } catch (_) {
+      _cachedBookmarks = [];
+      _cachedBookmarkSlug = slug;
+      return [];
+    }
+  }
+
+  Future<void> saveBookmark({String? name}) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    bookmarks.insert(0, Bookmark(id: id, position: state.position, name: name));
+    final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
+    await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
+  }
+
+  Future<void> deleteBookmark(String id) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    bookmarks.removeWhere((b) => b.id == id);
+    final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
+    await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
+  }
+
+  Future<void> updateBookmark(String id, {String? name}) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    final idx = bookmarks.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    // Rebuild rather than copyWith: copyWith treats a null `name` as "keep
+    // existing", so it can't clear a name once set — a blank rename must stick.
+    final current = bookmarks[idx];
+    bookmarks[idx] = Bookmark(id: current.id, position: current.position, name: name);
+    final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
+    await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
   }
 
   // ===========================================================================

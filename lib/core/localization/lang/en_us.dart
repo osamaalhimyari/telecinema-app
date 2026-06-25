@@ -51,6 +51,14 @@ const Map<String, String> enUs = {
   TranslationKeys.browseTab: 'Browse',
   TranslationKeys.favoritesTab: 'Favorites',
   TranslationKeys.youtubeTab: 'YouTube',
+  TranslationKeys.tvTab: 'Live TV',
+
+  TranslationKeys.tvTitle: 'Live TV',
+  TranslationKeys.tvChannels: 'channels',
+  TranslationKeys.tvEmpty: 'No channels available',
+  TranslationKeys.tvLive: 'LIVE',
+  TranslationKeys.tvChannelUnavailable:
+      'This channel could not be played. Its stream may have expired — pull to refresh the list and try again.',
 
   TranslationKeys.cinemaTitle: 'Cinema',
   TranslationKeys.cinemaSearchHint: 'Search movies & series',
@@ -299,4 +307,12 @@ const Map<String, String> enUs = {
       'A new version is required to keep using TeleCinema. Please update to continue.',
   TranslationKeys.updateInstallHint:
       'If Android says the app is unsafe, tap "More details" → "Install anyway".',
+
+  // Bookmarks
+  TranslationKeys.addBookmark: 'Add bookmark',
+  TranslationKeys.bookmarkSaved: 'Bookmark saved',
+  TranslationKeys.bookmarks: 'Bookmarks',
+  TranslationKeys.bookmarkName: 'Bookmark name',
+  TranslationKeys.bookmarkNameHint: 'e.g. My favorite scene',
+  TranslationKeys.noBookmarks: 'No bookmarks yet',
 };

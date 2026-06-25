@@ -33,9 +33,31 @@ class FullscreenUiCubit extends Cubit<FullscreenUiState> {
   void toggleReactions() =>
       emit(state.copyWith(reactionsExpanded: !state.reactionsExpanded));
 
-  void toggleMessages() => emit(state.copyWith(messagesOpen: !state.messagesOpen));
+  void toggleMessages() {
+    final next = !state.messagesOpen;
+    emit(
+      state.copyWith(
+        messagesOpen: next,
+        bookmarksOpen: next ? false : state.bookmarksOpen,
+        controlsExpanded: next ? false : state.controlsExpanded,
+      ),
+    );
+  }
 
   void closeMessages() => emit(state.copyWith(messagesOpen: false));
+
+  void toggleBookmarks() {
+    final next = !state.bookmarksOpen;
+    emit(
+      state.copyWith(
+        bookmarksOpen: next,
+        messagesOpen: next ? false : state.messagesOpen,
+        controlsExpanded: next ? false : state.controlsExpanded,
+      ),
+    );
+  }
+
+  void closeBookmarks() => emit(state.copyWith(bookmarksOpen: false));
 
   @override
   Future<void> close() {

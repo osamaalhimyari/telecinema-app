@@ -26,11 +26,14 @@ import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
 import '/routes/routes_names.dart';
+import '../bloc/chat_divider/chat_divider_cubit.dart';
+import '../bloc/chat_divider/chat_divider_state.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/voice_playback/voice_playback_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import '../widgets/bookmark_button.dart';
 import '../widgets/chat_panel.dart';
 import '../widgets/controls_lock_button.dart';
 import '../widgets/draw_toggle_button.dart';
@@ -65,6 +68,7 @@ class RoomPage extends StatelessWidget {
         ),
         BlocProvider<VoiceCubit>(create: (_) => sl<VoiceCubit>()),
         BlocProvider<DrawModeCubit>(create: (_) => DrawModeCubit()),
+        BlocProvider<ChatDividerCubit>(create: (_) => ChatDividerCubit()),
         // Shared chat voice-message player (one clip plays at a time).
         BlocProvider<VoicePlaybackCubit>(create: (_) => VoicePlaybackCubit()),
       ],
@@ -269,6 +273,7 @@ class _RoomScaffold extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           titleSpacing: 0,
           // Only the title and menu read state — and only room/viewerCount, not
@@ -318,21 +323,33 @@ class _RoomScaffold extends StatelessWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            return Column(
-              children: [
-                // The player is sized to the video's real aspect ratio (16:9
-                // until it's known) rather than a fixed half-screen, and capped
-                // so a tall/portrait video can't dominate — the reaction bar,
-                // tabs and chat take the rest.
-                BlocSelector<WatchCubit, WatchState, double>(
-                  selector: (s) => s.videoAspectRatio,
-                  builder: (context, aspectRatio) {
-                    final ar = aspectRatio > 0 ? aspectRatio : 16 / 9;
-                    final maxHeight = constraints.maxHeight * 0.6;
-                    final playerHeight =
-                        (constraints.maxWidth / ar).clamp(0.0, maxHeight);
-                    return SizedBox(
-                      height: playerHeight,
+            final totalHeight = constraints.maxHeight;
+            const handleHeight = 20.0;
+            // Guard against degenerate/transient constraints (e.g. a mid-
+            // keyboard-animation frame giving maxHeight <= handleHeight): a
+            // non-positive availableHeight would make the fraction math produce
+            // negative SizedBox heights and throw.
+            final availableHeight = (totalHeight - handleHeight).clamp(
+              0.0,
+              double.infinity,
+            );
+
+            return BlocBuilder<ChatDividerCubit, ChatDividerState>(
+              builder: (context, divider) {
+                final minFraction =
+                    (ChatDividerCubit.minBottomHeight / availableHeight)
+                        .clamp(0.0, ChatDividerCubit.maxFraction);
+                final clampedFraction =
+                    divider.fraction.clamp(minFraction, ChatDividerCubit.maxFraction);
+                final bottomHeight = availableHeight * clampedFraction;
+                final videoHeight = availableHeight - bottomHeight;
+
+                return Column(
+                  children: [
+                    // Top section: just the video player — fills all available
+                    // space; the Video widget letterboxes to the real aspect ratio.
+                    SizedBox(
+                      height: videoHeight,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -349,40 +366,73 @@ class _RoomScaffold extends StatelessWidget {
                           const DrawingCanvas(),
                         ],
                       ),
-                    );
-                  },
-                ),
-                const WaitBanner(),
-                // Action buttons row — emojis moved to their own row below it.
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      const VoiceButton(),
-                      const SizedBox(width: 4),
-                      const DownloadButton(),
-                      const DrawToggleButton(),
-                      const ControlsLockButton(),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                ),
-                // Emoji reaction strip, on its own row under the buttons.
-                const Padding(
-                  padding: EdgeInsets.only(top: 2, bottom: 6),
-                  child: ReactionBar(),
-                ),
-                TabBar(
-                  tabs: [
-                    Tab(text: context.tr(TranslationKeys.chatTab)),
-                    Tab(text: context.tr(TranslationKeys.viewersTab)),
+                    ),
+                    // Drag handle
+                    GestureDetector(
+                      onVerticalDragUpdate: (details) {
+                        context.read<ChatDividerCubit>().setFraction(
+                          ((bottomHeight - details.delta.dy) / availableHeight),
+                          availableHeight: availableHeight,
+                        );
+                      },
+                      child: Container(
+                        height: handleHeight,
+                        color: Colors.transparent,
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Bottom section: buttons + reaction bar + chat
+                    SizedBox(
+                      height: bottomHeight,
+                      child: Column(
+                        children: [
+                          const WaitBanner(),
+                          // Action buttons row — emojis moved to their own row below it.
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              children: [
+                                const Spacer(),
+                                const VoiceButton(),
+                                const SizedBox(width: 4),
+                                const BookmarkButton(),
+                                const SizedBox(width: 4),
+                                const DownloadButton(),
+                                const DrawToggleButton(),
+                                const ControlsLockButton(),
+                                const SizedBox(width: 8),
+                              ],
+                            ),
+                          ),
+                          // Emoji reaction strip, on its own row under the buttons.
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2, bottom: 6),
+                            child: ReactionBar(),
+                          ),
+                          TabBar(
+                            tabs: [
+                              Tab(text: context.tr(TranslationKeys.chatTab)),
+                              Tab(text: context.tr(TranslationKeys.viewersTab)),
+                            ],
+                          ),
+                          const Expanded(
+                            child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-                const Expanded(
-                  child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
-                ),
-              ],
+                );
+              },
             );
           },
         ),

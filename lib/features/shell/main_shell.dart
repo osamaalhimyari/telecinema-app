@@ -62,31 +62,37 @@ class MainShell extends StatelessWidget {
       child: Scaffold(
         body: navigationShell,
         bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _onTap,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.meeting_room_outlined),
-            selectedIcon: const Icon(Icons.meeting_room_rounded),
-            label: context.tr(TranslationKeys.roomsTab),
-          ),
-          //  NavigationDestination(
-          //   icon: const Icon(Icons.play_circle_outline_rounded),
-          //   selectedIcon: const Icon(Icons.play_circle_rounded),
-          //   label: context.tr(TranslationKeys.youtubeTab),
-          // ),
-          // Browse — unified IMDB + Cinema catalogue (one tab, branch index 1).
-          NavigationDestination(
-            icon: const Icon(Icons.movie_outlined),
-            selectedIcon: const Icon(Icons.movie_rounded),
-            label: context.tr(TranslationKeys.browseTab),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.favorite_outline_rounded),
-            selectedIcon: const Icon(Icons.favorite_rounded),
-            label: context.tr(TranslationKeys.favoritesTab),
-          ),
-        ],
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: _onTap,
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.meeting_room_outlined),
+              selectedIcon: const Icon(Icons.meeting_room_rounded),
+              label: context.tr(TranslationKeys.roomsTab),
+            ),
+            //  NavigationDestination(
+            //   icon: const Icon(Icons.play_circle_outline_rounded),
+            //   selectedIcon: const Icon(Icons.play_circle_rounded),
+            //   label: context.tr(TranslationKeys.youtubeTab),
+            // ),
+            //// Live TV — isolated YacineTV tab (branch index 1 in [router]).
+            // NavigationDestination(
+            //   icon: const Icon(Icons.live_tv_outlined),
+            //   selectedIcon: const Icon(Icons.live_tv_rounded),
+            //   label: context.tr(TranslationKeys.tvTab),
+            // ),
+            // Browse — unified IMDB + Cinema catalogue (branch index 2).
+            NavigationDestination(
+              icon: const Icon(Icons.movie_outlined),
+              selectedIcon: const Icon(Icons.movie_rounded),
+              label: context.tr(TranslationKeys.browseTab),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.favorite_outline_rounded),
+              selectedIcon: const Icon(Icons.favorite_rounded),
+              label: context.tr(TranslationKeys.favoritesTab),
+            ),
+          ],
         ),
       ),
     );

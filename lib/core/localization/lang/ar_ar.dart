@@ -49,6 +49,14 @@ const Map<String, String> arAr = {
   TranslationKeys.browseTab: 'استكشاف',
   TranslationKeys.favoritesTab: 'المفضلة',
   TranslationKeys.youtubeTab: 'يوتيوب',
+  TranslationKeys.tvTab: 'البث المباشر',
+
+  TranslationKeys.tvTitle: 'البث المباشر',
+  TranslationKeys.tvChannels: 'قناة',
+  TranslationKeys.tvEmpty: 'لا توجد قنوات متاحة',
+  TranslationKeys.tvLive: 'مباشر',
+  TranslationKeys.tvChannelUnavailable:
+      'تعذّر تشغيل هذه القناة. ربما انتهت صلاحية البث — اسحب لتحديث القائمة وحاول مجددًا.',
 
   TranslationKeys.cinemaTitle: 'سينما',
   TranslationKeys.cinemaSearchHint: 'ابحث عن أفلام ومسلسلات',
@@ -291,4 +299,12 @@ const Map<String, String> arAr = {
       'يلزم إصدار جديد لمتابعة استخدام TeleCinema. يرجى التحديث للمتابعة.',
   TranslationKeys.updateInstallHint:
       'إذا أظهر أندرويد أن التطبيق غير آمن، اضغط «مزيد من التفاصيل» ثم «تثبيت على أي حال».',
+
+  // Bookmarks
+  TranslationKeys.addBookmark: 'إضافة إشارة مرجعية',
+  TranslationKeys.bookmarkSaved: 'تم حفظ الإشارة المرجعية',
+  TranslationKeys.bookmarks: 'الإشارات المرجعية',
+  TranslationKeys.bookmarkName: 'اسم الإشارة المرجعية',
+  TranslationKeys.bookmarkNameHint: 'مثال: مشهدي المفضل',
+  TranslationKeys.noBookmarks: 'لا توجد إشارات مرجعية بعد',
 };

@@ -5,6 +5,7 @@ import '/features/cinema/injections/cinema_injection.dart';
 import '/features/discover/injections/discover_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/subtitles/injections/subtitles_injection.dart';
+import '/features/tv/injections/tv_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 
 /// Short-lived bloc/cubit factories — a fresh instance every time a page opens.
@@ -14,5 +15,6 @@ Future<void> initFactories(GetIt sl) async {
   await injectBrowseFactories(sl);
   await injectCinemaFactories(sl);
   await injectDiscoverFactories(sl);
+  await injectTvFactories(sl);
   await injectSubtitlesFactories(sl);
 }

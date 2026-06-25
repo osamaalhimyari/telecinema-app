@@ -74,6 +74,13 @@ class AppConfig {
   static String? youtubeStreamUrl(String? slug) =>
       (slug == null || slug.isEmpty) ? null : '$baseUrl/youtube/$slug';
 
+  /// Absolute URL of a live-TV room's HLS relay (`GET /livetv/:slug`). The
+  /// server fetches the (ISP-blocked, header-gated) channel stream and rewrites
+  /// it through itself, so the device plays it like any other HLS source — no
+  /// per-channel headers needed client-side.
+  static String? liveStreamUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/livetv/$slug';
+
   /// Absolute URL of a room's thumbnail (served statically from `public/`).
   static String? thumbnailUrl(String? filename) =>
       (filename == null || filename.isEmpty)

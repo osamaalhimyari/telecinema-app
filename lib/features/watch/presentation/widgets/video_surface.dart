@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -8,6 +9,7 @@ import 'package:simple_pip_mode/simple_pip.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
+import '../../domain/entities/bookmark.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
@@ -49,7 +51,8 @@ class _VideoSurfaceState extends State<VideoSurface> {
   static const Duration _idleTimeout = Duration(seconds: 5);
 
   ValueNotifier<bool> get _visible =>
-      widget.controlsVisibility ?? (_ownVisibility ??= ValueNotifier<bool>(true));
+      widget.controlsVisibility ??
+      (_ownVisibility ??= ValueNotifier<bool>(true));
 
   @override
   void initState() {
@@ -88,7 +91,8 @@ class _VideoSurfaceState extends State<VideoSurface> {
   }
 
   /// PiP is offered only inline (not in fullscreen) and only on Android.
-  bool get _pipSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _pipSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   Widget build(BuildContext context) {
@@ -118,39 +122,40 @@ class _VideoSurfaceState extends State<VideoSurface> {
         child: GestureDetector(
           onTap: state.controlsLocked ? null : _toggleControls,
           child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // The Video widget letterboxes to the real aspect ratio on black.
-            // media_kit renders the active subtitle via this Flutter overlay, so
-            // the room's shared weight/size drive its style. (Timing is applied
-            // separately through libmpv's `sub-delay`.)
-            Video(
-              controller: controller,
-              controls: NoVideoControls,
-              fit: BoxFit.contain,
-              subtitleViewConfiguration: SubtitleViewConfiguration(
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: state.subtitleSettings.size.toDouble(),
-                  fontWeight: state.subtitleSettings.fontWeight,
-                  height: 1.3,
-                  backgroundColor: const Color(0xAA000000),
+            fit: StackFit.expand,
+            children: [
+              // The Video widget letterboxes to the real aspect ratio on black.
+              // media_kit renders the active subtitle via this Flutter overlay, so
+              // the room's shared weight/size drive its style. (Timing is applied
+              // separately through libmpv's `sub-delay`.)
+              Video(
+                controller: controller,
+                controls: NoVideoControls,
+                fit: BoxFit.contain,
+                subtitleViewConfiguration: SubtitleViewConfiguration(
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: state.subtitleSettings.size.toDouble(),
+                    fontWeight: state.subtitleSettings.fontWeight,
+                    height: 1.3,
+                    backgroundColor: const Color(0xAA000000),
+                  ),
                 ),
               ),
-            ),
-            if (state.isBuffering) const Center(child: CircularProgressIndicator()),
-            ValueListenableBuilder<bool>(
-              valueListenable: _visible,
-              builder: (context, visible, _) => AnimatedOpacity(
-                opacity: visible ? 1 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: IgnorePointer(
-                  ignoring: !visible || state.controlsLocked,
-                  child: _controls(context, state, cubit),
+              if (state.isBuffering)
+                const Center(child: CircularProgressIndicator()),
+              ValueListenableBuilder<bool>(
+                valueListenable: _visible,
+                builder: (context, visible, _) => AnimatedOpacity(
+                  opacity: visible ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: IgnorePointer(
+                    ignoring: !visible || state.controlsLocked,
+                    child: _controls(context, state, cubit),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
           ),
         ),
       ),
@@ -176,38 +181,47 @@ class _VideoSurfaceState extends State<VideoSurface> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  iconSize: 32,
-                  color: Colors.white,
-                  tooltip: '-10s',
-                  icon: const Icon(Icons.replay_10_rounded),
-                  onPressed: () {
-                    cubit.seekBy(const Duration(seconds: -10));
-                    _restartHideTimer();
-                  },
-                ),
-                const SizedBox(width: 20),
+                // Live TV has no timeline — skip the ±10s seek buttons.
+                if (!state.isLive) ...[
+                  IconButton(
+                    iconSize: 32,
+                    color: Colors.white,
+                    tooltip: '-10s',
+                    icon: const Icon(Icons.replay_10_rounded),
+                    onPressed: () {
+                      cubit.seekBy(const Duration(seconds: -10));
+                      _restartHideTimer();
+                    },
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 IconButton.filled(
                   iconSize: 36,
                   style: IconButton.styleFrom(backgroundColor: Colors.white24),
-                  icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                  icon: Icon(
+                    state.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
                   color: Colors.white,
                   onPressed: () {
                     cubit.togglePlay();
                     _restartHideTimer();
                   },
                 ),
-                const SizedBox(width: 20),
-                IconButton(
-                  iconSize: 32,
-                  color: Colors.white,
-                  tooltip: '+10s',
-                  icon: const Icon(Icons.forward_10_rounded),
-                  onPressed: () {
-                    cubit.seekBy(const Duration(seconds: 10));
-                    _restartHideTimer();
-                  },
-                ),
+                if (!state.isLive) ...[
+                  const SizedBox(width: 20),
+                  IconButton(
+                    iconSize: 32,
+                    color: Colors.white,
+                    tooltip: '+10s',
+                    icon: const Icon(Icons.forward_10_rounded),
+                    onPressed: () {
+                      cubit.seekBy(const Duration(seconds: 10));
+                      _restartHideTimer();
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -216,29 +230,64 @@ class _VideoSurfaceState extends State<VideoSurface> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Text(_fmt(pos), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 3,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                    ),
-                    child: Slider(
-                      value: pos.inMilliseconds.clamp(0, dur.inMilliseconds).toDouble(),
-                      max: dur.inMilliseconds.toDouble().clamp(1, double.infinity),
-                      activeColor: context.colors.primary,
-                      inactiveColor: Colors.white30,
-                      onChanged: (v) {
-                        cubit.emitLocalSeekPreview(Duration(milliseconds: v.toInt()));
-                        _restartHideTimer();
-                      },
-                      onChangeEnd: (v) => cubit.seekTo(Duration(milliseconds: v.toInt())),
+                // Live TV: no scrubber/time/speed (the stream rides the live
+                // edge) — just a LIVE badge, then the PiP/fullscreen controls.
+                if (state.isLive) ...[
+                  _liveLabel(context),
+                  const Spacer(),
+                ] else ...[
+                  Text(
+                    _fmt(pos),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  Expanded(
+                    child: SizedBox(
+                      height: 24,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 3,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 12,
+                              ),
+                            ),
+                            child: Slider(
+                              value: pos.inMilliseconds
+                                  .clamp(0, dur.inMilliseconds)
+                                  .toDouble(),
+                              max: dur.inMilliseconds.toDouble().clamp(
+                                1,
+                                double.infinity,
+                              ),
+                              activeColor: context.colors.primary,
+                              inactiveColor: Colors.white30,
+                              onChanged: (v) {
+                                cubit.emitLocalSeekPreview(
+                                  Duration(milliseconds: v.toInt()),
+                                );
+                                _restartHideTimer();
+                              },
+                              onChangeEnd: (v) => cubit.seekTo(
+                                Duration(milliseconds: v.toInt()),
+                              ),
+                            ),
+                          ),
+                          IgnorePointer(child: _bookmarkTicks(context, dur)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Text(_fmt(dur), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                _speedMenu(context, state, cubit),
+                  Text(
+                    _fmt(dur),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  _speedMenu(context, state, cubit),
+                ],
                 if (!widget.fullscreen && _pipSupported)
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -252,7 +301,9 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   color: Colors.white,
                   tooltip: context.tr(TranslationKeys.fullscreen),
                   icon: Icon(
-                    widget.fullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                    widget.fullscreen
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
                   ),
                   onPressed: widget.onToggleFullscreen,
                 ),
@@ -265,21 +316,89 @@ class _VideoSurfaceState extends State<VideoSurface> {
     );
   }
 
+  /// Small red "LIVE" pill shown in place of the scrubber for live-TV rooms.
+  Widget _liveLabel(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.red.shade600,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        context.tr(TranslationKeys.tvLive),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
   Widget _speedMenu(BuildContext context, WatchState state, WatchCubit cubit) {
     return PopupMenuButton<double>(
       tooltip: context.tr(TranslationKeys.playbackSpeed),
       initialValue: state.playbackRate,
       onSelected: cubit.setRate,
-      itemBuilder: (_) => [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-          .map((r) => PopupMenuItem(value: r, child: Text('${r}x')))
-          .toList(),
+      itemBuilder: (_) => [
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+      ].map((r) => PopupMenuItem(value: r, child: Text('${r}x'))).toList(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Text(
           '${state.playbackRate}x',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
+    );
+  }
+
+  List<Bookmark> _loadBookmarks() => context.read<WatchCubit>().loadBookmarks();
+
+  /// Small vertical lines on the seekbar at each bookmark's position.
+  Widget _bookmarkTicks(BuildContext context, Duration duration) {
+    if (duration.inMilliseconds <= 0) return const SizedBox.shrink();
+    final bookmarks = _loadBookmarks();
+    if (bookmarks.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 12.0;
+        final trackWidth = constraints.maxWidth - horizontalPadding * 2;
+        if (trackWidth <= 0) return const SizedBox.shrink();
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final b in bookmarks)
+              Positioned(
+                left:
+                    horizontalPadding +
+                    (b.position.inMilliseconds / duration.inMilliseconds)
+                            .clamp(0.0, 1.0) *
+                        trackWidth -
+                    1,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 2,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: context.colors.primary.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

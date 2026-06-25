@@ -87,6 +87,12 @@ class _ChatPanelView extends StatelessWidget {
                 itemCount: state.messages.length,
                 itemBuilder: (context, i) {
                   final m = state.messages[i];
+                  // Defensive: never render a blank row (no text and no clip).
+                  // A voice clip always has an audioUrl/duration, so it stays a
+                  // voice bubble; this only drops a genuinely empty message.
+                  if (!m.isVoice && m.text.trim().isEmpty) {
+                    return const SizedBox.shrink();
+                  }
                   final mine = m.mine || m.name == me;
                   final failed = m.status == ChatStatus.failed;
                   // Streamer-style: every message — including our own — is shown
@@ -158,25 +164,22 @@ class _ChatPanelView extends StatelessWidget {
           ),
         ),
         const TypingIndicator(),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-            // Text field + send, or tap-the-mic to record a voice message.
-            child: VoiceComposer(
-              input: chat.input,
-              onSend: chat.send,
-              field: TextField(
-                controller: chat.input,
-                textInputAction: TextInputAction.send,
-                minLines: 1,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: context.tr(TranslationKeys.chatHint),
-                  isDense: true,
-                ),
-                onSubmitted: (_) => chat.send(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(12, 6, 12, 10 + MediaQuery.of(context).viewPadding.bottom),
+          // Text field + send, or tap-the-mic to record a voice message.
+          child: VoiceComposer(
+            input: chat.input,
+            onSend: chat.send,
+            field: TextField(
+              controller: chat.input,
+              textInputAction: TextInputAction.send,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: context.tr(TranslationKeys.chatHint),
+                isDense: true,
               ),
+              onSubmitted: (_) => chat.send(),
             ),
           ),
         ),

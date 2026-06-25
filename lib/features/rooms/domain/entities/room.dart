@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '/core/config/app_config.dart';
+import '/core/livetv/live_stream.dart';
 import 'room_type.dart';
 
 /// A single watch-party room. Streamable URLs are derived on the fly from the
@@ -61,11 +62,20 @@ class Room extends Equatable {
 
   bool get isExternal => roomType.isExternal;
 
+  bool get isTv => roomType.isTv;
+
+  /// For a live-TV room, the unpacked source (stream URL + per-channel headers +
+  /// channel path for token refresh); null for every other room type. The
+  /// packed string is stored in [externalUrl].
+  LiveStreamRef? get liveStream =>
+      roomType.isTv ? LiveStreamCodec.unpack(externalUrl) : null;
+
   /// Streamable video URL: the swarm stream for torrent rooms, the server proxy
-  /// for youtube rooms, the stored file for upload/download rooms, null for
-  /// external (WebView) rooms.
+  /// for youtube/live-TV rooms, the stored file for upload/download rooms, null
+  /// for external (WebView) rooms.
   String? get videoUrl {
     if (isExternal) return null;
+    if (isTv) return AppConfig.liveStreamUrl(slug);
     if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
     if (roomType.isYoutube) return AppConfig.youtubeStreamUrl(slug);
     return AppConfig.videoUrl(videoFilename);

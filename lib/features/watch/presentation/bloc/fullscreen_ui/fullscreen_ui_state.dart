@@ -9,6 +9,7 @@ class FullscreenUiState extends Equatable {
     this.controlsExpanded = false,
     this.reactionsExpanded = false,
     this.messagesOpen = false,
+    this.bookmarksOpen = false,
   });
 
   /// The control stack (messages / mic / draw / lock) is revealed beside its
@@ -21,18 +22,24 @@ class FullscreenUiState extends Equatable {
   /// The messages side-panel is open.
   final bool messagesOpen;
 
+  /// The bookmarks side-panel is open.
+  final bool bookmarksOpen;
+
   FullscreenUiState copyWith({
     bool? controlsExpanded,
     bool? reactionsExpanded,
     bool? messagesOpen,
+    bool? bookmarksOpen,
   }) {
     return FullscreenUiState(
       controlsExpanded: controlsExpanded ?? this.controlsExpanded,
       reactionsExpanded: reactionsExpanded ?? this.reactionsExpanded,
       messagesOpen: messagesOpen ?? this.messagesOpen,
+      bookmarksOpen: bookmarksOpen ?? this.bookmarksOpen,
     );
   }
 
   @override
-  List<Object?> get props => [controlsExpanded, reactionsExpanded, messagesOpen];
+  List<Object?> get props =>
+      [controlsExpanded, reactionsExpanded, messagesOpen, bookmarksOpen];
 }
