@@ -325,7 +325,14 @@ class _RoomScaffold extends StatelessWidget {
           builder: (context, constraints) {
             final totalHeight = constraints.maxHeight;
             const handleHeight = 20.0;
-            final availableHeight = totalHeight - handleHeight;
+            // Guard against degenerate/transient constraints (e.g. a mid-
+            // keyboard-animation frame giving maxHeight <= handleHeight): a
+            // non-positive availableHeight would make the fraction math produce
+            // negative SizedBox heights and throw.
+            final availableHeight = (totalHeight - handleHeight).clamp(
+              0.0,
+              double.infinity,
+            );
 
             return BlocBuilder<ChatDividerCubit, ChatDividerState>(
               builder: (context, divider) {

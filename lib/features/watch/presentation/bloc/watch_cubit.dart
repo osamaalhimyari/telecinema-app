@@ -1343,6 +1343,7 @@ class WatchCubit extends Cubit<WatchState> {
     bookmarks.insert(0, Bookmark(id: id, position: state.position, name: name));
     final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
     await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
     emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
   }
 
@@ -1354,6 +1355,7 @@ class WatchCubit extends Cubit<WatchState> {
     bookmarks.removeWhere((b) => b.id == id);
     final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
     await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
     emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
   }
 
@@ -1364,9 +1366,13 @@ class WatchCubit extends Cubit<WatchState> {
     final bookmarks = loadBookmarks();
     final idx = bookmarks.indexWhere((b) => b.id == id);
     if (idx == -1) return;
-    bookmarks[idx] = bookmarks[idx].copyWith(name: name);
+    // Rebuild rather than copyWith: copyWith treats a null `name` as "keep
+    // existing", so it can't clear a name once set — a blank rename must stick.
+    final current = bookmarks[idx];
+    bookmarks[idx] = Bookmark(id: current.id, position: current.position, name: name);
     final encoded = jsonEncode(bookmarks.map((b) => b.toJson()).toList());
     await _storage.setString(StorageKeys.bookmarks(slug), encoded);
+    if (isClosed) return;
     emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
   }
 

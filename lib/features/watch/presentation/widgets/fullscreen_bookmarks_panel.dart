@@ -32,32 +32,37 @@ class FullscreenBookmarksPanel extends StatelessWidget {
   }
 
   Future<void> _rename(BuildContext context, Bookmark b) async {
-    final controller = TextEditingController(text: b.name ?? '');
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.tr(TranslationKeys.bookmarkName)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: ctx.tr(TranslationKeys.bookmarkNameHint),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(ctx.tr(TranslationKeys.cancel)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: Text(ctx.tr(TranslationKeys.save)),
-          ),
-        ],
-      ),
-    );
-    if (name == null) return;
     final cubit = context.read<WatchCubit>();
+    final controller = TextEditingController(text: b.name ?? '');
+    final String? name;
+    try {
+      name = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr(TranslationKeys.bookmarkName)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: ctx.tr(TranslationKeys.bookmarkNameHint),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(ctx.tr(TranslationKeys.cancel)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: Text(ctx.tr(TranslationKeys.save)),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+    if (name == null) return;
     await cubit.updateBookmark(b.id, name: name.isEmpty ? null : name);
   }
 

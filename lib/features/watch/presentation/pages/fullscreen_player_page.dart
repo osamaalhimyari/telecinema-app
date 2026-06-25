@@ -66,7 +66,9 @@ class _FullscreenView extends StatelessWidget {
           // "X is writing…" floats over the video while the messages panel is
           // closed (the open panel shows its own indicator).
           BlocBuilder<FullscreenUiCubit, FullscreenUiState>(
-            buildWhen: (a, b) => a.messagesOpen != b.messagesOpen,
+            buildWhen: (a, b) =>
+                a.messagesOpen != b.messagesOpen ||
+                a.bookmarksOpen != b.bookmarksOpen,
             builder: (context, state) =>
                 state.messagesOpen || state.bookmarksOpen
                     ? const SizedBox.shrink()
