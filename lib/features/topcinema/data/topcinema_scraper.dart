@@ -25,12 +25,18 @@ class TopcinemaScraper {
 
   static const _ua =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  /// Mirror hosts, tried in order — a dead/blocked mirror falls through to the
+  /// next. [_base] stays the canonical one (used as the Referer when resolving
+  /// the file host).
+  static const _hosts = Endpoints.topcinemaHosts;
   static const _base = Endpoints.topcinema;
   static const _timeout = Duration(seconds: 25);
 
-  /// `href="…"` links pointing back at the [_base] host — derived from [_base]
-  /// so a mirror change in `endpoints.dart` is the only edit needed.
-  static final RegExp _linkRe = RegExp('href="(${RegExp.escape(_base)}/[^"]+)"');
+  /// `href="…"` links pointing back at any configured mirror host — so links are
+  /// captured whichever mirror served the page. Adding a host in `endpoints.dart`
+  /// is the only edit needed.
+  static final RegExp _linkRe =
+      RegExp('href="((?:${_hosts.map(RegExp.escape).join('|')})/[^"]+)"');
 
   /// Arabic season ordinals as they appear in the url (الموسم الاول … العاشر).
   static const _ordinals = [
@@ -45,9 +51,17 @@ class TopcinemaScraper {
   /// seasons list + that page's episodes.
   Future<TopcinemaSeries> seriesByName(String name) async {
     final slug = _slugify(name);
+    final series = await _acrossHosts((base) => _seriesByNameOn(base, slug));
+    if (series == null) throw const ServerException('topcinema_not_found');
+    return series;
+  }
+
+  /// One mirror's attempt at [seriesByName]. Returns null when this host has no
+  /// match (so the caller can fail over to the next mirror).
+  Future<TopcinemaSeries?> _seriesByNameOn(String base, String slug) async {
     final candidates = [
-      '$_base/series/${Uri.encodeComponent('مسلسل-$slug-الموسم-الاول-مترجم')}/',
-      '$_base/series/${Uri.encodeComponent('مسلسل-$slug-مترجم')}/',
+      '$base/series/${Uri.encodeComponent('مسلسل-$slug-الموسم-الاول-مترجم')}/',
+      '$base/series/${Uri.encodeComponent('مسلسل-$slug-مترجم')}/',
     ];
     for (final url in candidates) {
       final html = await _get(url);
@@ -56,7 +70,7 @@ class TopcinemaScraper {
       }
     }
     // Search fallback: any series/episode link for this title.
-    final results = await _get('$_base/?s=${Uri.encodeQueryComponent(slug.replaceAll('-', ' '))}');
+    final results = await _get('$base/?s=${Uri.encodeQueryComponent(slug.replaceAll('-', ' '))}');
     if (results != null) {
       final series = _links(results).where((l) =>
           l.dec.contains('/series/') && l.dec.contains('مسلسل-'));
@@ -68,12 +82,12 @@ class TopcinemaScraper {
           (l) => l.dec.contains('الحلقة') && l.dec.contains('مسلسل-'));
       final epSlug = ep == null ? null : _slugOf(ep.dec);
       if (epSlug != null) {
-        final url = '$_base/series/${Uri.encodeComponent('مسلسل-$epSlug-الموسم-الاول-مترجم')}/';
+        final url = '$base/series/${Uri.encodeComponent('مسلسل-$epSlug-الموسم-الاول-مترجم')}/';
         final html = await _get(url);
         if (html != null) return _parseSeries(url, html);
       }
     }
-    throw const ServerException('topcinema_not_found');
+    return null;
   }
 
   /// Parses a specific season page (when the user switches seasons).
@@ -93,8 +107,17 @@ class TopcinemaScraper {
   /// Resolves a movie (by editable name slug) to its sources.
   Future<List<TopcinemaSource>> resolveMovie(String name) async {
     final slug = _slugify(name);
-    final candidates = ['$_base/${Uri.encodeComponent('فيلم-$slug-مترجم')}/'];
-    final results = await _get('$_base/?s=${Uri.encodeQueryComponent(slug.replaceAll('-', ' '))}');
+    final sources = await _acrossHosts((base) => _resolveMovieOn(base, slug));
+    if (sources == null || sources.isEmpty) {
+      throw const ServerException('topcinema_not_found');
+    }
+    return sources;
+  }
+
+  /// One mirror's attempt at [resolveMovie]; null when this host has no sources.
+  Future<List<TopcinemaSource>?> _resolveMovieOn(String base, String slug) async {
+    final candidates = ['$base/${Uri.encodeComponent('فيلم-$slug-مترجم')}/'];
+    final results = await _get('$base/?s=${Uri.encodeQueryComponent(slug.replaceAll('-', ' '))}');
     if (results != null) {
       final film = _links(results)
           .firstWhereOrNull((l) => l.dec.contains('فيلم-') && !l.dec.contains('الحلقة'));
@@ -104,7 +127,7 @@ class TopcinemaScraper {
       final sources = await _resolvePage(page);
       if (sources.isNotEmpty) return sources;
     }
-    throw const ServerException('topcinema_not_found');
+    return null;
   }
 
   // ---- parsing -----------------------------------------------------------
@@ -159,12 +182,14 @@ class TopcinemaScraper {
     final dlUrl = pageUrl.endsWith('/') ? '${pageUrl}download/' : '$pageUrl/download/';
     final dl = await _get(dlUrl);
     if (dl == null) return const [];
+    // The file host rotates its subdomain (`vidtube.one` → `down.vidtube.one` →
+    // …) just like topcinema's own mirror, so match any subdomain.
     final vt = RegExp(
-              r'href="(https://vidtube\.one/d/[^"]+\.html)"[^>]*class="[^"]*proServer',
+              r'href="(https://(?:[\w-]+\.)?vidtube\.one/d/[^"]+\.html)"[^>]*class="[^"]*proServer',
               caseSensitive: false)
           .firstMatch(dl)
           ?.group(1) ??
-      RegExp(r'href="(https://vidtube\.one/d/[^"]+\.html)"', caseSensitive: false)
+      RegExp(r'href="(https://(?:[\w-]+\.)?vidtube\.one/d/[^"]+\.html)"', caseSensitive: false)
           .firstMatch(dl)
           ?.group(1);
     if (vt == null) return const [];
@@ -174,6 +199,8 @@ class TopcinemaScraper {
   Future<List<TopcinemaSource>> _resolveVidtube(String vidtubeHtmlUrl) async {
     final id = RegExp(r'/d/([^.]+)\.html').firstMatch(vidtubeHtmlUrl)?.group(1);
     if (id == null) return const [];
+    // Resolve quality variants against whatever subdomain served this page.
+    final origin = Uri.parse(vidtubeHtmlUrl).origin;
     final body = await _get(vidtubeHtmlUrl, referer: '$_base/');
     if (body == null) return const [];
 
@@ -184,7 +211,7 @@ class TopcinemaScraper {
     if (variants.isEmpty) return const [];
 
     final resolved = await Future.wait(variants.map((v) async {
-      final vb = await _get('https://vidtube.one/d/${id}_${v.key}', referer: vidtubeHtmlUrl);
+      final vb = await _get('$origin/d/${id}_${v.key}', referer: vidtubeHtmlUrl);
       final url = vb == null
           ? null
           : RegExp(r'https?://[^"' "'" r'\s]+\.mp4[^"' "'" r'\s]*').firstMatch(vb)?.group(0);
@@ -205,6 +232,25 @@ class TopcinemaScraper {
   }
 
   // ---- helpers -----------------------------------------------------------
+
+  /// Runs [attempt] against each mirror host in turn, returning the first
+  /// non-null result. A host that is unreachable (timeout / network error) is
+  /// skipped so a dead mirror falls through to the next; only if *every* host is
+  /// unreachable is the connectivity error surfaced. A reachable host that
+  /// simply has no match returns null and the caller decides (`not_found`).
+  Future<T?> _acrossHosts<T>(Future<T?> Function(String base) attempt) async {
+    ServerException? lastError;
+    for (final base in _hosts) {
+      try {
+        final result = await attempt(base);
+        if (result != null) return result;
+      } on ServerException catch (e) {
+        lastError = e;
+      }
+    }
+    if (lastError != null) throw lastError;
+    return null;
+  }
 
   /// Fetches a url with a browser UA. Returns null on a non-200 / network error
   /// (callers treat that as "no source here" and fall through).

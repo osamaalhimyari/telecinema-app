@@ -103,6 +103,14 @@ class TranslationKeys {
   static const topcinemaNotFound = 'topcinema_not_found';
   static const topcinemaUnavailable = 'topcinema_unavailable';
 
+  // iwaatch (isolated server-resolved direct-link "third way", movies only)
+  static const iwaatchButton = 'iwaatch_button';
+  static const iwaatchTitle = 'iwaatch_title';
+  static const iwaatchNameHint = 'iwaatch_name_hint';
+  static const iwaatchGo = 'iwaatch_go';
+  static const iwaatchNotFound = 'iwaatch_not_found';
+  static const iwaatchUnavailable = 'iwaatch_unavailable';
+
   // Browse (catalogue)
   static const browseTitle = 'browse_title';
   static const browseSearchHint = 'browse_search_hint';

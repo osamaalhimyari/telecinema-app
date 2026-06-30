@@ -681,11 +681,11 @@ class _RoomMenu extends StatelessWidget {
   }
 
   Future<void> _pickSubtitle(BuildContext context, WatchCubit cubit) async {
-    final result = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['srt', 'vtt'],
     );
-    final path = result?.files.single.path;
+    final path = file?.path;
     if (path == null) return;
     final error = await cubit.uploadSubtitle(path);
     if (!context.mounted) return;

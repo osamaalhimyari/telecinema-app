@@ -89,6 +89,43 @@ class _PanelView extends StatelessWidget {
   void _send(BuildContext context) =>
       context.read<FullscreenMessagesCubit>().send();
 
+  /// Time of receipt + (on our own messages) a delivery mark — a check once the
+  /// room has it, a clock while it's in flight, or a tap-to-retry hint. Mirrors
+  /// the inline chat bubble so voice messages read the same here.
+  Widget _meta(BuildContext context, ChatMessage m, bool mine) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            TimeOfDay.fromDateTime(m.time).format(context),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          if (mine) ...[
+            const SizedBox(width: 5),
+            switch (m.status) {
+              ChatStatus.sent => const Icon(
+                Icons.done_all_rounded,
+                size: 13,
+                color: Colors.white70,
+              ),
+              ChatStatus.sending => const Icon(
+                Icons.schedule_rounded,
+                size: 12,
+                color: Colors.white70,
+              ),
+              ChatStatus.failed => Text(
+                context.tr(TranslationKeys.chatRetry),
+                style: TextStyle(color: context.colors.error, fontSize: 11),
+              ),
+            },
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -225,6 +262,7 @@ class _PanelView extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           VoiceMessageBubble(message: m, dark: true),
+                          _meta(context, m, mine),
                         ],
                       )
                     : Text.rich(

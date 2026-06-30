@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
+import '/features/iwaatch/data/datasources/iwaatch_remote_datasource.dart';
+import '/features/iwaatch/presentation/widgets/iwaatch_picker_sheet.dart';
 import '/features/topcinema/data/datasources/topcinema_remote_datasource.dart';
 import '/features/topcinema/presentation/widgets/topcinema_picker_sheet.dart';
 import '/injections/injection.dart';
@@ -282,8 +284,36 @@ class _DetailView extends StatelessWidget {
               minimumSize: const Size.fromHeight(50),
             ),
           ),
+          // Isolated "third way": a server-resolved direct link from iwaatch.
+          // Movies only (iwaatch has no series yet), independent of the others.
+          if (!state.isSeries) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _openIwaatch(context, state),
+              icon: const Icon(Icons.link_rounded),
+              label: Text(context.tr(TranslationKeys.iwaatchButton)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  /// Opens the standalone iwaatch picker — resolves a direct link on the server
+  /// and creates a download room. Movies only; separate from the other sources.
+  void _openIwaatch(BuildContext context, DetailState state) {
+    final name = state.detail?.name ?? initial?.name ?? '';
+    if (name.isEmpty) return;
+    showIwaatchPicker(
+      context,
+      title: name,
+      datasource: sl<IwaatchRemoteDataSource>(),
+      category: 'movies',
+      imdbId: id,
+      poster: state.detail?.poster ?? initial?.poster,
     );
   }
 

@@ -91,6 +91,13 @@ const Map<String, String> arAr = {
   TranslationKeys.topcinemaNotFound: 'لا يوجد مصدر مباشر لهذا العنوان.',
   TranslationKeys.topcinemaUnavailable: 'المصدر المباشر غير متاح حالياً.',
 
+  TranslationKeys.iwaatchButton: 'رابط مباشر',
+  TranslationKeys.iwaatchTitle: 'رابط مباشر',
+  TranslationKeys.iwaatchNameHint: 'عدّل الاسم إذا لزم (مثال: back-in-action-2025).',
+  TranslationKeys.iwaatchGo: 'بحث',
+  TranslationKeys.iwaatchNotFound: 'لا يوجد رابط مباشر لهذا العنوان.',
+  TranslationKeys.iwaatchUnavailable: 'مصدر الرابط المباشر غير متاح حالياً.',
+
   TranslationKeys.browseTitle: 'استكشاف',
   TranslationKeys.browseSearchHint: 'ابحث عن أفلام ومسلسلات',
   TranslationKeys.allGenres: 'كل التصنيفات',

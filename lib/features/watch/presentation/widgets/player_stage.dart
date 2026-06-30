@@ -66,7 +66,13 @@ class PlayerStage extends StatelessWidget {
   }
 
   Widget _file(BuildContext context, WatchState state) {
-    if (state.videoError) return _message(context, TranslationKeys.videoUnavailable);
+    if (state.videoError) {
+      return _message(
+        context,
+        TranslationKeys.videoUnavailable,
+        onRetry: () => context.read<WatchCubit>().retryVideo(),
+      );
+    }
     if (state.preparingTorrent) return _loading(context, TranslationKeys.preparingTorrent);
     if (!state.videoReady || context.read<WatchCubit>().videoController == null) {
       return const Center(child: CircularProgressIndicator());
@@ -116,7 +122,7 @@ class PlayerStage extends StatelessWidget {
     );
   }
 
-  Widget _message(BuildContext context, String key) {
+  Widget _message(BuildContext context, String key, {VoidCallback? onRetry}) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -124,6 +130,18 @@ class PlayerStage extends StatelessWidget {
           const Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 40),
           const SizedBox(height: 8),
           Text(context.tr(key), style: const TextStyle(color: Colors.white70)),
+          if (onRetry != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(context.tr(TranslationKeys.retry)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54),
+              ),
+            ),
+          ],
         ],
       ),
     );

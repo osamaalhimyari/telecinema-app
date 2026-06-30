@@ -93,6 +93,13 @@ const Map<String, String> enUs = {
   TranslationKeys.topcinemaNotFound: 'No direct source found for this title.',
   TranslationKeys.topcinemaUnavailable: 'The direct source is unavailable right now.',
 
+  TranslationKeys.iwaatchButton: 'Direct link',
+  TranslationKeys.iwaatchTitle: 'Direct link',
+  TranslationKeys.iwaatchNameHint: 'Edit the name if needed (e.g. back-in-action-2025).',
+  TranslationKeys.iwaatchGo: 'Find',
+  TranslationKeys.iwaatchNotFound: 'No direct link found for this title.',
+  TranslationKeys.iwaatchUnavailable: 'The direct link source is unavailable right now.',
+
   TranslationKeys.browseTitle: 'Browse',
   TranslationKeys.browseSearchHint: 'Search movies & series',
   TranslationKeys.allGenres: 'All genres',

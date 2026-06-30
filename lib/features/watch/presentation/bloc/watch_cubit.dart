@@ -339,6 +339,15 @@ class WatchCubit extends Cubit<WatchState> {
     _subscribe();
     final room = state.room!;
     _repo.join(room.slug);
+    _startVideoSource();
+  }
+
+  /// Selects and opens the right video source for the current room — TV relay,
+  /// a finished local cache copy, an on-device torrent stream, or the server
+  /// file URL. Factored out of [_enterRoom] so [retryVideo] can re-run it after
+  /// a load error without re-subscribing or re-joining the room.
+  void _startVideoSource() {
+    final room = state.room!;
     if (state.isExternal) return;
 
     // Live-TV room: play through the server-side HLS relay (`/livetv/:slug`),
@@ -435,6 +444,18 @@ class WatchCubit extends Cubit<WatchState> {
     // stale _pendingSync from before the swap must not win and snap us backward.
     _pendingSync = state.lastSync;
     await _initVideo(serverUrl);
+  }
+
+  /// Re-attempts playback after a load error — the "Retry" button on the
+  /// "video unavailable" overlay. Re-runs the same source selection used on
+  /// entry: for a torrent room this re-resolves the magnet and, failing that,
+  /// falls back to the server stream — which is the usual cause of a cold-swarm
+  /// "not found" on re-entry. Resumes at the room's current position via the
+  /// next socket sync. No-op until a room is loaded.
+  void retryVideo() {
+    if (state.room == null || state.isExternal) return;
+    emit(state.copyWith(videoError: false));
+    _startVideoSource();
   }
 
   void _subscribe() {
