@@ -176,6 +176,7 @@ const Map<String, String> arAr = {
   TranslationKeys.voiceReleaseToCancel: 'أفلت للإلغاء',
   TranslationKeys.voiceMicPermission: 'إذن الميكروفون مطلوب',
   TranslationKeys.voiceHoldToRecord: 'سجّل رسالة صوتية',
+  TranslationKeys.voiceMessage: 'رسالة صوتية',
   TranslationKeys.draw: 'رسم',
 
   TranslationKeys.reactions: 'تفاعلات',

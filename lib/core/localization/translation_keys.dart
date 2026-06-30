@@ -194,6 +194,7 @@ class TranslationKeys {
   static const voiceReleaseToCancel = 'voice_release_to_cancel';
   static const voiceMicPermission = 'voice_mic_permission';
   static const voiceHoldToRecord = 'voice_hold_to_record';
+  static const voiceMessage = 'voice_message';
 
   // Presence join/leave toasts ("<name> joined" / "<name> left")
   static const userJoined = 'user_joined';

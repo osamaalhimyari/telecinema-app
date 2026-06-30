@@ -179,6 +179,7 @@ const Map<String, String> enUs = {
   TranslationKeys.voiceReleaseToCancel: 'Release to cancel',
   TranslationKeys.voiceMicPermission: 'Microphone permission is required',
   TranslationKeys.voiceHoldToRecord: 'Record a voice message',
+  TranslationKeys.voiceMessage: 'Voice message',
   TranslationKeys.draw: 'Draw',
 
   TranslationKeys.reactions: 'Reactions',
