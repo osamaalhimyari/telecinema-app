@@ -13,6 +13,8 @@ import 'core/constants/app_constants.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/services/locale_service.dart';
 import 'core/services/theme_service.dart';
+import 'features/app_update/presentation/bloc/app_update_cubit.dart';
+import 'features/app_update/presentation/widgets/update_gate.dart';
 import 'features/favorites/presentation/bloc/catalog_favorites_cubit.dart';
 import 'features/operations/presentation/bloc/operations_cubit.dart';
 import 'injections/injection.dart';
@@ -57,6 +59,11 @@ class App extends StatelessWidget {
         ),
         BlocProvider<OperationsCubit>.value(
           value: sl<OperationsCubit>()..start(),
+        ),
+        // App-lifetime singleton: shared by the app-bar update button and the
+        // forced-update gate. Checks for a newer build on launch.
+        BlocProvider<AppUpdateCubit>.value(
+          value: sl<AppUpdateCubit>()..check(),
         ),
       ],
       child: BlocBuilder<LocaleCubit, LocaleState>(

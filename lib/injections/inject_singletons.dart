@@ -12,6 +12,8 @@ import '/features/favorites/injections/favorites_injection.dart';
 import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/topcinema/injections/topcinema_injection.dart';
+import '/features/iwaatch/injections/iwaatch_injection.dart';
+import '/features/tv/injections/tv_injection.dart';
 import '/features/subtitles/injections/subtitles_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 import '/logic/favorites/favorites_cubit.dart';
@@ -72,6 +74,8 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectBrowseSingletons(sl);
   await injectFavoritesSingletons(sl);
   await injectTopcinemaSingletons(sl);
+  await injectIwaatchSingletons(sl);
+  await injectTvSingletons(sl);
   await injectSubtitlesSingletons(sl);
   await injectOperationsSingletons(sl);
 }

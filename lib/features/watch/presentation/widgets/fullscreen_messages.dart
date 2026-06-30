@@ -8,6 +8,8 @@ import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import 'typing_indicator.dart';
+import 'voice_message_bubble.dart';
 
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
 /// opens/closes the [FullscreenMessagesPanel]; the icon fills in while open.
@@ -91,7 +93,9 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
   void _send() {
     final text = _input.text.trim();
     if (text.isEmpty) return;
-    context.read<WatchCubit>().sendChat(text);
+    final cubit = context.read<WatchCubit>();
+    cubit.sendChat(text);
+    cubit.stopTyping();
     _input.clear();
   }
 
@@ -134,6 +138,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                     children: [
                       _header(context),
                       Expanded(child: _list(context)),
+                      const TypingIndicator(dark: true),
                       _composer(context),
                     ],
                   ),
@@ -198,6 +203,12 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
           itemBuilder: (context, i) {
             final m = state.messages[i];
             final mine = m.mine || m.name == me;
+            if (m.isVoice) {
+              return Align(
+                alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                child: VoiceMessageBubble(message: m, mine: mine, onVideo: true),
+              );
+            }
             final failed = m.status == ChatStatus.failed;
             return Align(
               alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -301,6 +312,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                   vertical: 8,
                 ),
               ),
+              onChanged: (v) => context.read<WatchCubit>().notifyTyping(v),
               onSubmitted: (_) => _send(),
             ),
           ),

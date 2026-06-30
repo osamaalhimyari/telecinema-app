@@ -25,10 +25,15 @@ import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
 import '/routes/routes_names.dart';
+import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import '../widgets/bookmark_button.dart';
 import '../widgets/chat_panel.dart';
+import '../widgets/draw_toggle_button.dart';
+import '../widgets/drawing_canvas.dart';
+import '../widgets/drawing_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
 import '../widgets/reaction_bar.dart';
@@ -54,7 +59,13 @@ class RoomPage extends StatelessWidget {
         BlocProvider<WatchCubit>(
           create: (_) => sl<WatchCubit>()..init(room: initialRoom, slug: slug),
         ),
-        BlocProvider<VoiceCubit>(create: (_) => sl<VoiceCubit>()),
+        // VoiceCubit owns the audio engine but pushes its voice-note bubbles into
+        // the WatchCubit's message list, so attach the (already-provided) brain.
+        BlocProvider<VoiceCubit>(
+          create: (ctx) => sl<VoiceCubit>()..attach(ctx.read<WatchCubit>()),
+        ),
+        // On-video drawing mode, shared with the fullscreen page via `.value`.
+        BlocProvider<DrawModeCubit>(create: (_) => DrawModeCubit()),
       ],
       child: const _RoomView(),
     );
@@ -286,6 +297,10 @@ class _RoomScaffold extends StatelessWidget {
                       FloatingReactions(
                         stream: context.read<WatchCubit>().reactions,
                       ),
+                      // Render strokes beneath the capture canvas; the canvas
+                      // only intercepts touches while draw mode is engaged.
+                      DrawingOverlay(stream: context.read<WatchCubit>().drawings),
+                      const DrawingCanvas(),
                     ],
                   ),
                 ),
@@ -296,6 +311,8 @@ class _RoomScaffold extends StatelessWidget {
                     children: [
                       const Expanded(child: ReactionBar()),
                       const SizedBox(width: 4),
+                      const DrawToggleButton(),
+                      const BookmarkButton(),
                       const VoiceButton(),
                       const SizedBox(width: 12),
                     ],

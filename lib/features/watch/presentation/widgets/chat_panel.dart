@@ -8,6 +8,8 @@ import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
+import 'typing_indicator.dart';
+import 'voice_message_bubble.dart';
 
 class ChatPanel extends StatefulWidget {
   const ChatPanel({super.key});
@@ -30,7 +32,9 @@ class _ChatPanelState extends State<ChatPanel> {
   void _send() {
     final text = _input.text.trim();
     if (text.isEmpty) return;
-    context.read<WatchCubit>().sendChat(text);
+    final cubit = context.read<WatchCubit>();
+    cubit.sendChat(text);
+    cubit.stopTyping();
     _input.clear();
   }
 
@@ -101,6 +105,12 @@ class _ChatPanelState extends State<ChatPanel> {
                 itemBuilder: (context, i) {
                   final m = state.messages[i];
                   final mine = m.mine || m.name == me;
+                  if (m.isVoice) {
+                    return Align(
+                      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                      child: VoiceMessageBubble(message: m, mine: mine),
+                    );
+                  }
                   final failed = m.status == ChatStatus.failed;
                   return Align(
                     alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -143,6 +153,7 @@ class _ChatPanelState extends State<ChatPanel> {
             },
           ),
         ),
+        const TypingIndicator(),
         SafeArea(
           top: false,
           child: Padding(
@@ -159,6 +170,7 @@ class _ChatPanelState extends State<ChatPanel> {
                       hintText: context.tr(TranslationKeys.chatHint),
                       isDense: true,
                     ),
+                    onChanged: (v) => context.read<WatchCubit>().notifyTyping(v),
                     onSubmitted: (_) => _send(),
                   ),
                 ),

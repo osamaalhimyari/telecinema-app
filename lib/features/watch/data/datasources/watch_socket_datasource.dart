@@ -5,11 +5,13 @@ import '/core/config/app_config.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/presence_user.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/source_change.dart';
 import '../../domain/entities/subtitle_settings.dart';
+import '../../domain/entities/typing_event.dart';
 
 /// Binds the shared [SocketCubit] to a single room's realtime protocol — the
 /// exact event set the website uses (`join_room`, `sync`, `control`, `chat`,
@@ -39,6 +41,12 @@ class WatchSocketDataSource {
   final _reaction = StreamController<ReactionEvent>.broadcast();
   final _roomDeleted = StreamController<void>.broadcast();
   final _voice = StreamController<VoiceEvent>.broadcast();
+  final _draw = StreamController<DrawEvent>.broadcast();
+  final _typing = StreamController<TypingEvent>.broadcast();
+
+  /// `clipId` of a voice message a listener just opened — relayed back so the
+  /// original sender can flip that message's bubble to "read".
+  final _voiceRead = StreamController<String>.broadcast();
 
   Stream<PlaybackSync> get sync => _sync.stream;
   Stream<List<ChatMessage>> get chatHistory => _chatHistory.stream;
@@ -61,6 +69,9 @@ class WatchSocketDataSource {
   Stream<ReactionEvent> get reaction => _reaction.stream;
   Stream<void> get roomDeleted => _roomDeleted.stream;
   Stream<VoiceEvent> get voice => _voice.stream;
+  Stream<String> get voiceRead => _voiceRead.stream;
+  Stream<DrawEvent> get draw => _draw.stream;
+  Stream<TypingEvent> get typing => _typing.stream;
 
   final List<StreamSubscription<dynamic>> _subs = [];
   StreamSubscription<dynamic>? _statusSub;
@@ -103,6 +114,9 @@ class WatchSocketDataSource {
       _socket.on('voice_start').listen((d) => _onVoice(VoicePhase.start, d)),
       _socket.on('voice_chunk').listen((d) => _onVoice(VoicePhase.chunk, d)),
       _socket.on('voice_end').listen((d) => _onVoice(VoicePhase.end, d)),
+      _socket.on('voice_read').listen(_onVoiceRead),
+      _socket.on('draw').listen(_onDraw),
+      _socket.on('typing').listen(_onTyping),
     ]);
   }
 
@@ -137,9 +151,31 @@ class WatchSocketDataSource {
     });
   }
 
-  void voiceStart(String mimeType) => _socket.emitEvent('voice_start', {'mimeType': mimeType});
+  /// Relays one segment of a drawing stroke (points normalized 0..1) to the room.
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<List<double>> points,
+    required bool done,
+  }) {
+    _socket.emitEvent('draw', {
+      'strokeId': strokeId,
+      'color': color,
+      'points': points,
+      'done': done,
+    });
+  }
+
+  void voiceStart(String mimeType, String clipId) =>
+      _socket.emitEvent('voice_start', {'mimeType': mimeType, 'clipId': clipId});
   void voiceChunk(List<int> bytes) => _socket.emitEvent('voice_chunk', bytes);
-  void voiceEnd() => _socket.emitEvent('voice_end');
+  void voiceEnd(String clipId) => _socket.emitEvent('voice_end', {'clipId': clipId});
+
+  /// Tell the room (and thus the original sender) that we opened [clipId].
+  void sendVoiceRead(String clipId) => _socket.emitEvent('voice_read', {'clipId': clipId});
+
+  /// Announce (or clear) our "is writing…" state to the room.
+  void sendTyping(bool typing) => _socket.emitEvent('typing', {'typing': typing});
 
   /// Leave the room without tearing down the shared socket (decrements the
   /// server-side viewer count via the additive `leave_room` handler).
@@ -208,9 +244,24 @@ class WatchSocketDataSource {
         id: d['id']?.toString() ?? '',
         name: d['name']?.toString(),
         mimeType: d['mimeType']?.toString(),
+        clipId: d['clipId']?.toString(),
         chunk: phase == VoicePhase.chunk ? _bytesFrom(d['chunk']) : null,
       ),
     );
+  }
+
+  void _onVoiceRead(dynamic d) {
+    if (d is! Map) return;
+    final clipId = d['clipId']?.toString();
+    if (clipId != null && clipId.isNotEmpty) _add(_voiceRead, clipId);
+  }
+
+  void _onDraw(dynamic d) {
+    if (d is Map) _add(_draw, DrawEvent.fromJson(Map<String, dynamic>.from(d)));
+  }
+
+  void _onTyping(dynamic d) {
+    if (d is Map) _add(_typing, TypingEvent.fromJson(Map<String, dynamic>.from(d)));
   }
 
   List<int>? _bytesFrom(dynamic raw) {
@@ -247,18 +298,32 @@ class WatchSocketDataSource {
     await _reaction.close();
     await _roomDeleted.close();
     await _voice.close();
+    await _voiceRead.close();
+    await _draw.close();
+    await _typing.close();
   }
 }
 
 enum VoicePhase { start, chunk, end }
 
-/// A relayed push-to-talk event from another viewer.
+/// A relayed voice-message event from another viewer.
 class VoiceEvent {
-  const VoiceEvent({required this.phase, required this.id, this.name, this.mimeType, this.chunk});
+  const VoiceEvent({
+    required this.phase,
+    required this.id,
+    this.name,
+    this.mimeType,
+    this.clipId,
+    this.chunk,
+  });
 
   final VoicePhase phase;
   final String id;
   final String? name;
   final String? mimeType;
+
+  /// Stable id of the talk burst (set on `start`/`end`), so listeners can build
+  /// a discrete voice message and ack it back as opened.
+  final String? clipId;
   final List<int>? chunk;
 }

@@ -65,12 +65,42 @@ class TranslationKeys {
   static const topcinemaNotFound = 'topcinema_not_found';
   static const topcinemaUnavailable = 'topcinema_unavailable';
 
+  // Bookmarks
+  static const bookmarks = 'bookmarks';
+  static const addBookmark = 'add_bookmark';
+  static const noBookmarks = 'no_bookmarks';
+  static const bookmarkSaved = 'bookmark_saved';
+  static const bookmarkName = 'bookmark_name';
+  static const bookmarkNameHint = 'bookmark_name_hint';
+
+  // Drawing / pen overlay
+  static const draw = 'draw';
+  static const drawClear = 'draw_clear';
+
+  // Live TV
+  static const tvTitle = 'tv_title';
+  static const tvEmpty = 'tv_empty';
+  static const tvChannels = 'tv_channels';
+  static const tvLive = 'tv_live';
+  static const tvWatchTogether = 'tv_watch_together';
+  static const tvChannelUnavailable = 'tv_channel_unavailable';
+
+  // iwaatch (isolated direct-link "third way", resolved server-side)
+  static const iwaatchButton = 'iwaatch_button';
+  static const iwaatchTitle = 'iwaatch_title';
+  static const iwaatchNameHint = 'iwaatch_name_hint';
+  static const iwaatchNotFound = 'iwaatch_not_found';
+  static const iwaatchUnavailable = 'iwaatch_unavailable';
+  static const iwaatchMoviesOnly = 'iwaatch_movies_only';
+
   // Browse (catalogue)
   static const browseTitle = 'browse_title';
   static const browseSearchHint = 'browse_search_hint';
   static const allGenres = 'all_genres';
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
+  static const loadMore = 'load_more';
+  static const browseGenreEmpty = 'browse_genre_empty';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -129,6 +159,7 @@ class TranslationKeys {
   static const chatSending = 'chat_sending';
   static const chatRetry = 'chat_retry';
   static const messages = 'messages';
+  static const writing = 'writing';
 
   // Reactions
   static const reactions = 'reactions';
@@ -140,7 +171,9 @@ class TranslationKeys {
   static const holdToTalk = 'hold_to_talk';
   static const tapToTalk = 'tap_to_talk';
   static const speaking = 'speaking';
+  static const recordingVoice = 'recording_voice';
   static const micPermissionDenied = 'mic_permission_denied';
+  static const voiceMessage = 'voice_message';
 
   // Subtitles
   static const addSubtitle = 'add_subtitle';

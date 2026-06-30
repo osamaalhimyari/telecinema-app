@@ -3,8 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/watch_cubit.dart';
+import '../widgets/bookmark_button.dart';
+import '../widgets/draw_toggle_button.dart';
+import '../widgets/drawing_canvas.dart';
+import '../widgets/drawing_overlay.dart';
 import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
+import '../widgets/fullscreen_bookmarks_panel.dart';
 import '../widgets/fullscreen_controls.dart';
 import '../widgets/fullscreen_messages.dart';
 import '../widgets/fullscreen_reaction_bar.dart';
@@ -28,6 +33,9 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
 
   /// Whether the side messages panel is open.
   bool _messagesOpen = false;
+
+  /// Whether the side bookmarks panel is open (mutually exclusive with messages).
+  bool _bookmarksOpen = false;
 
   @override
   void initState() {
@@ -68,6 +76,10 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           // reach the player.
           FloatingReactions(stream: cubit.reactions),
           FloatingChatOverlay(stream: cubit.incomingChat),
+          // On-video drawing: strokes render under the capture canvas, which
+          // only intercepts touches while draw mode is engaged.
+          DrawingOverlay(stream: cubit.drawings),
+          const DrawingCanvas(),
 
           // Top-left: the collapsible reaction palette, with the messages
           // toggle stacked right beneath it.
@@ -84,7 +96,20 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                     const SizedBox(height: 10),
                     FullscreenMessagesButton(
                       open: _messagesOpen,
-                      onTap: () => setState(() => _messagesOpen = !_messagesOpen),
+                      onTap: () => setState(() {
+                        _messagesOpen = !_messagesOpen;
+                        if (_messagesOpen) _bookmarksOpen = false;
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    const FullscreenDrawButton(),
+                    const SizedBox(height: 10),
+                    FullscreenBookmarkButton(
+                      open: _bookmarksOpen,
+                      onTap: () => setState(() {
+                        _bookmarksOpen = !_bookmarksOpen;
+                        if (_bookmarksOpen) _messagesOpen = false;
+                      }),
                     ),
                   ],
                 ),
@@ -127,6 +152,10 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           FullscreenMessagesPanel(
             open: _messagesOpen,
             onClose: () => setState(() => _messagesOpen = false),
+          ),
+          FullscreenBookmarksPanel(
+            open: _bookmarksOpen,
+            onClose: () => setState(() => _bookmarksOpen = false),
           ),
         ],
       ),

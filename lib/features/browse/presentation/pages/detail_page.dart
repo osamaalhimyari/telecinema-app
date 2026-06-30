@@ -8,6 +8,8 @@ import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
 import '/features/topcinema/data/datasources/topcinema_remote_datasource.dart';
 import '/features/topcinema/presentation/widgets/topcinema_picker_sheet.dart';
+import '/features/iwaatch/data/datasources/iwaatch_remote_datasource.dart';
+import '/features/iwaatch/presentation/widgets/iwaatch_picker_sheet.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/catalog_item.dart';
@@ -282,6 +284,17 @@ class _DetailView extends StatelessWidget {
               minimumSize: const Size.fromHeight(50),
             ),
           ),
+          const SizedBox(height: 8),
+          // Isolated "third way": resolve a direct link from iwaatch (scraped on
+          // the server, since iwaatch is geo-blocked for the client).
+          OutlinedButton.icon(
+            onPressed: () => _openIwaatch(context, state),
+            icon: const Icon(Icons.link_rounded),
+            label: Text(context.tr(TranslationKeys.iwaatchButton)),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
         ],
       ),
     );
@@ -297,6 +310,21 @@ class _DetailView extends StatelessWidget {
       title: name,
       isSeries: state.isSeries,
       datasource: sl<TopcinemaRemoteDataSource>(),
+      category: state.isSeries ? 'series' : 'movies',
+      imdbId: id,
+    );
+  }
+
+  /// Opens the standalone iwaatch picker — resolves a direct link on the server
+  /// (iwaatch is geo-blocked for the client) and creates a download room.
+  void _openIwaatch(BuildContext context, DetailState state) {
+    final name = state.detail?.name ?? initial?.name ?? '';
+    if (name.isEmpty) return;
+    showIwaatchPicker(
+      context,
+      title: name,
+      isSeries: state.isSeries,
+      datasource: sl<IwaatchRemoteDataSource>(),
       category: state.isSeries ? 'series' : 'movies',
       imdbId: id,
     );

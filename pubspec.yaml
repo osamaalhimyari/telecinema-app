@@ -64,6 +64,14 @@ dependencies:
   share_plus: ^12.0.2
   qr_flutter: ^4.1.0
 
+  # ---- In-app update (APK) + offline cache downloads ----
+  open_filex: ^4.5.0 # hands the downloaded APK to the system installer (bundles its own FileProvider)
+  permission_handler: ^11.3.1 # the REQUEST_INSTALL_PACKAGES "install unknown apps" grant
+
+  # ---- YouTube source (search + stream/embed) ----
+  youtube_explode_dart: ^3.1.0
+  youtube_player_iframe: ^6.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

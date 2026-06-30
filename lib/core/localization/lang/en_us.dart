@@ -59,9 +59,35 @@ const Map<String, String> enUs = {
   TranslationKeys.topcinemaNotFound: 'No direct source found for this title.',
   TranslationKeys.topcinemaUnavailable: 'The direct source is unavailable right now.',
 
+  TranslationKeys.bookmarks: 'Bookmarks',
+  TranslationKeys.addBookmark: 'Add',
+  TranslationKeys.noBookmarks: 'No bookmarks yet. Tap + to save the current spot.',
+  TranslationKeys.bookmarkSaved: 'Bookmark saved',
+  TranslationKeys.bookmarkName: 'Bookmark name',
+  TranslationKeys.bookmarkNameHint: 'e.g. the big reveal',
+
+  TranslationKeys.draw: 'Draw',
+  TranslationKeys.drawClear: 'Clear',
+
+  TranslationKeys.tvTitle: 'Live TV',
+  TranslationKeys.tvEmpty: 'No channels here.',
+  TranslationKeys.tvChannels: 'channels',
+  TranslationKeys.tvLive: 'LIVE',
+  TranslationKeys.tvWatchTogether: 'Watch together',
+  TranslationKeys.tvChannelUnavailable: 'This channel is unavailable right now.',
+
+  TranslationKeys.iwaatchButton: 'Direct link',
+  TranslationKeys.iwaatchTitle: 'Direct link',
+  TranslationKeys.iwaatchNameHint: 'Edit the movie name if needed (e.g. back-in-action-2025).',
+  TranslationKeys.iwaatchNotFound: 'No direct link found for this title.',
+  TranslationKeys.iwaatchUnavailable: 'The direct link source is unavailable right now.',
+  TranslationKeys.iwaatchMoviesOnly: 'iwaatch has movies only for now.',
+
   TranslationKeys.browseTitle: 'Browse',
   TranslationKeys.browseSearchHint: 'Search movies & series',
   TranslationKeys.allGenres: 'All genres',
+  TranslationKeys.loadMore: 'Load more',
+  TranslationKeys.browseGenreEmpty: 'No loaded titles in this genre yet — load more to find some.',
   TranslationKeys.browseNoResults: 'Nothing found',
   TranslationKeys.browseNoResultsHint: 'Try a different title, category or genre.',
   TranslationKeys.torrentSearching: 'Looking for a torrent…',
@@ -119,6 +145,7 @@ const Map<String, String> enUs = {
   TranslationKeys.chatSending: 'Sending…',
   TranslationKeys.chatRetry: 'Not sent · tap to retry',
   TranslationKeys.messages: 'Messages',
+  TranslationKeys.writing: 'is writing…',
 
   TranslationKeys.reactions: 'Reactions',
   TranslationKeys.chooseReactions: 'Pick 8 reactions for this room',
@@ -128,7 +155,9 @@ const Map<String, String> enUs = {
   TranslationKeys.holdToTalk: 'Hold to talk',
   TranslationKeys.tapToTalk: 'Tap to talk',
   TranslationKeys.speaking: 'speaking',
+  TranslationKeys.recordingVoice: 'recording…',
   TranslationKeys.micPermissionDenied: 'Microphone permission denied.',
+  TranslationKeys.voiceMessage: 'Voice message',
 
   TranslationKeys.addSubtitle: 'Add subtitle',
   TranslationKeys.subtitleAdded: 'Subtitle added.',

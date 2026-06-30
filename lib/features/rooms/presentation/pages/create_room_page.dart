@@ -401,6 +401,9 @@ class _CreateRoomViewState extends State<_CreateRoomView> {
 
   Widget _sourceField(BuildContext context) {
     switch (_type) {
+      // Live-TV rooms are created from the TV picker, never this manual form.
+      case RoomType.tv:
+        return const SizedBox.shrink();
       case RoomType.torrent:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

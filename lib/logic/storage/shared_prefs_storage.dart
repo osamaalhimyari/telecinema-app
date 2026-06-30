@@ -39,4 +39,7 @@ class StorageKeys {
   static const favorites = 'favorites';
   static const recentSlugs = 'recent_slugs';
   static String roomUnlocked(String slug) => 'room_unlocked_$slug';
+
+  /// Per-room saved bookmarks (a JSON list of [Bookmark]s), local-only.
+  static String bookmarks(String slug) => 'bookmarks_$slug';
 }

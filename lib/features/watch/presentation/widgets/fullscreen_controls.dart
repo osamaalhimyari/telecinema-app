@@ -106,8 +106,8 @@ class FullscreenSpeakingIndicator extends StatelessWidget {
         if (state.speakers.isEmpty) return const SizedBox.shrink();
         final names = state.speakers.values.where((n) => n.isNotEmpty).join(', ');
         final label = names.isEmpty
-            ? context.tr(TranslationKeys.speaking)
-            : '$names ${context.tr(TranslationKeys.speaking)}';
+            ? context.tr(TranslationKeys.recordingVoice)
+            : '$names ${context.tr(TranslationKeys.recordingVoice)}';
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(

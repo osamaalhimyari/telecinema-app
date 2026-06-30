@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:ui' show Offset;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -17,13 +20,102 @@ import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/storage/key_value_storage.dart';
 import '/logic/storage/shared_prefs_storage.dart';
+import '../../domain/entities/bookmark.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/draw_event.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/reaction_event.dart';
 import '../../domain/entities/subtitle_settings.dart';
+import '../../domain/entities/typing_event.dart';
 import '../../domain/repositories/watch_repository.dart';
 import '../../data/datasources/torrent_engine.dart';
 import 'watch_state.dart';
+
+// ===========================================================================
+// Reaction haptics — a distinct vibration for laugh / heart / scared reactions,
+// so a laugh feels playful and a heart "beats". Fired for both sent and received
+// reactions (see WatchCubit.sendReaction / the reaction listener). Uses the
+// view's haptic feedback (no VIBRATE permission); a harmless no-op on web.
+// ===========================================================================
+
+/// Laughing emojis → a celebratory triple buzz.
+const _laughEmojis = {'😂', '🤣'};
+
+/// Heart code points, matched **per rune** so every variation is caught —
+/// `❤` vs `❤️` (with the U+FE0F selector), the colored hearts, and the
+/// decorative ones — without listing each rendered string.
+const _heartRunes = <int>{
+  0x2764, 0x2763, 0x2665, // ❤ ❣ ♥
+  0x1F90D,
+  0x1F9E1,
+  0x1F49B,
+  0x1F49A,
+  0x1F499,
+  0x1F49C,
+  0x1F90E,
+  0x1F5A4, // colored
+  0x1F496,
+  0x1F497,
+  0x1F493,
+  0x1F49E,
+  0x1F495,
+  0x1F498,
+  0x1F49D,
+  0x1F49F, // decorative
+  0x1F494, // 💔 broken
+};
+
+/// Heart-ish faces the user grouped with hearts (not hearts themselves).
+const _heartFaces = {'😘', '🥰', '😍', '🍆'};
+
+/// Scared / anguished faces → a trembling shiver.
+const _scaredEmojis = {'😦', '😧', '😨', '😱', '😰', '😮', '😯'};
+
+bool _isLaugh(String emoji) => _laughEmojis.contains(emoji);
+
+bool _isHeart(String emoji) {
+  if (_heartFaces.contains(emoji)) return true;
+  for (final rune in emoji.runes) {
+    if (_heartRunes.contains(rune)) return true;
+  }
+  return false;
+}
+
+bool _isScared(String emoji) => _scaredEmojis.contains(emoji);
+
+/// A short, playful triple buzz so a laughing reaction feels like laughter.
+void _laughHaptic() {
+  HapticFeedback.vibrate();
+  Timer(const Duration(milliseconds: 110), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 220), () => HapticFeedback.vibrate());
+}
+
+/// A "lub-dub … lub-dub" double heartbeat for heart reactions.
+void _heartHaptic() {
+  HapticFeedback.vibrate();
+  Timer(const Duration(milliseconds: 150), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 600), () => HapticFeedback.vibrate());
+  Timer(const Duration(milliseconds: 750), () => HapticFeedback.vibrate());
+}
+
+/// A rapid trembling shiver (5 quick buzzes) for scared / anguished reactions.
+void _scaredHaptic() {
+  HapticFeedback.vibrate();
+  for (var i = 1; i <= 4; i++) {
+    Timer(Duration(milliseconds: 60 * i), () => HapticFeedback.vibrate());
+  }
+}
+
+/// Fires the matching haptic (laugh / heart / scared) for a reaction emoji.
+void _reactionHaptic(String emoji) {
+  if (_isLaugh(emoji)) {
+    _laughHaptic();
+  } else if (_isHeart(emoji)) {
+    _heartHaptic();
+  } else if (_isScared(emoji)) {
+    _scaredHaptic();
+  }
+}
 
 /// The synchronized-room brain. Owns the libmpv-backed [Player] for file rooms,
 /// applies the server's authoritative `sync` (extrapolated for latency) and
@@ -93,6 +185,15 @@ class WatchCubit extends Cubit<WatchState> {
   final _incomingChat = StreamController<ChatMessage>.broadcast();
   Stream<ChatMessage> get incomingChat => _incomingChat.stream;
 
+  /// Transient feed of drawing-stroke segments (remote relays + our local echo),
+  /// consumed by the on-video [DrawingOverlay]. Not part of state.
+  final _draw = StreamController<DrawEvent>.broadcast();
+  Stream<DrawEvent> get drawings => _draw.stream;
+
+  /// Monotonic counter feeding unique stroke ids for this session.
+  int _drawSeq = 0;
+  String newStrokeId() => 'd${DateTime.now().microsecondsSinceEpoch}-${_drawSeq++}';
+
   Stream<String?> get chatThrottled => _repo.chatThrottled;
 
   /// Per-message delivery timers, keyed by `clientId`. A pending send that isn't
@@ -103,6 +204,23 @@ class WatchCubit extends Cubit<WatchState> {
   int _chatSeq = 0;
 
   static const _sendTimeout = Duration(seconds: 12);
+
+  /// Bookmarks are loaded from storage lazily and cached per room slug.
+  List<Bookmark>? _cachedBookmarks;
+  String? _cachedBookmarkSlug;
+
+  /// Per-typer safety timers (`socketId → expiry`). A typing entry is dropped
+  /// when its timer fires, so a lost "stopped typing" can never strand it.
+  final Map<String, Timer> _typingTimers = {};
+  static const _typingTtl = Duration(seconds: 5);
+
+  /// Our own outgoing typing state: whether we've told the room we're typing,
+  /// when we last said so (to throttle resends), and an idle auto-stop.
+  bool _selfTyping = false;
+  DateTime? _selfTypingSentAt;
+  Timer? _selfTypingIdle;
+  static const _selfTypingResend = Duration(seconds: 2);
+  static const _selfTypingIdleTimeout = Duration(seconds: 3);
 
   // ===========================================================================
   // Lifecycle
@@ -245,7 +363,12 @@ class WatchCubit extends Cubit<WatchState> {
       _repo.subtitleSettings.listen(_applyRemoteSubtitleSettings),
       _repo.reaction.listen((r) {
         if (!_reactions.isClosed) _reactions.add(r);
+        _reactionHaptic(r.emoji); // buzz on an incoming reaction
       }),
+      _repo.draw.listen((d) {
+        if (!_draw.isClosed) _draw.add(d);
+      }),
+      _repo.typing.listen(_onTyping),
       _repo.roomDeleted.listen((_) => emit(state.copyWith(phase: WatchPhase.deleted))),
     ]);
   }
@@ -617,9 +740,10 @@ class WatchCubit extends Cubit<WatchState> {
     };
     final merged = [for (final m in history) m.copyWith(mine: m.mine || m.name == mine)];
     for (final local in state.messages) {
+      // Voice notes are local-only (never in server history) — always keep them.
       final stillUnsent =
           local.mine && local.isPending && !(local.clientId != null && knownIds.contains(local.clientId));
-      if (stillUnsent) merged.add(local);
+      if (local.isVoice || stillUnsent) merged.add(local);
     }
     emit(state.copyWith(messages: _capped(merged)));
   }
@@ -691,10 +815,68 @@ class WatchCubit extends Cubit<WatchState> {
     emit(state.copyWith(messages: updated));
   }
 
+  // ---- voice notes (driven by VoiceCubit, stored alongside chat) ----------
+
+  /// Appends a voice note to the message list (shown as a tap-to-play bubble in
+  /// the chat). Incoming notes also float over the fullscreen video so a viewer
+  /// who has the panel closed still sees one arrived.
+  void addVoiceMessage(ChatMessage m) {
+    if (state.messages.any((x) => x.id == m.id && x.isVoice)) return;
+    emit(state.copyWith(messages: _capped([...state.messages, m])));
+    if (!m.mine && !_incomingChat.isClosed) _incomingChat.add(m);
+  }
+
+  /// A listener opened one of our sent voice notes → flip its bubble to "read".
+  void markVoiceRead(String clipId) =>
+      _updateVoice(clipId, (m) => m.voiceRead ? m : m.copyWith(voiceRead: true));
+
+  /// We opened a received voice note → remember it so the receipt fires once.
+  void markVoicePlayed(String clipId) =>
+      _updateVoice(clipId, (m) => m.voicePlayed ? m : m.copyWith(voicePlayed: true));
+
+  /// Fills in a voice note's probed clip length.
+  void updateVoiceDuration(String clipId, int durationMs) =>
+      _updateVoice(clipId, (m) => m.copyWith(durationMs: durationMs));
+
+  void _updateVoice(String clipId, ChatMessage Function(ChatMessage) update) {
+    final idx = state.messages.indexWhere((m) => m.isVoice && m.id == clipId);
+    if (idx == -1) return;
+    final updated = [...state.messages];
+    updated[idx] = update(updated[idx]);
+    emit(state.copyWith(messages: updated));
+  }
+
   void sendReaction(String emoji) {
     _repo.sendReaction(emoji);
     if (!_reactions.isClosed) {
       _reactions.add(ReactionEvent(emoji: emoji, id: 'me', name: ''));
+    }
+    _reactionHaptic(emoji); // buzz on your own reaction too
+  }
+
+  /// Relays one drawing-stroke segment to the room and echoes it locally (so the
+  /// drawer sees their own line immediately, matching reactions' `id: 'me'`).
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<Offset> points,
+    required bool done,
+  }) {
+    _repo.sendDraw(
+      strokeId: strokeId,
+      color: color,
+      points: [for (final p in points) [p.dx, p.dy]],
+      done: done,
+    );
+    if (!_draw.isClosed) {
+      _draw.add(DrawEvent(
+        id: 'me',
+        name: '',
+        strokeId: strokeId,
+        color: color,
+        points: points,
+        done: done,
+      ));
     }
   }
 
@@ -735,6 +917,139 @@ class WatchCubit extends Cubit<WatchState> {
   }
 
   // ===========================================================================
+  // Typing indicator ("X is writing…")
+  // ===========================================================================
+
+  /// A relayed typing signal from another viewer. Tracks the typer with a
+  /// safety TTL so a lost `typing:false` can never strand the indicator.
+  void _onTyping(TypingEvent e) {
+    if (e.id.isEmpty) return;
+    _typingTimers.remove(e.id)?.cancel();
+    final next = Map<String, String>.from(state.typingUsers);
+    if (e.typing && e.name.trim().isNotEmpty) {
+      next[e.id] = e.name;
+      _typingTimers[e.id] = Timer(_typingTtl, () {
+        _typingTimers.remove(e.id);
+        if (isClosed) return;
+        emit(
+          state.copyWith(
+            typingUsers: Map<String, String>.from(state.typingUsers)..remove(e.id),
+          ),
+        );
+      });
+    } else {
+      next.remove(e.id);
+    }
+    emit(state.copyWith(typingUsers: next));
+  }
+
+  /// Called from the chat composers on each keystroke. Announces "I'm typing"
+  /// (throttled to one refresh per [_selfTypingResend]) and arms an idle timer
+  /// that auto-clears it after [_selfTypingIdleTimeout] of no input.
+  void notifyTyping(String text) {
+    if (text.trim().isEmpty) {
+      stopTyping();
+      return;
+    }
+    final now = DateTime.now();
+    final stale =
+        _selfTypingSentAt == null || now.difference(_selfTypingSentAt!) > _selfTypingResend;
+    if (!_selfTyping || stale) {
+      _selfTyping = true;
+      _selfTypingSentAt = now;
+      _repo.sendTyping(true);
+    }
+    _selfTypingIdle?.cancel();
+    _selfTypingIdle = Timer(_selfTypingIdleTimeout, stopTyping);
+  }
+
+  /// Clears our own typing signal (on send, on empty input, or idle timeout).
+  void stopTyping() {
+    _selfTypingIdle?.cancel();
+    _selfTypingIdle = null;
+    if (!_selfTyping) return;
+    _selfTyping = false;
+    _selfTypingSentAt = null;
+    _repo.sendTyping(false);
+  }
+
+  // ===========================================================================
+  // Bookmarks — local-only, per-room, persisted via KeyValueStorage
+  // ===========================================================================
+
+  List<Bookmark> loadBookmarks() {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return [];
+    if (_cachedBookmarks != null && _cachedBookmarkSlug == slug) {
+      return _cachedBookmarks!;
+    }
+    final raw = _storage.getString(StorageKeys.bookmarks(slug));
+    if (raw == null || raw.isEmpty) {
+      _cachedBookmarks = [];
+      _cachedBookmarkSlug = slug;
+      return [];
+    }
+    try {
+      final list = jsonDecode(raw) as List;
+      _cachedBookmarks = list.map((e) => Bookmark.fromJson(e as Map<String, dynamic>)).toList();
+      _cachedBookmarkSlug = slug;
+      return _cachedBookmarks!;
+    } catch (_) {
+      _cachedBookmarks = [];
+      _cachedBookmarkSlug = slug;
+      return [];
+    }
+  }
+
+  Future<void> saveBookmark({String? name}) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    bookmarks.insert(0, Bookmark(id: id, position: state.position, name: name));
+    await _storage.setString(
+      StorageKeys.bookmarks(slug),
+      jsonEncode(bookmarks.map((b) => b.toJson()).toList()),
+    );
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
+  }
+
+  Future<void> deleteBookmark(String id) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    bookmarks.removeWhere((b) => b.id == id);
+    await _storage.setString(
+      StorageKeys.bookmarks(slug),
+      jsonEncode(bookmarks.map((b) => b.toJson()).toList()),
+    );
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
+  }
+
+  Future<void> updateBookmark(String id, {String? name}) async {
+    final slug = state.room?.slug;
+    if (slug == null || slug.isEmpty) return;
+    _cachedBookmarks = null;
+    final bookmarks = loadBookmarks();
+    final idx = bookmarks.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    // Rebuild rather than copyWith: copyWith treats a null `name` as "keep
+    // existing", so it can't clear a name once set — a blank rename must stick.
+    final current = bookmarks[idx];
+    bookmarks[idx] = Bookmark(id: current.id, position: current.position, name: name);
+    await _storage.setString(
+      StorageKeys.bookmarks(slug),
+      jsonEncode(bookmarks.map((b) => b.toJson()).toList()),
+    );
+    if (isClosed) return;
+    emit(state.copyWith(bookmarkVersion: state.bookmarkVersion + 1));
+  }
+
+  // ===========================================================================
   // Teardown
   // ===========================================================================
 
@@ -746,6 +1061,11 @@ class WatchCubit extends Cubit<WatchState> {
       t.cancel();
     }
     _sendTimers.clear();
+    for (final t in _typingTimers.values) {
+      t.cancel();
+    }
+    _typingTimers.clear();
+    _selfTypingIdle?.cancel();
     for (final s in _subs) {
       await s.cancel();
     }
@@ -756,6 +1076,7 @@ class WatchCubit extends Cubit<WatchState> {
     _repo.leave();
     await _reactions.close();
     await _incomingChat.close();
+    await _draw.close();
     return super.close();
   }
 }

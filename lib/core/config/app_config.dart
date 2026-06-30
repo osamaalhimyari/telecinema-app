@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '/core/config/endpoints.dart';
 
 /// Central configuration for the watch-party client.
@@ -83,4 +85,19 @@ class AppConfig {
   /// Shareable deep link to a room (`/room/:slug`), matching the go_router
   /// route. Used by the in-room Share action.
   static String roomUrl(String slug) => '$baseUrl/room/$slug';
+
+  static String? tvPreviewUrl({
+    required String url,
+    Map<String, String> headers = const {},
+  }) {
+    if (url.isEmpty) return null;
+    final u = _b64Url(url);
+    final h = _b64Url(jsonEncode(headers));
+    return '$baseUrl/livetv/preview?u=$u&h=$h';
+  }
+
+  /// base64url without padding (the `=` chars trip URL query parsing; Node's
+  /// `Buffer.from(s, 'base64url')` decodes fine without them).
+  static String _b64Url(String s) =>
+      base64Url.encode(utf8.encode(s)).replaceAll('=', '');
 }

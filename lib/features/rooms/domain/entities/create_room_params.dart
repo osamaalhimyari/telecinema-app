@@ -19,6 +19,7 @@ class CreateRoomParams {
     this.reactions,
     this.category,
     this.imdbId,
+    this.thumbnail,
   });
 
   final String name;
@@ -35,6 +36,10 @@ class CreateRoomParams {
   /// from the Browse catalogue; null otherwise. Persisted so the room can later
   /// search OpenSubtitles by IMDB id.
   final String? imdbId;
+
+  /// Poster/logo image URL stored as the room's thumbnail (e.g. a catalogue
+  /// poster, or a live-TV channel logo). Null → the server assigns a placeholder.
+  final String? thumbnail;
 }
 
 /// The outcome of a create call: either the room is ready immediately

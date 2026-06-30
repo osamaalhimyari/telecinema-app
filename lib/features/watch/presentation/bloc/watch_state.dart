@@ -33,6 +33,8 @@ class WatchState extends Equatable {
     this.subtitleUrl,
     this.subtitleSettings = const SubtitleSettings.defaults(),
     this.lastSync,
+    this.bookmarkVersion = 0,
+    this.typingUsers = const {},
   });
 
   final WatchPhase phase;
@@ -86,7 +88,18 @@ class WatchState extends Equatable {
   /// iframe's real position.
   final PlaybackSync? lastSync;
 
+  /// Bumped on every bookmark save/delete/rename so the bookmark panels rebuild
+  /// (bookmarks live in storage, not in state, so this is the change signal).
+  final int bookmarkVersion;
+
+  /// socketId → display name of viewers currently typing ("is writing…"). Each
+  /// entry auto-expires via a TTL timer in the cubit.
+  final Map<String, String> typingUsers;
+
   bool get isExternal => room?.isExternal ?? false;
+
+  /// A live-TV room — playback is a continuous stream (no seek/bookmark).
+  bool get isLive => room?.roomType.isTv ?? false;
   bool get someoneWaiting => waiting.isNotEmpty;
 
   WatchState copyWith({
@@ -114,6 +127,8 @@ class WatchState extends Equatable {
     String? subtitleUrl,
     SubtitleSettings? subtitleSettings,
     PlaybackSync? lastSync,
+    int? bookmarkVersion,
+    Map<String, String>? typingUsers,
   }) {
     return WatchState(
       phase: phase ?? this.phase,
@@ -139,6 +154,8 @@ class WatchState extends Equatable {
       subtitleUrl: subtitleUrl ?? this.subtitleUrl,
       subtitleSettings: subtitleSettings ?? this.subtitleSettings,
       lastSync: lastSync ?? this.lastSync,
+      bookmarkVersion: bookmarkVersion ?? this.bookmarkVersion,
+      typingUsers: typingUsers ?? this.typingUsers,
     );
   }
 
@@ -167,5 +184,7 @@ class WatchState extends Equatable {
     subtitleUrl,
     subtitleSettings,
     lastSync,
+    bookmarkVersion,
+    typingUsers,
   ];
 }

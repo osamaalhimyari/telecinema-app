@@ -40,23 +40,10 @@ class _BrowseViewState extends State<_BrowseView> {
   final _scroll = ScrollController();
 
   @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(_onScroll);
-  }
-
-  @override
   void dispose() {
-    _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _search.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
-      context.read<BrowseCubit>().loadMore();
-    }
   }
 
   @override
@@ -189,44 +176,89 @@ class _BrowseViewState extends State<_BrowseView> {
 
   Widget _grid(BuildContext context, BrowseState state) {
     final items = state.visibleItems;
+    // Paginating is only possible on the unfiltered catalogue, not a search.
+    final canLoadMore = state.query.isEmpty && state.hasMore;
+
     if (items.isEmpty) {
+      // A genre filter that hasn't matched any *loaded* title yet is not a real
+      // dead end — more pages may hold matches, so keep the Load-more button
+      // reachable instead of showing the search-empty state.
+      if (state.selectedGenre != null && canLoadMore) {
+        return _genreEmptyWithLoadMore(context, state);
+      }
       return StatusView(
         icon: Icons.search_off_rounded,
         title: context.tr(TranslationKeys.browseNoResults),
         message: context.tr(TranslationKeys.browseNoResultsHint),
       );
     }
-    return Stack(
-      children: [
-        GridView.builder(
-          controller: _scroll,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
-            childAspectRatio: 0.58,
+
+    return CustomScrollView(
+      controller: _scroll,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 180,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: 0.58,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return PosterCard(item: item, onTap: () => _openDetail(context, item));
+            },
           ),
-          itemCount: items.length,
-          itemBuilder: (context, i) {
-            final item = items[i];
-            return PosterCard(item: item, onTap: () => _openDetail(context, item));
-          },
         ),
-        if (state.loadingMore)
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 12,
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
+        // An explicit "Load more" button (no auto-load on scroll) — so a genre
+        // filter that shows only a few items can still page in more.
+        if (canLoadMore)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: Center(child: _loadMoreControl(context, state)),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _loadMoreControl(BuildContext context, BrowseState state) {
+    if (state.loadingMore) {
+      return const SizedBox(
+        width: 26,
+        height: 26,
+        child: CircularProgressIndicator(strokeWidth: 2.5),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: () => context.read<BrowseCubit>().loadMore(),
+      icon: const Icon(Icons.expand_more_rounded),
+      label: Text(context.tr(TranslationKeys.loadMore)),
+    );
+  }
+
+  Widget _genreEmptyWithLoadMore(BuildContext context, BrowseState state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.theaters_outlined, size: 44, color: context.colors.outline),
+            const SizedBox(height: 12),
+            Text(
+              context.tr(TranslationKeys.browseGenreEmpty),
+              textAlign: TextAlign.center,
+              style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            _loadMoreControl(context, state),
+          ],
+        ),
+      ),
     );
   }
 

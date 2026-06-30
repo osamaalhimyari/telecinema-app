@@ -57,9 +57,35 @@ const Map<String, String> arAr = {
   TranslationKeys.topcinemaNotFound: 'لا يوجد مصدر مباشر لهذا العنوان.',
   TranslationKeys.topcinemaUnavailable: 'المصدر المباشر غير متاح حالياً.',
 
+  TranslationKeys.bookmarks: 'الإشارات المرجعية',
+  TranslationKeys.addBookmark: 'إضافة',
+  TranslationKeys.noBookmarks: 'لا توجد إشارات بعد. اضغط + لحفظ اللحظة الحالية.',
+  TranslationKeys.bookmarkSaved: 'تم حفظ الإشارة',
+  TranslationKeys.bookmarkName: 'اسم الإشارة',
+  TranslationKeys.bookmarkNameHint: 'مثال: المشهد المهم',
+
+  TranslationKeys.draw: 'رسم',
+  TranslationKeys.drawClear: 'مسح',
+
+  TranslationKeys.tvTitle: 'البث المباشر',
+  TranslationKeys.tvEmpty: 'لا توجد قنوات هنا.',
+  TranslationKeys.tvChannels: 'قناة',
+  TranslationKeys.tvLive: 'مباشر',
+  TranslationKeys.tvWatchTogether: 'مشاهدة معًا',
+  TranslationKeys.tvChannelUnavailable: 'هذه القناة غير متاحة حالياً.',
+
+  TranslationKeys.iwaatchButton: 'رابط مباشر',
+  TranslationKeys.iwaatchTitle: 'رابط مباشر',
+  TranslationKeys.iwaatchNameHint: 'عدّل اسم الفيلم إذا لزم (مثال: back-in-action-2025).',
+  TranslationKeys.iwaatchNotFound: 'لا يوجد رابط مباشر لهذا العنوان.',
+  TranslationKeys.iwaatchUnavailable: 'مصدر الرابط المباشر غير متاح حالياً.',
+  TranslationKeys.iwaatchMoviesOnly: 'موقع iwaatch يحتوي أفلامًا فقط حالياً.',
+
   TranslationKeys.browseTitle: 'استكشاف',
   TranslationKeys.browseSearchHint: 'ابحث عن أفلام ومسلسلات',
   TranslationKeys.allGenres: 'كل التصنيفات',
+  TranslationKeys.loadMore: 'تحميل المزيد',
+  TranslationKeys.browseGenreEmpty: 'لا توجد عناوين محمّلة في هذا التصنيف بعد — حمّل المزيد للعثور عليها.',
   TranslationKeys.browseNoResults: 'لا توجد نتائج',
   TranslationKeys.browseNoResultsHint: 'جرّب عنواناً أو فئة أو تصنيفاً آخر.',
   TranslationKeys.torrentSearching: 'جارٍ البحث عن تورنت…',
@@ -116,6 +142,7 @@ const Map<String, String> arAr = {
   TranslationKeys.chatSending: 'جارٍ الإرسال…',
   TranslationKeys.chatRetry: 'لم تُرسل · اضغط للإعادة',
   TranslationKeys.messages: 'الرسائل',
+  TranslationKeys.writing: 'يكتب…',
 
   TranslationKeys.reactions: 'تفاعلات',
   TranslationKeys.chooseReactions: 'اختر 8 تفاعلات لهذه الغرفة',
@@ -125,7 +152,9 @@ const Map<String, String> arAr = {
   TranslationKeys.holdToTalk: 'اضغط مع الاستمرار للتحدث',
   TranslationKeys.tapToTalk: 'اضغط للتحدث',
   TranslationKeys.speaking: 'يتحدث',
+  TranslationKeys.recordingVoice: 'يسجّل…',
   TranslationKeys.micPermissionDenied: 'تم رفض إذن الميكروفون.',
+  TranslationKeys.voiceMessage: 'رسالة صوتية',
 
   TranslationKeys.addSubtitle: 'إضافة ترجمة',
   TranslationKeys.subtitleAdded: 'تمت إضافة الترجمة.',

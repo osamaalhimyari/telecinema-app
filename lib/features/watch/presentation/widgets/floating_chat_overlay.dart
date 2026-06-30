@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '/core/extensions/context_extensions.dart';
+import '/core/localization/translation_keys.dart';
 import '/core/shared/user_avatar.dart';
 import '../../domain/entities/chat_message.dart';
 
@@ -29,7 +31,7 @@ class _FloatingChatOverlayState extends State<FloatingChatOverlay> {
   }
 
   void _add(ChatMessage m) {
-    if (!mounted || m.text.isEmpty) return;
+    if (!mounted || (m.text.isEmpty && !m.isVoice)) return;
     setState(() {
       _items.add(_ChatBubble(key: UniqueKey(), message: m, onDone: _remove));
       if (_items.length > _maxVisible) _items.removeAt(0);
@@ -128,8 +130,15 @@ class _ChatBubbleState extends State<_ChatBubble> with SingleTickerProviderState
                   fontSize: 13,
                 ),
               ),
+              if (widget.message.isVoice)
+                const WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Icon(Icons.mic_rounded, color: Colors.white, size: 15),
+                ),
               TextSpan(
-                text: widget.message.text,
+                text: widget.message.isVoice
+                    ? ' ${context.tr(TranslationKeys.voiceMessage)}'
+                    : widget.message.text,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ],
