@@ -357,10 +357,13 @@ class WatchCubit extends Cubit<WatchState> {
     // local cache / torrent path applies; sync rides the socket like any other
     // room, only without seeking (handled in `_applyToVideo`).
     if (room.roomType.isTv) {
-      _tvRef = room.liveStream;
-      final relayUrl = room.videoUrl; // → $baseUrl/livetv/:slug
-      if (relayUrl != null) {
-        _initVideo(relayUrl, autoplay: true);
+      final ref = room.liveStream;
+      _tvRef = ref;
+      if (ref != null && ref.url.isNotEmpty) {
+        // On-device: play the channel origin directly with its per-channel
+        // headers. When the signed token expires the player errors, and
+        // _refreshTvStream re-resolves a fresh origin via the channel's tree path.
+        _initVideo(ref.url, httpHeaders: ref.headers, autoplay: true);
       } else {
         emit(state.copyWith(videoError: true));
       }
@@ -502,7 +505,11 @@ class WatchCubit extends Cubit<WatchState> {
   // Video (file rooms)
   // ===========================================================================
 
-  Future<void> _initVideo(String url, {bool autoplay = false}) async {
+  Future<void> _initVideo(
+    String url, {
+    bool autoplay = false,
+    Map<String, String>? httpHeaders,
+  }) async {
     // Tear down any previous player first — this method is re-entered when a
     // stalled torrent stream falls back to the server stream (or a live-TV
     // token is refreshed). Clear the handles
@@ -588,7 +595,7 @@ class WatchCubit extends Cubit<WatchState> {
     ]);
 
     try {
-      await player.open(Media(url), play: autoplay);
+      await player.open(Media(url, httpHeaders: httpHeaders), play: autoplay);
       emit(state.copyWith(videoReady: true, videoError: false));
       if (_pendingSync != null) {
         await _applyToVideo(_pendingSync!);
@@ -657,14 +664,11 @@ class WatchCubit extends Cubit<WatchState> {
       emit(state.copyWith(videoError: true));
       return;
     }
-    // The resolver persisted the fresh stream to the room, so replay through the
-    // relay — the same `/livetv/:slug` URL now serves the refreshed stream.
-    final relayUrl = state.room?.videoUrl;
-    if (relayUrl != null) {
-      await _initVideo(relayUrl, autoplay: true);
-    } else {
-      emit(state.copyWith(videoError: true));
-    }
+    // Replay the freshly-resolved origin on-device with its headers. (The
+    // resolver also persisted it to the room, so late joiners get a recent
+    // token; each client still re-resolves on its own when needed.)
+    _tvRef = LiveStreamRef(url: fresh.url, headers: fresh.headers, path: ref.path);
+    await _initVideo(fresh.url, httpHeaders: fresh.headers, autoplay: true);
   }
 
   /// Loads an external subtitle track into the file-room player (libmpv via

@@ -66,6 +66,8 @@ class TranslationKeys {
   static const tvEmpty = 'tv_empty';
   static const tvLive = 'tv_live';
   static const tvChannelUnavailable = 'tv_channel_unavailable';
+  static const tvCreateRoom = 'tv_create_room';
+  static const tvPreviewFailed = 'tv_preview_failed';
 
   // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
   static const cinemaTitle = 'cinema_title';

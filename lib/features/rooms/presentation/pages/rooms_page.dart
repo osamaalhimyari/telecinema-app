@@ -11,6 +11,7 @@ import '/features/app_update/presentation/widgets/update_button.dart';
 import '/features/operations/presentation/widgets/operations_button.dart';
 import '/features/cache/data/cache_manager.dart';
 import '/features/cache/domain/entities/cached_video.dart';
+import '/features/tv/presentation/pages/tv_groups_page.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/favorites/favorites_state.dart';
 import '/routes/routes_names.dart';
@@ -75,6 +76,14 @@ class _RoomsView extends StatelessWidget {
         actions: [
           const UpdateButton(),
           const OperationsButton(),
+          // Live TV — browse channels, preview one, then create a watch room.
+          IconButton(
+            tooltip: context.tr(TranslationKeys.tvTitle),
+            icon: const Icon(Icons.live_tv_rounded),
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const TvGroupsPage()),
+            ),
+          ),
           // Only surfaced once something is cached on this device; hidden while
           // the on-device library is empty.
           StreamBuilder<List<CachedVideo>>(

@@ -59,6 +59,8 @@ const Map<String, String> enUs = {
   TranslationKeys.tvLive: 'LIVE',
   TranslationKeys.tvChannelUnavailable:
       'This channel could not be played. Its stream may have expired — pull to refresh the list and try again.',
+  TranslationKeys.tvCreateRoom: 'Create room & watch together',
+  TranslationKeys.tvPreviewFailed: 'Preview unavailable — you can still create a room and try it.',
 
   TranslationKeys.cinemaTitle: 'Cinema',
   TranslationKeys.cinemaSearchHint: 'Search movies & series',

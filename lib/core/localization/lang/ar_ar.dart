@@ -57,6 +57,8 @@ const Map<String, String> arAr = {
   TranslationKeys.tvLive: 'مباشر',
   TranslationKeys.tvChannelUnavailable:
       'تعذّر تشغيل هذه القناة. ربما انتهت صلاحية البث — اسحب لتحديث القائمة وحاول مجددًا.',
+  TranslationKeys.tvCreateRoom: 'إنشاء غرفة ومشاهدة معاً',
+  TranslationKeys.tvPreviewFailed: 'المعاينة غير متاحة — يمكنك إنشاء غرفة وتجربتها.',
 
   TranslationKeys.cinemaTitle: 'سينما',
   TranslationKeys.cinemaSearchHint: 'ابحث عن أفلام ومسلسلات',
