@@ -25,6 +25,10 @@ class Endpoints {
   /// `['https://web4.topcinema.fan', 'https://web.topcinemaa.com']`.
   static const List<String> topcinemaHosts = [];
 
+  /// IMDb GraphQL API — the endpoint imdb.com itself calls, used on-device for
+  /// season/episode ratings + still images. Public, no key: keep as-is.
+  static const String imdbGraphql = 'https://api.graphql.imdb.com/';
+
   /// Public trackers appended to every built magnet to seed peer discovery.
   static const List<String> trackers = [
     // 'udp://tracker.example.org:1337/announce',

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
+import '/features/imdb/presentation/widgets/imdb_ratings_section.dart';
 import '/features/iwaatch/data/datasources/iwaatch_remote_datasource.dart';
 import '/features/iwaatch/presentation/widgets/iwaatch_picker_sheet.dart';
 import '/features/topcinema/data/datasources/topcinema_remote_datasource.dart';
@@ -127,6 +128,11 @@ class _DetailView extends StatelessWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
+        // IMDb season/episode ratings dashboard — series only, and only when we
+        // have a real IMDB id to scrape. Self-collapsing (renders nothing while
+        // it loads or if IMDb has no episode data), so it's safe to always add.
+        if (state.isSeries && _looksLikeImdbId(id))
+          SliverToBoxAdapter(child: ImdbRatingsSection(imdbId: id)),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
     );
@@ -332,6 +338,10 @@ class _DetailView extends StatelessWidget {
       poster: state.detail?.poster ?? initial?.poster,
     );
   }
+
+  /// True for a real IMDB id (`tt` + digits) — Cinemeta catalogue ids are IMDB
+  /// ids, but this guards against any other id scheme sneaking into the route.
+  static bool _looksLikeImdbId(String id) => RegExp(r'^tt\d+$').hasMatch(id);
 
   void _openPicker(BuildContext context, DetailState state) {
     final name = state.detail?.name ?? initial?.name ?? '';
