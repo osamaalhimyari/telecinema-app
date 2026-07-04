@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../../domain/entities/episode_info.dart';
 import '../../domain/entities/torrent_option.dart';
+import '../bloc/source_picker/source_picker_cubit.dart';
+import '../bloc/source_picker/source_picker_state.dart';
 
 /// Resolves the torrents for a single episode — every available quality,
 /// most-seeded first — or an empty list when none is available anywhere. Lets
@@ -53,7 +56,7 @@ const int _maxPerQuality = 6;
 const int _maxPacks = 8;
 const List<String> _qualityOrder = ['4K', '1080p', '720p', '480p', 'SD'];
 
-class _SourcePickerSheet extends StatefulWidget {
+class _SourcePickerSheet extends StatelessWidget {
   const _SourcePickerSheet({
     required this.title,
     required this.isSeries,
@@ -71,27 +74,46 @@ class _SourcePickerSheet extends StatefulWidget {
   final void Function(String magnet, String roomName) onSelected;
 
   @override
-  State<_SourcePickerSheet> createState() => _SourcePickerSheetState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => SourcePickerCubit(onResolveEpisode),
+      child: _SourcePickerView(
+        title: title,
+        isSeries: isSeries,
+        torrents: torrents,
+        episodes: episodes,
+        onResolveEpisode: onResolveEpisode,
+        onSelected: onSelected,
+      ),
+    );
+  }
 }
 
-class _SourcePickerSheetState extends State<_SourcePickerSheet> {
-  /// `season x episode` key of the episode currently being resolved, or null.
-  String? _loadingEp;
+class _SourcePickerView extends StatelessWidget {
+  const _SourcePickerView({
+    required this.title,
+    required this.isSeries,
+    required this.torrents,
+    required this.episodes,
+    required this.onResolveEpisode,
+    required this.onSelected,
+  });
 
-  void _pickMovie(TorrentOption option, String roomName) {
+  final String title;
+  final bool isSeries;
+  final List<TorrentOption> torrents;
+  final List<EpisodeInfo> episodes;
+  final EpisodeResolver? onResolveEpisode;
+  final void Function(String magnet, String roomName) onSelected;
+
+  void _pickMovie(BuildContext context, TorrentOption option, String roomName) {
     Navigator.of(context).pop();
-    widget.onSelected(option.magnet, roomName);
+    onSelected(option.magnet, roomName);
   }
 
-  Future<void> _onEpisodeTap(int season, int episode) async {
-    if (_loadingEp != null) return;
-    final resolver = widget.onResolveEpisode;
-    if (resolver == null) return;
-
-    setState(() => _loadingEp = '${season}x$episode');
-    final options = await resolver(season, episode);
-    if (!mounted) return;
-    setState(() => _loadingEp = null);
+  Future<void> _onEpisodeTap(BuildContext context, int season, int episode) async {
+    final options = await context.read<SourcePickerCubit>().resolveEpisode(season, episode);
+    if (!context.mounted) return;
 
     if (options.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -107,13 +129,13 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
     // still opens the dialog so the release/size/seeders are visible first.)
     final chosen = await showEpisodeQualityDialog(
       context,
-      episodeLabel: '${widget.title} — $epLabel',
+      episodeLabel: '$title — $epLabel',
       options: options,
     );
-    if (chosen == null || !mounted) return;
+    if (chosen == null || !context.mounted) return;
 
     Navigator.of(context).pop();
-    widget.onSelected(chosen.magnet, '${widget.title} — $epLabel');
+    onSelected(chosen.magnet, '$title — $epLabel');
   }
 
   @override
@@ -132,7 +154,7 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 context.tr(
-                  widget.isSeries
+                  isSeries
                       ? TranslationKeys.chooseEpisode
                       : TranslationKeys.chooseQuality,
                 ),
@@ -142,13 +164,13 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                widget.title,
+                title,
                 style: context.text.bodyMedium?.copyWith(
                   color: context.colors.onSurfaceVariant,
                 ),
               ),
             ),
-            ...widget.isSeries ? _seriesGroups(context) : _movieGroups(context),
+            ...isSeries ? _seriesGroups(context) : _movieGroups(context),
           ],
         );
       },
@@ -161,12 +183,12 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
     // season → sorted episode numbers. Prefer the authoritative Cinemeta list;
     // fall back to whatever individual episodes the torrent search returned.
     final bySeason = <int, List<int>>{};
-    if (widget.episodes.isNotEmpty) {
-      for (final e in widget.episodes) {
+    if (episodes.isNotEmpty) {
+      for (final e in episodes) {
         (bySeason[e.season] ??= <int>[]).add(e.episode);
       }
     } else {
-      for (final t in widget.torrents.where((t) => t.isEpisode)) {
+      for (final t in torrents.where((t) => t.isEpisode)) {
         (bySeason[t.season!] ??= <int>[]).add(t.episode!);
       }
     }
@@ -184,18 +206,24 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final e in eps)
-                _EpisodeButton(
-                  label: 'E${_pad(e)}',
-                  loading: _loadingEp == '${s}x$e',
-                  // Block taps on other episodes while one is resolving.
-                  onTap: _loadingEp == null ? () => _onEpisodeTap(s, e) : null,
-                ),
-            ],
+          child: BlocBuilder<SourcePickerCubit, SourcePickerState>(
+            builder: (context, state) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final e in eps)
+                    _EpisodeButton(
+                      label: 'E${_pad(e)}',
+                      loading: state.loadingEp == '${s}x$e',
+                      // Block taps on other episodes while one is resolving.
+                      onTap: state.loadingEp == null
+                          ? () => _onEpisodeTap(context, s, e)
+                          : null,
+                    ),
+                ],
+              );
+            },
           ),
         ),
       );
@@ -206,8 +234,8 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
   // ----- Movie: quality buckets + collections -----
 
   List<Widget> _movieGroups(BuildContext context) {
-    final singles = widget.torrents.where((t) => !t.isPack).toList();
-    final packs = widget.torrents.where((t) => t.isPack).toList();
+    final singles = torrents.where((t) => !t.isPack).toList();
+    final packs = torrents.where((t) => t.isPack).toList();
 
     final byQuality = <String, List<TorrentOption>>{};
     for (final t in singles) {
@@ -225,7 +253,7 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
           leading: _badge(context, q),
           title: t.name.replaceAll('.', ' '),
           subtitle: _meta(t),
-          onTap: () => _pickMovie(t, '${widget.title} — $q'),
+          onTap: () => _pickMovie(context, t, '$title — $q'),
         ));
       }
     }
@@ -238,7 +266,7 @@ class _SourcePickerSheetState extends State<_SourcePickerSheet> {
           leading: _badge(context, t.quality),
           title: t.name.replaceAll('.', ' '),
           subtitle: _meta(t),
-          onTap: () => _pickMovie(t, '${widget.title} — ${t.quality}'),
+          onTap: () => _pickMovie(context, t, '$title — ${t.quality}'),
         ));
       }
     }

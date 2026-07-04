@@ -59,6 +59,23 @@ class RoomsRepositoryImpl implements RoomsRepository {
   Future<Either<Failure, String>> uploadSubtitle(String slug, String filePath) =>
       _guard(() => _remote.uploadSubtitle(slug, filePath));
 
+  @override
+  Future<Either<Failure, String>> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  }) => _guard(
+    () => _remote.uploadVoice(
+      slug,
+      filePath,
+      clientId: clientId,
+      durationMs: durationMs,
+      name: name,
+    ),
+  );
+
   /// Runs [action], translating any thrown exception into a [Failure].
   Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) async {
     try {

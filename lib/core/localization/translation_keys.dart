@@ -15,6 +15,11 @@ class TranslationKeys {
   static const save = 'save';
   static const ok = 'ok';
 
+  // Exit-app confirmation (Android back at the home shell)
+  static const exitAppTitle = 'exit_app_title';
+  static const exitAppMessage = 'exit_app_message';
+  static const exitApp = 'exit_app';
+
   // Network / failure keys (must match DioApiClient + repository mappings)
   static const errorTimeout = 'error_timeout';
   static const errorNoInternet = 'error_no_internet';
@@ -49,8 +54,43 @@ class TranslationKeys {
 
   // Bottom navigation tabs
   static const roomsTab = 'rooms_tab';
+  static const cinemaTab = 'cinema_tab';
   static const browseTab = 'browse_tab';
   static const favoritesTab = 'favorites_tab';
+  static const youtubeTab = 'youtube_tab';
+  static const tvTab = 'tv_tab';
+
+  // Live TV (isolated YacineTV catalogue → on-device native player)
+  static const tvTitle = 'tv_title';
+  static const tvChannels = 'tv_channels';
+  static const tvEmpty = 'tv_empty';
+  static const tvLive = 'tv_live';
+  static const tvChannelUnavailable = 'tv_channel_unavailable';
+  static const tvCreateRoom = 'tv_create_room';
+  static const tvPreviewFailed = 'tv_preview_failed';
+
+  // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
+  static const cinemaTitle = 'cinema_title';
+  static const cinemaSearchHint = 'cinema_search_hint';
+  static const cinemaNoResults = 'cinema_no_results';
+  static const cinemaNoResultsHint = 'cinema_no_results_hint';
+  static const cinemaChooseServer = 'cinema_choose_server';
+  static const cinemaNoServers = 'cinema_no_servers';
+  static const cinemaResolveFailed = 'cinema_resolve_failed';
+  static const cinemaDirectFile = 'cinema_direct_file';
+  static const cinemaStreamHost = 'cinema_stream_host';
+  static const cinemaLoading = 'cinema_loading';
+  static const cinemaUnavailable = 'cinema_unavailable';
+  static const cinemaNoEpisodes = 'cinema_no_episodes';
+  static const favoritesSourceImdb = 'favorites_source_imdb';
+  static const favoritesSourceCinema = 'favorites_source_cinema';
+
+  // YouTube search tab (isolated "search → server download" feature)
+  static const youtubeSearchHint = 'youtube_search_hint';
+  static const youtubeSearchPrompt = 'youtube_search_prompt';
+  static const youtubeNoResults = 'youtube_no_results';
+  static const youtubeUnavailable = 'youtube_unavailable';
+  static const youtubeCreateRoom = 'youtube_create_room';
 
   // Favorites (saved movies/series)
   static const favoritesTitle = 'favorites_title';
@@ -65,33 +105,13 @@ class TranslationKeys {
   static const topcinemaNotFound = 'topcinema_not_found';
   static const topcinemaUnavailable = 'topcinema_unavailable';
 
-  // Bookmarks
-  static const bookmarks = 'bookmarks';
-  static const addBookmark = 'add_bookmark';
-  static const noBookmarks = 'no_bookmarks';
-  static const bookmarkSaved = 'bookmark_saved';
-  static const bookmarkName = 'bookmark_name';
-  static const bookmarkNameHint = 'bookmark_name_hint';
-
-  // Drawing / pen overlay
-  static const draw = 'draw';
-  static const drawClear = 'draw_clear';
-
-  // Live TV
-  static const tvTitle = 'tv_title';
-  static const tvEmpty = 'tv_empty';
-  static const tvChannels = 'tv_channels';
-  static const tvLive = 'tv_live';
-  static const tvWatchTogether = 'tv_watch_together';
-  static const tvChannelUnavailable = 'tv_channel_unavailable';
-
-  // iwaatch (isolated direct-link "third way", resolved server-side)
+  // iwaatch (isolated server-resolved direct-link "third way", movies only)
   static const iwaatchButton = 'iwaatch_button';
   static const iwaatchTitle = 'iwaatch_title';
   static const iwaatchNameHint = 'iwaatch_name_hint';
+  static const iwaatchGo = 'iwaatch_go';
   static const iwaatchNotFound = 'iwaatch_not_found';
   static const iwaatchUnavailable = 'iwaatch_unavailable';
-  static const iwaatchMoviesOnly = 'iwaatch_movies_only';
 
   // Browse (catalogue)
   static const browseTitle = 'browse_title';
@@ -100,7 +120,12 @@ class TranslationKeys {
   static const browseNoResults = 'browse_no_results';
   static const browseNoResultsHint = 'browse_no_results_hint';
   static const loadMore = 'load_more';
-  static const browseGenreEmpty = 'browse_genre_empty';
+  static const browseSort = 'browse_sort';
+  static const browseSortDefault = 'browse_sort_default';
+  static const browseSortRelease = 'browse_sort_release';
+  static const browseSortRating = 'browse_sort_rating';
+  static const browseSortAscending = 'browse_sort_ascending';
+  static const browseSortDescending = 'browse_sort_descending';
   static const torrentSearching = 'torrent_searching';
   static const torrentNotAvailable = 'torrent_not_available';
 
@@ -129,6 +154,8 @@ class TranslationKeys {
   static const shareRoom = 'share_room';
   static const copyLink = 'copy_link';
   static const linkCopied = 'link_copied';
+  static const copy = 'copy';
+  static const copied = 'copied';
   static const scanToJoin = 'scan_to_join';
 
   // Room / watch screen
@@ -158,8 +185,23 @@ class TranslationKeys {
   static const chatThrottled = 'chat_throttled';
   static const chatSending = 'chat_sending';
   static const chatRetry = 'chat_retry';
+  static const chatReceived = 'chat_received';
   static const messages = 'messages';
   static const writing = 'writing';
+
+  // Voice messages
+  static const voiceSlideToCancel = 'voice_slide_to_cancel';
+  static const voiceReleaseToCancel = 'voice_release_to_cancel';
+  static const voiceMicPermission = 'voice_mic_permission';
+  static const voiceHoldToRecord = 'voice_hold_to_record';
+  static const voiceMessage = 'voice_message';
+
+  // Presence join/leave toasts ("<name> joined" / "<name> left")
+  static const userJoined = 'user_joined';
+  static const userLeft = 'user_left';
+
+  // Drawing on video
+  static const draw = 'draw';
 
   // Reactions
   static const reactions = 'reactions';
@@ -171,9 +213,11 @@ class TranslationKeys {
   static const holdToTalk = 'hold_to_talk';
   static const tapToTalk = 'tap_to_talk';
   static const speaking = 'speaking';
-  static const recordingVoice = 'recording_voice';
   static const micPermissionDenied = 'mic_permission_denied';
-  static const voiceMessage = 'voice_message';
+
+  // Per-user touch lock (disables the video's tap layer; emoji/chat/mic stay on)
+  static const lockControls = 'lock_controls';
+  static const unlockControls = 'unlock_controls';
 
   // Subtitles
   static const addSubtitle = 'add_subtitle';
@@ -190,6 +234,22 @@ class TranslationKeys {
   static const subtitleThickness = 'subtitle_thickness';
   static const subtitleSize = 'subtitle_size';
   static const reset = 'reset';
+
+  // Offline cache (videos downloaded to this device)
+  static const cachedVideos = 'cached_videos';
+  static const cachedVideosEmpty = 'cached_videos_empty';
+  static const cachedVideosEmptyHint = 'cached_videos_empty_hint';
+  static const downloadForOffline = 'download_for_offline';
+  static const savedOffline = 'saved_offline';
+  static const downloadPaused = 'download_paused';
+  static const downloadFailed = 'download_failed';
+  static const pause = 'pause';
+  static const resume = 'resume';
+  static const deleteDownload = 'delete_download';
+  static const deleteDownloadConfirm = 'delete_download_confirm';
+  static const deleteAll = 'delete_all';
+  static const deleteAllConfirm = 'delete_all_confirm';
+  static const storageUsed = 'storage_used';
 
   // Server operations (transfers) panel
   static const operationsTitle = 'operations_title';
@@ -225,12 +285,20 @@ class TranslationKeys {
   static const typeUploadDesc = 'type_upload_desc';
   static const typeTorrent = 'type_torrent';
   static const typeTorrentDesc = 'type_torrent_desc';
+  static const typeYoutube = 'type_youtube';
+  static const typeYoutubeDesc = 'type_youtube_desc';
+  static const typeTelegram = 'type_telegram';
+  static const typeTelegramDesc = 'type_telegram_desc';
   static const externalUrl = 'external_url';
   static const externalUrlHint = 'external_url_hint';
   static const videoUrl = 'video_url';
   static const videoUrlHint = 'video_url_hint';
   static const magnetUrl = 'magnet_url';
   static const magnetUrlHint = 'magnet_url_hint';
+  static const youtubeLink = 'youtube_link';
+  static const youtubeLinkHint = 'youtube_link_hint';
+  static const telegramLink = 'telegram_link';
+  static const telegramLinkHint = 'telegram_link_hint';
   static const pickVideo = 'pick_video';
   static const password = 'password';
   static const passwordOptionalHint = 'password_optional_hint';
@@ -260,4 +328,25 @@ class TranslationKeys {
   static const serverInvalid = 'server_invalid';
   static const serverChangedRestart = 'server_changed_restart';
   static const resetToDefault = 'reset_to_default';
+  static const appVersion = 'app_version';
+
+  // In-app updates (sideloaded APK self-update)
+  static const updateAvailable = 'update_available';
+  static const updateDownload = 'update_download';
+  static const updateDownloading = 'update_downloading';
+  static const updateInstall = 'update_install';
+  static const updateLater = 'update_later';
+  static const updateError = 'update_error';
+  static const updatePermissionDenied = 'update_permission_denied';
+  static const updateRequiredTitle = 'update_required_title';
+  static const updateRequiredBody = 'update_required_body';
+  static const updateInstallHint = 'update_install_hint';
+
+  // Bookmarks
+  static const addBookmark = 'add_bookmark';
+  static const bookmarkSaved = 'bookmark_saved';
+  static const bookmarks = 'bookmarks';
+  static const bookmarkName = 'bookmark_name';
+  static const bookmarkNameHint = 'bookmark_name_hint';
+  static const noBookmarks = 'no_bookmarks';
 }

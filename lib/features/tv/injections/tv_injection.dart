@@ -8,15 +8,14 @@ import '../data/tv_live_stream_resolver.dart';
 import '../presentation/bloc/tv_groups/tv_groups_cubit.dart';
 import '../presentation/bloc/tv_launch/tv_launch_cubit.dart';
 
-/// Registers the live-TV feature. The catalogue is fetched from the app's own
-/// server ([TvApi] over the shared [ApiClient]) — the device never calls the
-/// YacineTV provider directly. Tapping a channel previews it (single user) and
-/// can then create a synced `tv` room via the existing rooms layer;
-/// [TvLiveStreamResolver] (bound to the core [LiveStreamResolver] the watch
-/// feature depends on) refreshes an expired stream token in place so the room
-/// keeps working.
+/// Registers the live-TV feature. Browsing the catalogue runs over
+/// `package:http` ([TvApi]) — independent of the backend [ApiClient], mirroring
+/// Cinema/Browse. Tapping a channel creates a synced `tv` room via the existing
+/// rooms layer, and [TvLiveStreamResolver] (bound to the core
+/// [LiveStreamResolver] the watch feature depends on) refreshes an expired
+/// stream token in place so the room keeps working.
 Future<void> injectTvSingletons(GetIt sl) async {
-  sl.registerLazySingleton<TvApi>(() => TvApi(sl<ApiClient>()));
+  sl.registerLazySingleton<TvApi>(() => TvApi());
   sl.registerLazySingleton<LiveStreamResolver>(
     () => TvLiveStreamResolver(sl<TvApi>(), sl<ApiClient>()),
   );

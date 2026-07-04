@@ -1,9 +1,12 @@
 import 'package:get_it/get_it.dart';
 
+import '/core/livetv/live_stream_resolver.dart';
 import '/features/rooms/domain/usecases/delete_room_usecase.dart';
 import '/features/rooms/domain/usecases/get_room_usecase.dart';
 import '/features/rooms/domain/usecases/unlock_room_usecase.dart';
 import '/features/rooms/domain/usecases/upload_subtitle_usecase.dart';
+import '/features/rooms/domain/usecases/upload_voice_usecase.dart';
+import '/features/cache/data/cache_manager.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
@@ -39,10 +42,13 @@ Future<void> injectWatchFactories(GetIt sl) async {
       sl<UnlockRoomUseCase>(),
       sl<DeleteRoomUseCase>(),
       sl<UploadSubtitleUseCase>(),
+      sl<UploadVoiceUseCase>(),
       sl<KeyValueStorage>(),
       sl<TorrentEngine>(),
       sl<FavoritesCubit>(),
       sl<IdentityCubit>(),
+      sl<CacheManager>(),
+      sl<LiveStreamResolver>(),
     ),
   );
   sl.registerFactory<VoiceCubit>(() => VoiceCubit(sl<WatchRepository>(), sl<IdentityCubit>()));

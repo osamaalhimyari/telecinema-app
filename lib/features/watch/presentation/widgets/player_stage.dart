@@ -5,6 +5,7 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
+import '../bloc/voice_playback/voice_playback_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../pages/fullscreen_player_page.dart';
@@ -65,7 +66,13 @@ class PlayerStage extends StatelessWidget {
   }
 
   Widget _file(BuildContext context, WatchState state) {
-    if (state.videoError) return _message(context, TranslationKeys.videoUnavailable);
+    if (state.videoError) {
+      return _message(
+        context,
+        TranslationKeys.videoUnavailable,
+        onRetry: () => context.read<WatchCubit>().retryVideo(),
+      );
+    }
     if (state.preparingTorrent) return _loading(context, TranslationKeys.preparingTorrent);
     if (!state.videoReady || context.read<WatchCubit>().videoController == null) {
       return const Center(child: CircularProgressIndicator());
@@ -93,11 +100,13 @@ class PlayerStage extends StatelessWidget {
   /// keeps running in sync. `BlocProvider.value` does not close the cubit when
   /// the route is popped — the room page still owns it.
   void _openFullscreen(BuildContext context) {
-    // Hand the fullscreen route the same cubits so playback stays in sync and
-    // the push-to-talk mic keeps working. `.value` won't dispose them on pop.
+    // Hand the fullscreen route the same cubits so playback stays in sync, the
+    // push-to-talk mic keeps working and the draw-mode/pen choice carries over.
+    // `.value` won't dispose them on pop.
     final watch = context.read<WatchCubit>();
     final voice = context.read<VoiceCubit>();
     final draw = context.read<DrawModeCubit>();
+    final playback = context.read<VoicePlaybackCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MultiBlocProvider(
@@ -105,6 +114,7 @@ class PlayerStage extends StatelessWidget {
             BlocProvider<WatchCubit>.value(value: watch),
             BlocProvider<VoiceCubit>.value(value: voice),
             BlocProvider<DrawModeCubit>.value(value: draw),
+            BlocProvider<VoicePlaybackCubit>.value(value: playback),
           ],
           child: const FullscreenPlayerPage(),
         ),
@@ -112,7 +122,7 @@ class PlayerStage extends StatelessWidget {
     );
   }
 
-  Widget _message(BuildContext context, String key) {
+  Widget _message(BuildContext context, String key, {VoidCallback? onRetry}) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -120,6 +130,18 @@ class PlayerStage extends StatelessWidget {
           const Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 40),
           const SizedBox(height: 8),
           Text(context.tr(key), style: const TextStyle(color: Colors.white70)),
+          if (onRetry != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(context.tr(TranslationKeys.retry)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54),
+              ),
+            ),
+          ],
         ],
       ),
     );

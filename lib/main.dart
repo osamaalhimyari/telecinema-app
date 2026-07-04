@@ -60,8 +60,7 @@ class App extends StatelessWidget {
         BlocProvider<OperationsCubit>.value(
           value: sl<OperationsCubit>()..start(),
         ),
-        // App-lifetime singleton: shared by the app-bar update button and the
-        // forced-update gate. Checks for a newer build on launch.
+        // App-lifetime updater — checks for a newer build on launch.
         BlocProvider<AppUpdateCubit>.value(
           value: sl<AppUpdateCubit>()..check(),
         ),
@@ -86,6 +85,9 @@ class App extends StatelessWidget {
                   GlobalCupertinoLocalizations.delegate,
                 ],
                 routerConfig: router,
+                // Paints a blocking gate over the app when an update is forced.
+                builder: (context, child) =>
+                    UpdateGate(child: child ?? const SizedBox.shrink()),
               );
             },
           );

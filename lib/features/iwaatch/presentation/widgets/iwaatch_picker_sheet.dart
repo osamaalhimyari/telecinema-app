@@ -10,37 +10,40 @@ import '/routes/routes_names.dart';
 import '../../data/datasources/iwaatch_remote_datasource.dart';
 import '../../domain/entities/iwaatch_source.dart';
 
-/// Entry point for the ISOLATED iwaatch "direct link" (third way).
+/// Entry point for the ISOLATED iwaatch "direct link" source (movies only).
 ///
-/// Flow: ask for an editable movie name (the url slug, prefilled from the title)
-/// → resolve it on the backend → pick a quality → create a `download` room from
-/// the direct link and open it. iwaatch only has movies for now, so a series
-/// just gets a short "movies only" note.
+/// Flow: ask for an editable name (the url slug, prefilled from the title so the
+/// user can correct it) → resolve it to direct links ON THE SERVER → pick a
+/// quality → create a `download` room from the chosen link and review it on the
+/// Create Room screen.
 ///
 /// Self-contained: it talks only to [IwaatchRemoteDataSource] and navigates to
-/// the Create Room screen by name. Nothing in the torrent/topcinema path is
-/// touched.
+/// the room route. Nothing in the torrent / topcinema path is touched. Series
+/// are "coming soon" on iwaatch, so this is offered for movies only.
 Future<void> showIwaatchPicker(
   BuildContext context, {
   required String title,
-  required bool isSeries,
   required IwaatchRemoteDataSource datasource,
   String? category,
   String? imdbId,
+  String? poster,
 }) async {
-  if (isSeries) {
-    context.showSnack(context.tr(TranslationKeys.iwaatchMoviesOnly));
-    return;
-  }
-
   final name = await _askName(context, _slugify(title));
   if (name == null || name.isEmpty || !context.mounted) return;
 
-  final source = await _pickMovie(context, datasource, name, title);
+  final sources = await _withLoading(context, () => datasource.resolveMovie(name));
+  if (sources == null || !context.mounted) return;
+  if (sources.isEmpty) {
+    context.showSnack(context.tr(TranslationKeys.iwaatchNotFound));
+    return;
+  }
+
+  final source = await _showQualityDialog(context, title, sources);
   if (source == null || !context.mounted) return;
 
   // Hand off to the existing Create Room screen with the resolved link in the
-  // download field — that screen owns the actual download + room creation.
+  // download field, so the user can review the name / password / category
+  // before creating. That screen owns the actual download + room creation.
   context.pushNamed(
     RoutesNames.createRoom,
     extra: {
@@ -48,18 +51,19 @@ Future<void> showIwaatchPicker(
       'videoUrl': source.url,
       'category': category,
       'imdbId': imdbId,
+      'thumbnail': poster,
     },
   );
 }
 
-/// Title → url slug, e.g. `Back in Action` → `back-in-action`.
+/// Title → url slug, e.g. `Back in Action 2025` → `back-in-action-2025`.
 String _slugify(String s) => s
     .toLowerCase()
     .replaceAll(RegExp(r"['’`]"), '')
     .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
     .replaceAll(RegExp(r'^-+|-+$'), '');
 
-/// Prompts for the (editable) name used to locate the movie on iwaatch.
+/// Prompts for the (editable) name used to locate the title on iwaatch.
 Future<String?> _askName(BuildContext context, String initial) {
   final controller = TextEditingController(text: initial);
   return showDialog<String>(
@@ -91,27 +95,11 @@ Future<String?> _askName(BuildContext context, String initial) {
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
-          child: Text(context.tr(TranslationKeys.topcinemaGo)),
+          child: Text(context.tr(TranslationKeys.iwaatchGo)),
         ),
       ],
     ),
   );
-}
-
-/// Resolve by name (with a blocking spinner), then pick a quality.
-Future<IwaatchSource?> _pickMovie(
-  BuildContext context,
-  IwaatchRemoteDataSource datasource,
-  String name,
-  String title,
-) async {
-  final sources = await _withLoading(context, () => datasource.resolveMovie(name));
-  if (sources == null || !context.mounted) return null;
-  if (sources.isEmpty) {
-    context.showSnack(context.tr(TranslationKeys.iwaatchNotFound));
-    return null;
-  }
-  return _showQualityDialog(context, title, sources);
 }
 
 /// Runs [task] behind a modal spinner; surfaces a snack and returns null on
@@ -209,7 +197,7 @@ Widget _qualityTile(BuildContext context, IwaatchSource s, VoidCallback onTap) {
       ),
       title: Text(s.label, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: s.meta.isEmpty ? null : Text(s.meta),
-      trailing: const Icon(Icons.link_rounded),
+      trailing: Icon(s.isHls ? Icons.play_circle_outline_rounded : Icons.download_rounded),
       onTap: onTap,
     ),
   );

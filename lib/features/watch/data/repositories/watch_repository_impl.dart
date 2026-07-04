@@ -46,23 +46,31 @@ class WatchRepositoryImpl implements WatchRepository {
   @override
   Stream<ReactionEvent> get reaction => _ds.reaction;
   @override
-  Stream<void> get roomDeleted => _ds.roomDeleted;
-  @override
-  Stream<VoiceEvent> get voice => _ds.voice;
-  @override
-  Stream<String> get voiceRead => _ds.voiceRead;
-  @override
   Stream<DrawEvent> get draw => _ds.draw;
   @override
   Stream<TypingEvent> get typing => _ds.typing;
+  @override
+  Stream<void> get roomDeleted => _ds.roomDeleted;
+  @override
+  Stream<VoiceEvent> get voice => _ds.voice;
 
   @override
   void sendControl({required String action, double? currentTime, double? rate}) =>
       _ds.sendControl(action: action, currentTime: currentTime, rate: rate);
   @override
-  void sendChat(String text, {String? clientId}) => _ds.sendChat(text, clientId: clientId);
+  void sendChat(String text, {String? clientId, String? audioUrl, int? durationMs}) =>
+      _ds.sendChat(text, clientId: clientId, audioUrl: audioUrl, durationMs: durationMs);
   @override
   void sendReaction(String emoji) => _ds.sendReaction(emoji);
+  @override
+  void sendDraw({
+    required String strokeId,
+    required String color,
+    required List<List<double>> points,
+    required bool done,
+  }) => _ds.sendDraw(strokeId: strokeId, color: color, points: points, done: done);
+  @override
+  void sendTyping(bool typing) => _ds.sendTyping(typing);
   @override
   void setBuffering(bool buffering) => _ds.setBuffering(buffering);
   @override
@@ -74,22 +82,9 @@ class WatchRepositoryImpl implements WatchRepository {
       _ds.setSubtitleSettings(offset: offset, weight: weight, size: size);
 
   @override
-  void voiceStart(String mimeType, String clipId) => _ds.voiceStart(mimeType, clipId);
+  void voiceStart(String mimeType) => _ds.voiceStart(mimeType);
   @override
   void voiceChunk(List<int> bytes) => _ds.voiceChunk(bytes);
   @override
-  void voiceEnd(String clipId) => _ds.voiceEnd(clipId);
-  @override
-  void sendVoiceRead(String clipId) => _ds.sendVoiceRead(clipId);
-
-  @override
-  void sendDraw({
-    required String strokeId,
-    required String color,
-    required List<List<double>> points,
-    required bool done,
-  }) => _ds.sendDraw(strokeId: strokeId, color: color, points: points, done: done);
-
-  @override
-  void sendTyping(bool typing) => _ds.sendTyping(typing);
+  void voiceEnd() => _ds.voiceEnd();
 }

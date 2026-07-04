@@ -8,8 +8,8 @@ import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
 /// A translucent bookmark side-panel that slides in from the right over the
-/// fullscreen video. Save the current position or tap an existing bookmark to
-/// seek there. Shown/hidden by [open]; [onClose] backs the header's close button.
+/// fullscreen video. Users can save the current video position as a bookmark
+/// or tap an existing one to seek there.
 class FullscreenBookmarksPanel extends StatelessWidget {
   const FullscreenBookmarksPanel({
     super.key,
@@ -43,7 +43,9 @@ class FullscreenBookmarksPanel extends StatelessWidget {
           content: TextField(
             controller: controller,
             autofocus: true,
-            decoration: InputDecoration(hintText: ctx.tr(TranslationKeys.bookmarkNameHint)),
+            decoration: InputDecoration(
+              hintText: ctx.tr(TranslationKeys.bookmarkNameHint),
+            ),
           ),
           actions: [
             TextButton(
@@ -64,8 +66,10 @@ class FullscreenBookmarksPanel extends StatelessWidget {
     await cubit.updateBookmark(b.id, name: name.isEmpty ? null : name);
   }
 
-  Future<void> _delete(BuildContext context, Bookmark b) =>
-      context.read<WatchCubit>().deleteBookmark(b.id);
+  Future<void> _delete(BuildContext context, Bookmark b) async {
+    final cubit = context.read<WatchCubit>();
+    await cubit.deleteBookmark(b.id);
+  }
 
   String _format(Duration d) {
     final h = d.inHours;
@@ -128,7 +132,11 @@ class FullscreenBookmarksPanel extends StatelessWidget {
           Expanded(
             child: Text(
               context.tr(TranslationKeys.bookmarks),
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           IconButton(
@@ -181,7 +189,11 @@ class FullscreenBookmarksPanel extends StatelessWidget {
             onTap: () => _seek(context, b),
             child: Row(
               children: [
-                const Icon(Icons.bookmark_rounded, size: 16, color: Colors.white70),
+                const Icon(
+                  Icons.bookmark_rounded,
+                  size: 16,
+                  color: Colors.white70,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -192,11 +204,17 @@ class FullscreenBookmarksPanel extends StatelessWidget {
                         b.name ?? _format(b.position),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                       ),
                       Text(
                         _format(b.position),
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),

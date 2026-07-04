@@ -10,17 +10,12 @@ import 'emoji_keyboard_picker.dart';
 /// strip. Tapping an emoji sends a `reaction` to everyone and floats it
 /// locally. The trailing `+` lets the viewer pick any emoji from their keyboard;
 /// the picked one is appended to the strip for the session and sent right away.
-class ReactionBar extends StatefulWidget {
+class ReactionBar extends StatelessWidget {
   const ReactionBar({super.key});
 
-  @override
-  State<ReactionBar> createState() => _ReactionBarState();
-}
-
-class _ReactionBarState extends State<ReactionBar> {
-  Future<void> _addCustom() async {
+  Future<void> _addCustom(BuildContext context) async {
     final emoji = await pickEmojiFromKeyboard(context);
-    if (emoji == null || emoji.isEmpty || !mounted) return;
+    if (emoji == null || emoji.isEmpty || !context.mounted) return;
     final cubit = context.read<WatchCubit>();
     // Shared session palette so the fullscreen bar shows it too.
     cubit.addSessionReaction(emoji);
@@ -66,7 +61,7 @@ class _ReactionBarState extends State<ReactionBar> {
 
   Widget _addButton(BuildContext context) => _circle(
     context,
-    onTap: _addCustom,
+    onTap: () => _addCustom(context),
     child: Icon(Icons.add_rounded, size: 22, color: context.colors.primary),
   );
 

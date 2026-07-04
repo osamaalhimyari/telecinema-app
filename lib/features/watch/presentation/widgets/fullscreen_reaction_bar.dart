@@ -5,31 +5,21 @@ import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'emoji_keyboard_picker.dart';
 
-/// Fullscreen reaction palette pinned over the video.
-///
-/// To keep the picture clear it starts **collapsed** as a single reaction icon.
-/// Tapping the icon expands a horizontally **scrollable** strip of the room's
-/// emoji, ending with a `+` button to add a custom one for the session; tapping
-/// the icon again collapses the strip away. Each emoji sends a `reaction` that
-/// floats up via the fullscreen `FloatingReactions` overlay.
-class FullscreenReactionBar extends StatefulWidget {
+/// Fullscreen reaction palette — a horizontally **scrollable** strip of the
+/// room's emoji, ending with a `+` button to add a custom one for the session.
+/// It has no toggle of its own: it simply appears (at the top of the control
+/// stack) whenever the master controls button is expanded, so the emoji are one
+/// tap away. Each emoji sends a `reaction` that floats up via the fullscreen
+/// `FloatingReactions` overlay.
+class FullscreenReactionBar extends StatelessWidget {
   const FullscreenReactionBar({super.key});
 
-  @override
-  State<FullscreenReactionBar> createState() => _FullscreenReactionBarState();
-}
+  void _send(BuildContext context, String emoji) =>
+      context.read<WatchCubit>().sendReaction(emoji);
 
-class _FullscreenReactionBarState extends State<FullscreenReactionBar> {
-  /// Whether the emoji strip is shown. Starts hidden behind the single icon.
-  bool _expanded = false;
-
-  void _toggle() => setState(() => _expanded = !_expanded);
-
-  void _send(String emoji) => context.read<WatchCubit>().sendReaction(emoji);
-
-  Future<void> _addCustom() async {
+  Future<void> _addCustom(BuildContext context) async {
     final emoji = await pickEmojiFromKeyboard(context);
-    if (emoji == null || emoji.isEmpty || !mounted) return;
+    if (emoji == null || emoji.isEmpty || !context.mounted) return;
     final cubit = context.read<WatchCubit>();
     // Shared session palette so the portrait bar shows it too.
     cubit.addSessionReaction(emoji);
@@ -60,50 +50,35 @@ class _FullscreenReactionBarState extends State<FullscreenReactionBar> {
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(99),
           clipBehavior: Clip.antiAlias,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The always-present toggle. Collapses/expands the strip.
-                _iconButton(
-                  icon: _expanded ? Icons.close_rounded : Icons.add_reaction_outlined,
-                  onTap: _toggle,
-                ),
-                if (_expanded) _strip(context, emojis),
-              ],
-            ),
-          ),
+          child: _strip(context, emojis),
         );
       },
     );
   }
 
-  /// The scrollable emoji strip revealed when expanded: the room's emoji
-  /// followed by the `+` add button. Capped to ~55% of the screen width so a
-  /// long palette scrolls horizontally instead of covering the video.
+  /// The scrollable emoji strip: the room's emoji followed by the `+` add
+  /// button. Capped to ~60% of the screen width so a long palette scrolls
+  /// horizontally instead of covering the video.
   Widget _strip(BuildContext context, List<String> emojis) {
-    final maxWidth = MediaQuery.sizeOf(context).width * 0.55;
+    final maxWidth = MediaQuery.sizeOf(context).width * 0.6;
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final emoji in emojis)
               InkWell(
                 borderRadius: BorderRadius.circular(99),
-                onTap: () => _send(emoji),
+                onTap: () => _send(context, emoji),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
                   child: Text(emoji, style: const TextStyle(fontSize: 20)),
                 ),
               ),
-            _iconButton(icon: Icons.add_rounded, onTap: _addCustom),
+            _iconButton(icon: Icons.add_rounded, onTap: () => _addCustom(context)),
           ],
         ),
       ),

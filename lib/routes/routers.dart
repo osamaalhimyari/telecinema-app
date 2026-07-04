@@ -2,10 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/browse/domain/entities/catalog_item.dart';
-import '/features/browse/presentation/pages/browse_page.dart';
 import '/features/browse/presentation/pages/detail_page.dart';
+import '/features/cache/presentation/pages/cached_videos_page.dart';
+import '/features/cinema/domain/entities/cinema_item.dart';
+import '/features/cinema/presentation/pages/cinema_detail_page.dart';
+import '/features/discover/presentation/pages/discover_page.dart';
 import '/features/favorites/presentation/pages/favorites_page.dart';
 import '/features/shell/main_shell.dart';
+// import '/features/tv/presentation/pages/tv_groups_page.dart';
 import '../features/rooms/domain/entities/room.dart';
 import '../features/rooms/presentation/pages/create_room_page.dart';
 import '../features/rooms/presentation/pages/rooms_page.dart';
@@ -28,6 +32,8 @@ final router = GoRouter(
       builder: (_, _, navigationShell) =>
           MainShell(navigationShell: navigationShell),
       branches: [
+        // Branch order MUST match the destination order in [MainShell]:
+        // Rooms · Live TV · Browse · Favorites.
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -37,12 +43,25 @@ final router = GoRouter(
             ),
           ],
         ),
+        // Live TV — isolated YacineTV catalogue (groups → channels → on-device
+        // player). Drill-down + player pages push on the root navigator.
+        // StatefulShellBranch(
+        //   routes: [
+        //     GoRoute(
+        //       name: RoutesNames.tv,
+        //       path: '/tv',
+        //       builder: (_, _) => const TvGroupsPage(),
+        //     ),
+        //   ],
+        // ),
+        // Browse — the unified tab: one grid merging the IMDB (Cinemeta) and
+        // Cinema (EgyBest) catalogues. Each card opens its own detail page.
         StatefulShellBranch(
           routes: [
             GoRoute(
               name: RoutesNames.browse,
               path: '/browse',
-              builder: (_, _) => const BrowsePage(),
+              builder: (_, _) => const DiscoverPage(),
             ),
           ],
         ),
@@ -55,6 +74,8 @@ final router = GoRouter(
             ),
           ],
         ),
+        // YouTube browsing/search is intentionally not exposed in this app — the
+        // only YouTube entry point is the "YouTube" room type in Create Room.
       ],
     ),
 
@@ -70,8 +91,11 @@ final router = GoRouter(
           initialName: prefill['name'] as String?,
           initialMagnet: prefill['magnet'] as String?,
           initialVideoUrl: prefill['videoUrl'] as String?,
+          initialYoutubeUrl: prefill['youtubeUrl'] as String?,
           initialCategory: prefill['category'] as String?,
           initialImdbId: prefill['imdbId'] as String?,
+          initialMaxHeight: prefill['maxHeight'] as int?,
+          initialThumbnail: prefill['thumbnail'] as String?,
         );
       },
     ),
@@ -83,6 +107,12 @@ final router = GoRouter(
         slug: state.pathParameters['slug'] ?? '',
         initialRoom: state.extra is Room ? state.extra as Room : null,
       ),
+    ),
+    GoRoute(
+      name: RoutesNames.cached,
+      path: '/cached',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const CachedVideosPage(),
     ),
     GoRoute(
       name: RoutesNames.subtitles,
@@ -107,6 +137,16 @@ final router = GoRouter(
         type: state.pathParameters['type'] ?? 'movie',
         id: state.pathParameters['id'] ?? '',
         initial: state.extra is CatalogItem ? state.extra as CatalogItem : null,
+      ),
+    ),
+    GoRoute(
+      name: RoutesNames.cinemaDetail,
+      path: '/cinema/title/:type/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => CinemaDetailPage(
+        type: state.pathParameters['type'] ?? 'movie',
+        id: state.pathParameters['id'] ?? '',
+        initial: state.extra is CinemaItem ? state.extra as CinemaItem : null,
       ),
     ),
   ],

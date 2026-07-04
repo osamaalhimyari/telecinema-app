@@ -62,22 +62,34 @@ class Room extends Equatable {
 
   bool get isExternal => roomType.isExternal;
 
-  /// Streamable video URL: the swarm stream for torrent rooms, the live-TV relay
-  /// for tv rooms, the stored file for upload/download rooms, null for external
-  /// (WebView) rooms.
+  bool get isTv => roomType.isTv;
+
+  /// For a live-TV room, the unpacked source (stream URL + per-channel headers +
+  /// channel path for token refresh); null for every other room type. The
+  /// packed string is stored in [externalUrl].
+  LiveStreamRef? get liveStream =>
+      roomType.isTv ? LiveStreamCodec.unpack(externalUrl) : null;
+
+  /// Streamable video URL: the swarm stream for torrent rooms, the server proxy
+  /// for youtube/live-TV rooms, the stored file for upload/download rooms, null
+  /// for external (WebView) rooms.
   String? get videoUrl {
-    if (roomType.isTv) {
-      final ref = LiveStreamCodec.unpack(externalUrl);
-      return ref == null
-          ? null
-          : AppConfig.tvPreviewUrl(url: ref.url, headers: ref.headers);
-    }
     if (isExternal) return null;
+    if (isTv) return AppConfig.liveStreamUrl(slug);
     if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
+    if (roomType.isYoutube) return AppConfig.youtubeStreamUrl(slug);
     return AppConfig.videoUrl(videoFilename);
   }
 
-  String? get thumbnailUrl => AppConfig.thumbnailUrl(thumbnailFilename);
+  /// A stored full URL (a catalogue poster) is used as-is; a bare filename is a
+  /// built-in placeholder served from the host's `/thumbnails/`.
+  String? get thumbnailUrl {
+    final t = thumbnailFilename;
+    if (t != null && (t.startsWith('http://') || t.startsWith('https://'))) {
+      return t;
+    }
+    return AppConfig.thumbnailUrl(t);
+  }
 
   String? get subtitleUrl => AppConfig.subtitleUrl(subtitleFilename);
 

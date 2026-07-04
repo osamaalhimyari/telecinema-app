@@ -10,11 +10,9 @@ import '../bloc/tv_groups/tv_groups_cubit.dart';
 import '../bloc/tv_groups/tv_groups_state.dart';
 import 'tv_channels_page.dart';
 
-/// The Live TV screen (opened from the Rooms app-bar): a grid of channel groups
-/// (beIN, Arabic, Kids, …). Tapping a group opens its channel list
-/// ([TvChannelsPage]). The catalogue is fetched from the app's own server
-/// (`/api/tv/tree`) and channels play through the server relay — the device
-/// never talks to the provider.
+/// The Live TV tab: a grid of channel groups (beIN, Arabic, Kids, …). Tapping a
+/// group opens its channel list ([TvChannelsPage]). Fully isolated — fetches the
+/// catalogue from the provider and plays on-device; touches no other feature.
 class TvGroupsPage extends StatelessWidget {
   const TvGroupsPage({super.key});
 

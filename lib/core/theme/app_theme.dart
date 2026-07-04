@@ -72,7 +72,7 @@ class AppTheme {
       titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: c.textPrimary),
       titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.textPrimary),
       bodyLarge: TextStyle(fontSize: 16, color: c.textPrimary, height: 1.5),
-      bodyMedium: TextStyle(fontSize: 14, color: c.textSecondary, height: 1.45),
+      bodyMedium: TextStyle(fontSize: 14, color: c.textPrimary, height: 1.45),
       bodySmall: TextStyle(fontSize: 12, color: c.textHint, height: 1.4),
       labelLarge: TextStyle(
         fontSize: 14,

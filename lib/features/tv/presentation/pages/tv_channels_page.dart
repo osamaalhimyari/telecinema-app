@@ -5,13 +5,13 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '../../domain/entities/tv_channel.dart';
 import '../../domain/entities/tv_node.dart';
-import 'tv_preview_page.dart';
+import 'tv_channel_preview_page.dart';
 
 /// One level of the live-TV tree: lists [node]'s sub-groups and/or playable
 /// channels. Tapping a group drills into another [TvChannelsPage]; tapping a
-/// channel opens a single-user [TvPreviewPage], from which the user can start a
-/// synced "watch together" room. Pushed on the root navigator (above the bottom
-/// bar).
+/// channel opens a live [TvChannelPreviewPage] where the viewer can watch it and
+/// then create a synced room — the same "preview, then create a room" flow as a
+/// movie. Pushed on the root navigator (above the bottom bar).
 ///
 /// [path] is the node's name-path from the root (e.g. `["ARABIC", "EGYPTE"]`),
 /// carried so a launched room can re-resolve a fresh stream token later.
@@ -23,7 +23,9 @@ class TvChannelsPage extends StatelessWidget {
 
   void _openChannel(BuildContext context, TvChannel channel, List<String> channelPath) {
     Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => TvPreviewPage(channel: channel, path: channelPath)),
+      MaterialPageRoute(
+        builder: (_) => TvChannelPreviewPage(channel: channel, path: channelPath),
+      ),
     );
   }
 
@@ -38,7 +40,7 @@ class TvChannelsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Direct channels first (rare), then sub-nodes. Each entry is either a group
-    // to drill into or a leaf channel that opens a preview.
+    // to drill into or a leaf channel that opens its preview.
     final entries = <Widget>[
       for (final channel in node.channels)
         _ChannelTile(
@@ -95,7 +97,7 @@ class _GroupTile extends StatelessWidget {
   }
 }
 
-/// A playable channel row — opens the single-user preview.
+/// A playable channel row — opens its live preview.
 class _ChannelTile extends StatelessWidget {
   const _ChannelTile({required this.name, required this.logo, required this.onTap});
 

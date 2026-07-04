@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// A saved playback position inside a room (local-only, per-room). Persisted to
-/// [KeyValueStorage] keyed by the room slug; never synced over the socket.
 class Bookmark extends Equatable {
   const Bookmark({
     required this.id,

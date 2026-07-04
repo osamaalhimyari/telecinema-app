@@ -9,14 +9,15 @@ import 'bookmark_list_sheet.dart';
 
 /// Portrait variant — a compact icon button for the in-room control row.
 /// Opens the bookmark list panel where the user can save, seek, rename or
-/// delete bookmarks. Hidden for embed/live rooms (no seekable timeline).
+/// delete bookmarks.
 class BookmarkButton extends StatelessWidget {
   const BookmarkButton({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WatchCubit, WatchState>(
-      buildWhen: (a, b) => a.isExternal != b.isExternal || a.isLive != b.isLive,
+      buildWhen: (a, b) =>
+          a.isExternal != b.isExternal || a.isLive != b.isLive,
       builder: (context, state) {
         if (state.isExternal || state.isLive) return const SizedBox.shrink();
         return IconButton(
@@ -29,8 +30,9 @@ class BookmarkButton extends StatelessWidget {
   }
 }
 
-/// Fullscreen variant — a 38×38 circle that matches the other fullscreen toggles.
-/// Tapping it opens/closes the bookmarks panel; the icon fills in while open.
+/// Fullscreen variant — a 38×38 circle that matches [FullscreenLockButton].
+/// Tapping it opens/closes the [FullscreenBookmarksPanel]; the icon fills in
+/// while open.
 class FullscreenBookmarkButton extends StatelessWidget {
   const FullscreenBookmarkButton({
     super.key,
@@ -44,7 +46,8 @@ class FullscreenBookmarkButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WatchCubit, WatchState>(
-      buildWhen: (a, b) => a.isExternal != b.isExternal || a.isLive != b.isLive,
+      buildWhen: (a, b) =>
+          a.isExternal != b.isExternal || a.isLive != b.isLive,
       builder: (context, state) {
         if (state.isExternal || state.isLive) return const SizedBox.shrink();
         return Material(

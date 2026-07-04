@@ -19,7 +19,8 @@ class RoomModel {
         slug: (json['slug'] ?? '').toString(),
         roomType: RoomType.fromString(json['roomType']?.toString()),
         hasPassword: json['hasPassword'] == true,
-        isUserCreated: json['isUserCreated'] == true || json['isUserCreated'] == 1,
+        isUserCreated:
+            json['isUserCreated'] == true || json['isUserCreated'] == 1,
         viewCount: _int(json['viewCount']),
         viewerCount: _int(json['viewerCount']),
         reactions: _reactions(json),
@@ -73,6 +74,6 @@ class RoomModel {
         /* fall through to default */
       }
     }
-    return const ['👍', '❤️', '😂', '😮', '🎉', '🔥'];
+    return const ['👍', '👎', '❤️', '😂', '😮', '😢', '😑'];
   }
 }

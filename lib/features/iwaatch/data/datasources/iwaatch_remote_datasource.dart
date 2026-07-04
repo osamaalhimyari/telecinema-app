@@ -2,38 +2,48 @@ import '/core/errors/exceptions.dart';
 import '/core/network/api_client.dart';
 import '../../domain/entities/iwaatch_source.dart';
 
-/// The ISOLATED "iwaatch direct link" data source. Unlike the on-device
-/// topcinema scraper, iwaatch.com is geo/DNS-blocked for the client but
-/// reachable from the server — so resolution runs on the BACKEND and this just
-/// calls `GET /api/iwaatch/resolve` through the app's [ApiClient] (`{ success,
-/// data }` envelope). The resolved link is handed to the existing Create Room
-/// screen.
+/// The ISOLATED "iwaatch direct link" source. Unlike topcinema (scraped
+/// on-device because the server's IP is blocked there), iwaatch.com is the
+/// mirror image: geo/DNS-blocked for the client but reachable from our server,
+/// so resolution runs ON THE BACKEND. This datasource just calls
+/// `GET /api/iwaatch/resolve?title=<name>` and parses the returned sources.
 ///
-/// Throws [ServerException] with a stable key (`iwaatch_not_found` /
-/// `iwaatch_unavailable`) so the UI can translate it.
+/// Movies only — series are "coming soon" on iwaatch. The resolved link is
+/// handed to the existing Create Room screen, so this feature never touches the
+/// rooms feature's code, only its UI route.
 abstract class IwaatchRemoteDataSource {
   /// Resolves a movie (by editable name/slug) to its direct sources.
   Future<List<IwaatchSource>> resolveMovie(String title);
 }
 
 class IwaatchRemoteDataSourceImpl implements IwaatchRemoteDataSource {
-  IwaatchRemoteDataSourceImpl(this._client);
+  IwaatchRemoteDataSourceImpl(this._api);
 
-  final ApiClient _client;
+  final ApiClient _api;
 
   @override
   Future<List<IwaatchSource>> resolveMovie(String title) async {
-    final res = await _client.get('/iwaatch/resolve', queryParameters: {'title': title});
-    if (!res.success) {
-      throw ServerException(res.message ?? 'iwaatch_unavailable');
+    final List<IwaatchSource> sources;
+    try {
+      final res = await _api.get(
+        '/iwaatch/resolve',
+        queryParameters: {'title': title},
+      );
+      final data = res.data;
+      final raw = (data is Map<String, dynamic>) ? data['sources'] : null;
+      sources = (raw is List)
+          ? raw.whereType<Map<String, dynamic>>().map(IwaatchSource.fromJson).toList()
+          : const [];
+    } on ServerException catch (e) {
+      // Map the transport's generic keys / HTTP status to iwaatch-specific
+      // messages so the picker can show a meaningful line. The controller
+      // answers 404 with `iwaatch_not_found`, anything else is "unavailable".
+      if (e.statusCode == 404 || e.serverMessage == 'iwaatch_not_found') {
+        throw const ServerException('iwaatch_not_found');
+      }
+      throw const ServerException('iwaatch_unavailable');
     }
-    final data = res.data;
-    final raw = data is Map ? data['sources'] : null;
-    if (raw is! List) return const [];
-    return raw
-        .whereType<Map>()
-        .map((m) => IwaatchSource.fromJson(Map<String, dynamic>.from(m)))
-        .where((s) => s.url.isNotEmpty)
-        .toList(growable: false);
+    if (sources.isEmpty) throw const ServerException('iwaatch_not_found');
+    return sources;
   }
 }

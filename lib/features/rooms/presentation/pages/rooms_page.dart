@@ -7,19 +7,21 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/status_view.dart';
 import '/injections/injection.dart';
+import '/features/app_update/presentation/widgets/update_button.dart';
 import '/features/operations/presentation/widgets/operations_button.dart';
+import '/features/cache/data/cache_manager.dart';
+import '/features/cache/domain/entities/cached_video.dart';
+import '/features/tv/presentation/pages/tv_groups_page.dart';
 import '/logic/favorites/favorites_cubit.dart';
 import '/logic/favorites/favorites_state.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/room.dart';
 import '../bloc/rooms_list/rooms_list_cubit.dart';
 import '../bloc/rooms_list/rooms_list_state.dart';
+import '../bloc/rooms_view/rooms_view_cubit.dart';
+import '../bloc/rooms_view/rooms_view_state.dart';
 import '../widgets/room_card.dart';
 import '../widgets/settings_sheet.dart';
-
-/// Which local collection the grid is scoped to, on top of the search +
-/// category filters held by [RoomsListCubit].
-enum _Collection { all, favorites, recent }
 
 /// Home — the grid of every available room, with live viewer counts.
 class RoomsPage extends StatelessWidget {
@@ -27,40 +29,37 @@ class RoomsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<RoomsListCubit>(
-      create: (_) => sl<RoomsListCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<RoomsListCubit>(
+          create: (_) => sl<RoomsListCubit>()..load(),
+        ),
+        BlocProvider<RoomsViewCubit>(
+          create: (_) => RoomsViewCubit(),
+        ),
+      ],
       child: const _RoomsView(),
     );
   }
 }
 
-class _RoomsView extends StatefulWidget {
+class _RoomsView extends StatelessWidget {
   const _RoomsView();
-
-  @override
-  State<_RoomsView> createState() => _RoomsViewState();
-}
-
-class _RoomsViewState extends State<_RoomsView> {
-  final _search = TextEditingController();
-  _Collection _collection = _Collection.all;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   /// Applies the favorites/recent collection on top of the cubit's already
   /// search- and category-filtered [RoomsListState.visibleRooms].
-  List<Room> _filtered(RoomsListState state, FavoritesState favorites) {
+  List<Room> _filtered(
+    RoomsListState state,
+    FavoritesState favorites,
+    RoomsCollection collection,
+  ) {
     final rooms = state.visibleRooms;
-    switch (_collection) {
-      case _Collection.all:
+    switch (collection) {
+      case RoomsCollection.all:
         return rooms;
-      case _Collection.favorites:
+      case RoomsCollection.favorites:
         return rooms.where((r) => favorites.favorites.contains(r.slug)).toList();
-      case _Collection.recent:
+      case RoomsCollection.recent:
         final order = {
           for (var i = 0; i < favorites.recents.length; i++) favorites.recents[i]: i,
         };
@@ -75,7 +74,31 @@ class _RoomsViewState extends State<_RoomsView> {
       appBar: AppBar(
         title: Text(context.tr(TranslationKeys.roomsTitle)),
         actions: [
+          const UpdateButton(),
           const OperationsButton(),
+          // Live TV — browse channels, preview one, then create a watch room.
+          IconButton(
+            tooltip: context.tr(TranslationKeys.tvTitle),
+            icon: const Icon(Icons.live_tv_rounded),
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const TvGroupsPage()),
+            ),
+          ),
+          // Only surfaced once something is cached on this device; hidden while
+          // the on-device library is empty.
+          StreamBuilder<List<CachedVideo>>(
+            stream: sl<CacheManager>().changes,
+            initialData: sl<CacheManager>().list(),
+            builder: (context, snapshot) {
+              final items = snapshot.data ?? const <CachedVideo>[];
+              if (items.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: context.tr(TranslationKeys.cachedVideos),
+                icon: const Icon(Icons.download_for_offline_outlined),
+                onPressed: () => context.pushNamed(RoutesNames.cached),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => SettingsSheet.show(context),
@@ -118,11 +141,12 @@ class _RoomsViewState extends State<_RoomsView> {
 
   Widget _success(BuildContext context, RoomsListState state) {
     final favorites = context.watch<FavoritesCubit>().state;
-    final shown = _filtered(state, favorites);
+    final collection = context.watch<RoomsViewCubit>().state.collection;
+    final shown = _filtered(state, favorites, collection);
     return Column(
       children: [
         _searchField(context),
-        _filterChips(context, state),
+        _filterChips(context, state, collection),
         Expanded(
           child: shown.isEmpty
               ? StatusView(
@@ -137,11 +161,12 @@ class _RoomsViewState extends State<_RoomsView> {
   }
 
   Widget _searchField(BuildContext context) {
-    final hasText = _search.text.isNotEmpty;
+    final search = context.read<RoomsViewCubit>().search;
+    final hasText = search.text.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: TextField(
-        controller: _search,
+        controller: search,
         textInputAction: TextInputAction.search,
         onChanged: (v) => context.read<RoomsListCubit>().setQuery(v),
         decoration: InputDecoration(
@@ -152,7 +177,7 @@ class _RoomsViewState extends State<_RoomsView> {
               ? IconButton(
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () {
-                    _search.clear();
+                    context.read<RoomsViewCubit>().clear();
                     context.read<RoomsListCubit>().setQuery('');
                   },
                 )
@@ -162,7 +187,11 @@ class _RoomsViewState extends State<_RoomsView> {
     );
   }
 
-  Widget _filterChips(BuildContext context, RoomsListState state) {
+  Widget _filterChips(
+    BuildContext context,
+    RoomsListState state,
+    RoomsCollection collection,
+  ) {
     // Category keys present in the catalogue, ordered by the canonical list
     // first then any unknown/legacy values.
     final present = state.categories;
@@ -171,7 +200,8 @@ class _RoomsViewState extends State<_RoomsView> {
       ...present.where((c) => !kCategories.contains(c)),
     ];
 
-    void setCollection(_Collection c) => setState(() => _collection = c);
+    void setCollection(RoomsCollection c) =>
+        context.read<RoomsViewCubit>().setCollection(c);
 
     return SizedBox(
       height: 44,
@@ -182,17 +212,17 @@ class _RoomsViewState extends State<_RoomsView> {
           FilterChip(
             avatar: const Icon(Icons.star_rounded, size: 18),
             label: Text(context.tr(TranslationKeys.favorites)),
-            selected: _collection == _Collection.favorites,
+            selected: collection == RoomsCollection.favorites,
             onSelected: (sel) =>
-                setCollection(sel ? _Collection.favorites : _Collection.all),
+                setCollection(sel ? RoomsCollection.favorites : RoomsCollection.all),
           ),
           const SizedBox(width: 8),
           FilterChip(
             avatar: const Icon(Icons.history_rounded, size: 18),
             label: Text(context.tr(TranslationKeys.recent)),
-            selected: _collection == _Collection.recent,
+            selected: collection == RoomsCollection.recent,
             onSelected: (sel) =>
-                setCollection(sel ? _Collection.recent : _Collection.all),
+                setCollection(sel ? RoomsCollection.recent : RoomsCollection.all),
           ),
           if (ordered.isNotEmpty || state.categoryFilter != null) ...[
             const _ChipDivider(),

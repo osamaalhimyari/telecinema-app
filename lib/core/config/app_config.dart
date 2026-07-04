@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '/core/config/endpoints.dart';
 
 /// Central configuration for the watch-party client.
@@ -70,6 +68,19 @@ class AppConfig {
   static String? torrentStreamUrl(String? slug) =>
       (slug == null || slug.isEmpty) ? null : '$baseUrl/stream/$slug';
 
+  /// Absolute URL that streams a youtube room (`GET /youtube/:slug`, range
+  /// support). The server resolves the watch URL to a direct googlevideo stream
+  /// and proxies it, so the app plays it like any file room.
+  static String? youtubeStreamUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/youtube/$slug';
+
+  /// Absolute URL of a live-TV room's HLS relay (`GET /livetv/:slug`). The
+  /// server fetches the (ISP-blocked, header-gated) channel stream and rewrites
+  /// it through itself, so the device plays it like any other HLS source — no
+  /// per-channel headers needed client-side.
+  static String? liveStreamUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/livetv/$slug';
+
   /// Absolute URL of a room's thumbnail (served statically from `public/`).
   static String? thumbnailUrl(String? filename) =>
       (filename == null || filename.isEmpty)
@@ -82,22 +93,14 @@ class AppConfig {
       ? null
       : '$baseUrl/subtitles/$filename';
 
+  /// Absolute URL of a chat voice message (served statically from
+  /// `public/voice/`). The chat message carries just the filename.
+  static String? voiceUrl(String? filename) =>
+      (filename == null || filename.isEmpty)
+      ? null
+      : '$baseUrl/voice/$filename';
+
   /// Shareable deep link to a room (`/room/:slug`), matching the go_router
   /// route. Used by the in-room Share action.
   static String roomUrl(String slug) => '$baseUrl/room/$slug';
-
-  static String? tvPreviewUrl({
-    required String url,
-    Map<String, String> headers = const {},
-  }) {
-    if (url.isEmpty) return null;
-    final u = _b64Url(url);
-    final h = _b64Url(jsonEncode(headers));
-    return '$baseUrl/livetv/preview?u=$u&h=$h';
-  }
-
-  /// base64url without padding (the `=` chars trip URL query parsing; Node's
-  /// `Buffer.from(s, 'base64url')` decodes fine without them).
-  static String _b64Url(String s) =>
-      base64Url.encode(utf8.encode(s)).replaceAll('=', '');
 }

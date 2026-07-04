@@ -6,9 +6,13 @@ import '/core/localization/translation_keys.dart';
 import '/core/shared/user_avatar.dart';
 import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../bloc/fullscreen_messages/fullscreen_messages_cubit.dart';
+import '../bloc/fullscreen_ui/fullscreen_ui_cubit.dart';
+import '../bloc/fullscreen_ui/fullscreen_ui_state.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'typing_indicator.dart';
+import 'voice_composer.dart';
 import 'voice_message_bubble.dart';
 
 /// Round toggle that sits under the fullscreen reaction bar. Tapping it
@@ -57,7 +61,7 @@ class FullscreenMessagesButton extends StatelessWidget {
 /// inline chat) and a compose box, so viewers can both read and reply without
 /// leaving fullscreen. Shown/hidden by [open]; [onClose] backs the header's
 /// close button.
-class FullscreenMessagesPanel extends StatefulWidget {
+class FullscreenMessagesPanel extends StatelessWidget {
   const FullscreenMessagesPanel({
     super.key,
     required this.open,
@@ -68,79 +72,101 @@ class FullscreenMessagesPanel extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<FullscreenMessagesPanel> createState() =>
-      _FullscreenMessagesPanelState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FullscreenMessagesCubit(context.read<WatchCubit>()),
+      child: _PanelView(open: open, onClose: onClose),
+    );
+  }
 }
 
-class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
-  final _input = TextEditingController();
-  final _scroll = ScrollController();
+class _PanelView extends StatelessWidget {
+  const _PanelView({required this.open, required this.onClose});
 
-  @override
-  void didUpdateWidget(FullscreenMessagesPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Jump to the latest messages whenever the panel is (re)opened.
-    if (widget.open && !oldWidget.open) _scrollToEnd();
-  }
+  final bool open;
+  final VoidCallback onClose;
 
-  @override
-  void dispose() {
-    _input.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
+  void _send(BuildContext context) =>
+      context.read<FullscreenMessagesCubit>().send();
 
-  void _send() {
-    final text = _input.text.trim();
-    if (text.isEmpty) return;
-    final cubit = context.read<WatchCubit>();
-    cubit.sendChat(text);
-    cubit.stopTyping();
-    _input.clear();
-  }
-
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  /// Time of receipt + (on our own messages) a delivery mark — a check once the
+  /// room has it, a clock while it's in flight, or a tap-to-retry hint. Mirrors
+  /// the inline chat bubble so voice messages read the same here.
+  Widget _meta(BuildContext context, ChatMessage m, bool mine) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            TimeOfDay.fromDateTime(m.time).format(context),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          if (mine) ...[
+            const SizedBox(width: 5),
+            switch (m.status) {
+              ChatStatus.sent => const Icon(
+                Icons.done_all_rounded,
+                size: 13,
+                color: Colors.white70,
+              ),
+              ChatStatus.sending => const Icon(
+                Icons.schedule_rounded,
+                size: 12,
+                color: Colors.white70,
+              ),
+              ChatStatus.failed => Text(
+                context.tr(TranslationKeys.chatRetry),
+                style: TextStyle(color: context.colors.error, fontSize: 11),
+              ),
+            },
+          ],
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final panelWidth = (width * 0.42).clamp(280.0, 420.0);
+    // Narrow streamer-style sidebar — keep it slim so it covers as little of the
+    // video as possible.
+    final panelWidth = (width * 0.30).clamp(230.0, 320.0);
 
-    return Align(
-      alignment: Alignment.centerRight,
-      child: AnimatedSlide(
-        offset: widget.open ? Offset.zero : const Offset(1, 0),
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        child: AnimatedOpacity(
-          opacity: widget.open ? 1 : 0,
-          duration: const Duration(milliseconds: 200),
-          child: IgnorePointer(
-            ignoring: !widget.open,
-            child: SizedBox(
-              width: panelWidth,
-              height: double.infinity,
-              child: Material(
-                color: Colors.black.withValues(alpha: 0.62),
-                child: SafeArea(
-                  left: false,
-                  child: Column(
-                    children: [
-                      _header(context),
-                      Expanded(child: _list(context)),
-                      const TypingIndicator(dark: true),
-                      _composer(context),
-                    ],
+    // Jump to the latest messages whenever the panel is (re)opened — fired when
+    // the parent's `messagesOpen` flips false -> true (was `didUpdateWidget`).
+    return BlocListener<FullscreenUiCubit, FullscreenUiState>(
+      listenWhen: (a, b) => !a.messagesOpen && b.messagesOpen,
+      listener: (context, _) =>
+          context.read<FullscreenMessagesCubit>().scrollToEnd(),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: AnimatedSlide(
+          offset: open ? Offset.zero : const Offset(1, 0),
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            opacity: open ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: !open,
+              child: SizedBox(
+                width: panelWidth,
+                height: double.infinity,
+                child: Material(
+                  // Lighter scrim so more of the video shows through behind the
+                  // streamer-style chat.
+                  color: Colors.black.withValues(alpha: 0.34),
+                  child: SafeArea(
+                    left: false,
+                    child: Column(
+                      children: [
+                        _header(context),
+                        Expanded(child: _list(context)),
+                        const TypingIndicator(dark: true),
+                        _composer(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -170,7 +196,7 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
             color: Colors.white,
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.close_rounded),
-            onPressed: widget.onClose,
+            onPressed: onClose,
           ),
         ],
       ),
@@ -181,7 +207,8 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
     final me = context.watch<IdentityCubit>().state;
     return BlocConsumer<WatchCubit, WatchState>(
       listenWhen: (a, b) => a.messages.length != b.messages.length,
-      listener: (_, _) => _scrollToEnd(),
+      listener: (context, _) =>
+          context.read<FullscreenMessagesCubit>().scrollToEnd(),
       buildWhen: (a, b) => a.messages != b.messages,
       builder: (context, state) {
         if (state.messages.isEmpty) {
@@ -197,47 +224,34 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
           );
         }
         return ListView.builder(
-          controller: _scroll,
+          controller: context.read<FullscreenMessagesCubit>().scroll,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           itemCount: state.messages.length,
           itemBuilder: (context, i) {
             final m = state.messages[i];
             final mine = m.mine || m.name == me;
-            if (m.isVoice) {
-              return Align(
-                alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                child: VoiceMessageBubble(message: m, mine: mine, onVideo: true),
-              );
-            }
             final failed = m.status == ChatStatus.failed;
-            return Align(
-              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-              child: GestureDetector(
-                onTap: failed
-                    ? () => context.read<WatchCubit>().retryChat(m)
-                    : null,
-                child: Opacity(
-                  opacity: m.status == ChatStatus.sending ? 0.6 : 1,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 3),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    decoration: BoxDecoration(
-                      color: mine
-                          ? context.colors.primary.withValues(alpha: 0.35)
-                          : Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: failed
-                          ? Border.all(color: context.colors.error)
-                          : null,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!mine)
+            // Streamer-style: every message (including our own) reads as one
+            // left-aligned line with a colored username — so you see your own
+            // messages exactly like the ones you receive.
+            return GestureDetector(
+              onTap: failed ? () => context.read<WatchCubit>().retryChat(m) : null,
+              child: Opacity(
+                opacity: m.status == ChatStatus.sending ? 0.6 : 1,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: failed ? Border.all(color: context.colors.error) : null,
+                  ),
+                  child: m.isVoice
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text(
                             m.name,
                             style: TextStyle(
@@ -246,26 +260,50 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
                               fontSize: 12,
                             ),
                           ),
-                        Text(
-                          m.text,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          const SizedBox(height: 2),
+                          VoiceMessageBubble(message: m, dark: true),
+                          _meta(context, m, mine),
+                        ],
+                      )
+                    : Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${m.name}  ',
+                          style: TextStyle(
+                            color: userColorFor(m.name),
+                            fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
-                        if (mine && m.isPending)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Text(
-                              failed
-                                  ? context.tr(TranslationKeys.chatRetry)
-                                  : context.tr(TranslationKeys.chatSending),
-                              style: TextStyle(
-                                color: failed
-                                    ? context.colors.error
-                                    : Colors.white70,
-                                fontSize: 11,
-                              ),
+                        TextSpan(
+                          text: m.text,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                        // Delivery indicator on our own messages, so we can tell
+                        // whether one reached the room: a check once confirmed,
+                        // else a sending / tap-to-retry hint.
+                        if (mine)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: switch (m.status) {
+                                ChatStatus.sent => const Icon(
+                                  Icons.done_all_rounded,
+                                  size: 13,
+                                  color: Colors.white70,
+                                ),
+                                ChatStatus.sending => const Icon(
+                                  Icons.schedule_rounded,
+                                  size: 12,
+                                  color: Colors.white70,
+                                ),
+                                ChatStatus.failed => Text(
+                                  context.tr(TranslationKeys.chatRetry),
+                                  style: TextStyle(color: context.colors.error, fontSize: 11),
+                                ),
+                              },
                             ),
                           ),
                       ],
@@ -288,40 +326,34 @@ class _FullscreenMessagesPanelState extends State<FullscreenMessagesPanel> {
         10,
         MediaQuery.of(context).viewInsets.bottom + 10,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _input,
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(color: Colors.white),
-              minLines: 1,
-              maxLines: 3,
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: context.tr(TranslationKeys.chatHint),
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              onChanged: (v) => context.read<WatchCubit>().notifyTyping(v),
-              onSubmitted: (_) => _send(),
+      // Text field + send, or tap-the-mic to record a voice message.
+      child: VoiceComposer(
+        dark: true,
+        input: context.read<FullscreenMessagesCubit>().input,
+        onSend: () => _send(context),
+        field: TextField(
+          controller: context.read<FullscreenMessagesCubit>().input,
+          textInputAction: TextInputAction.send,
+          style: const TextStyle(color: Colors.white),
+          minLines: 1,
+          maxLines: 3,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: context.tr(TranslationKeys.chatHint),
+            hintStyle: const TextStyle(color: Colors.white54),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
             ),
           ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: _send,
-            icon: const Icon(Icons.send_rounded),
-          ),
-        ],
+          onSubmitted: (_) => _send(context),
+        ),
       ),
     );
   }

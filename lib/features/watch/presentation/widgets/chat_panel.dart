@@ -6,85 +6,68 @@ import '/core/localization/translation_keys.dart';
 import '/core/shared/user_avatar.dart';
 import '/logic/identity/identity_cubit.dart';
 import '../../domain/entities/chat_message.dart';
+import '../bloc/chat_panel/chat_panel_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import 'typing_indicator.dart';
+import 'voice_composer.dart';
 import 'voice_message_bubble.dart';
 
-class ChatPanel extends StatefulWidget {
+class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
 
   @override
-  State<ChatPanel> createState() => _ChatPanelState();
+  Widget build(BuildContext context) {
+    // The WatchCubit is provided by room_page above us; hand it to the panel's
+    // cubit so sends can be delegated to it.
+    return BlocProvider(
+      create: (_) => ChatPanelCubit(context.read<WatchCubit>()),
+      child: const _ChatPanelView(),
+    );
+  }
 }
 
-class _ChatPanelState extends State<ChatPanel> {
-  final _input = TextEditingController();
-  final _scroll = ScrollController();
+class _ChatPanelView extends StatelessWidget {
+  const _ChatPanelView();
 
-  @override
-  void dispose() {
-    _input.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _send() {
-    final text = _input.text.trim();
-    if (text.isEmpty) return;
-    final cubit = context.read<WatchCubit>();
-    cubit.sendChat(text);
-    cubit.stopTyping();
-    _input.clear();
-  }
-
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
+  /// Tiny delivery mark shown beside the time on our own messages: a clock while
+  /// it's in flight, a check once the server confirms it reached the room, or a
+  /// tappable "tap to retry" hint when the send failed.
+  Widget _deliveryMark(BuildContext context, ChatMessage m) {
+    switch (m.status) {
+      case ChatStatus.sending:
+        return Icon(
+          Icons.schedule_rounded,
+          size: 12,
+          color: context.colors.onSurfaceVariant,
         );
-      }
-    });
-  }
-
-  /// Tiny delivery line under our own pending messages: a spinner while it's in
-  /// flight, or a tappable "tap to retry" when the send failed.
-  Widget _status(BuildContext context, ChatMessage m) {
-    final failed = m.status == ChatStatus.failed;
-    return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            failed ? Icons.error_outline_rounded : Icons.schedule_rounded,
-            size: 12,
-            color: failed ? context.colors.error : context.colors.onSurfaceVariant,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            failed ? context.tr(TranslationKeys.chatRetry) : context.tr(TranslationKeys.chatSending),
-            style: context.text.labelSmall?.copyWith(
-              color: failed ? context.colors.error : context.colors.onSurfaceVariant,
+      case ChatStatus.sent:
+        return Icon(Icons.done_all_rounded, size: 13, color: context.colors.primary);
+      case ChatStatus.failed:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 12, color: context.colors.error),
+            const SizedBox(width: 3),
+            Text(
+              context.tr(TranslationKeys.chatRetry),
+              style: context.text.labelSmall?.copyWith(color: context.colors.error),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final me = context.watch<IdentityCubit>().state;
+    final chat = context.read<ChatPanelCubit>();
     return Column(
       children: [
         Expanded(
           child: BlocConsumer<WatchCubit, WatchState>(
             listenWhen: (a, b) => a.messages.length != b.messages.length,
-            listener: (_, _) => _scrollToEnd(),
+            listener: (_, _) => chat.scrollToEnd(),
             builder: (context, state) {
               if (state.messages.isEmpty) {
                 return Center(
@@ -99,21 +82,24 @@ class _ChatPanelState extends State<ChatPanel> {
                 );
               }
               return ListView.builder(
-                controller: _scroll,
+                controller: chat.scroll,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: state.messages.length,
                 itemBuilder: (context, i) {
                   final m = state.messages[i];
-                  final mine = m.mine || m.name == me;
-                  if (m.isVoice) {
-                    return Align(
-                      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                      child: VoiceMessageBubble(message: m, mine: mine),
-                    );
+                  // Defensive: never render a blank row (no text and no clip).
+                  // A voice clip always has an audioUrl/duration, so it stays a
+                  // voice bubble; this only drops a genuinely empty message.
+                  if (!m.isVoice && m.text.trim().isEmpty) {
+                    return const SizedBox.shrink();
                   }
+                  final mine = m.mine || m.name == me;
                   final failed = m.status == ChatStatus.failed;
+                  // Streamer-style: every message — including our own — is shown
+                  // the same way, left-aligned with a colored username, so you
+                  // read your messages just like the ones you receive.
                   return Align(
-                    alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: failed ? () => context.read<WatchCubit>().retryChat(m) : null,
                       child: Opacity(
@@ -123,7 +109,7 @@ class _ChatPanelState extends State<ChatPanel> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           constraints: const BoxConstraints(maxWidth: 280),
                           decoration: BoxDecoration(
-                            color: mine ? context.colors.primary.withValues(alpha: 0.38) : context.colors.surface,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: failed ? context.colors.error : context.colors.outline,
@@ -132,16 +118,40 @@ class _ChatPanelState extends State<ChatPanel> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!mine)
-                                Text(
-                                  m.name,
-                                  style: context.text.labelMedium?.copyWith(
-                                    color: userColorFor(m.name),
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              Text(
+                                m.name,
+                                style: context.text.labelMedium?.copyWith(
+                                  color: userColorFor(m.name),
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
-                              if (mine && m.isPending) _status(context, m),
+                              ),
+                              if (m.isVoice)
+                                VoiceMessageBubble(message: m)
+                              else
+                                Text(m.text, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurface)),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      // `m.time` is the server timestamp rendered
+                                      // in this device's own timezone + clock format.
+                                      TimeOfDay.fromDateTime(m.time).format(context),
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: context.colors.onSurfaceVariant,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    // Our own messages get a small delivery mark
+                                    // right beside the time — no extra words.
+                                    if (mine) ...[
+                                      const SizedBox(width: 5),
+                                      _deliveryMark(context, m),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -154,29 +164,22 @@ class _ChatPanelState extends State<ChatPanel> {
           ),
         ),
         const TypingIndicator(),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _input,
-                    textInputAction: TextInputAction.send,
-                    minLines: 1,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: context.tr(TranslationKeys.chatHint),
-                      isDense: true,
-                    ),
-                    onChanged: (v) => context.read<WatchCubit>().notifyTyping(v),
-                    onSubmitted: (_) => _send(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(onPressed: _send, icon: const Icon(Icons.send_rounded)),
-              ],
+        Padding(
+          padding: EdgeInsets.fromLTRB(12, 6, 12, 10 + MediaQuery.of(context).viewPadding.bottom),
+          // Text field + send, or tap-the-mic to record a voice message.
+          child: VoiceComposer(
+            input: chat.input,
+            onSend: chat.send,
+            field: TextField(
+              controller: chat.input,
+              textInputAction: TextInputAction.send,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: context.tr(TranslationKeys.chatHint),
+                isDense: true,
+              ),
+              onSubmitted: (_) => chat.send(),
             ),
           ),
         ),

@@ -13,6 +13,7 @@ class CatalogItem extends Equatable {
     this.imdbRating,
     this.releaseInfo,
     this.genres = const [],
+    this.source = 'cinemeta',
   });
 
   final String id;
@@ -28,7 +29,16 @@ class CatalogItem extends Equatable {
 
   final List<String> genres;
 
+  /// Which catalogue this title came from — `cinemeta` (the IMDB/Browse tab,
+  /// the default for every legacy favorite) or `egybest` (the Cinema tab). The
+  /// Favorites tab uses it to open the right detail page and to separate the two
+  /// lists. Stored inside the favorite JSON, so no backend change is needed.
+  final String source;
+
   bool get isSeries => type == 'series';
+
+  /// True for an EgyBest (Cinema-tab) favorite.
+  bool get isEgybest => source == 'egybest';
 
   /// Serializes the tile to the JSON saved as a server favorite (and rebuilt
   /// from it via [CatalogItem.fromJson]). Mirrors the catalogue shape.
@@ -40,6 +50,7 @@ class CatalogItem extends Equatable {
     if (imdbRating != null) 'imdbRating': imdbRating,
     if (releaseInfo != null) 'releaseInfo': releaseInfo,
     'genres': genres,
+    'source': source,
   };
 
   /// Rebuilds a tile from saved favorite JSON. Tolerant of missing/loosely
@@ -63,9 +74,12 @@ class CatalogItem extends Equatable {
                 .where((s) => s.isNotEmpty)
                 .toList(growable: false)
           : const [],
+      // Legacy favorites (saved before the Cinema tab) have no `source` — they
+      // are all Cinemeta titles, so default to it.
+      source: str(json['source']) ?? 'cinemeta',
     );
   }
 
   @override
-  List<Object?> get props => [id, name, type, poster, imdbRating, releaseInfo, genres];
+  List<Object?> get props => [id, name, type, poster, imdbRating, releaseInfo, genres, source];
 }

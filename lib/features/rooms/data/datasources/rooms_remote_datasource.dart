@@ -26,6 +26,18 @@ abstract class RoomsRemoteDataSource {
   Future<DownloadProgress> downloadProgress(String jobId);
   Future<void> delete(String slug, {String? password});
   Future<String> uploadSubtitle(String slug, String filePath);
+
+  /// Uploads a chat voice clip (the server stores it AND broadcasts the chat
+  /// message to the room). Returns the stored filename. [clientId]/[durationMs]/
+  /// [name] ride along so the broadcast message reconciles with the sender's
+  /// optimistic bubble and shows the right length + author.
+  Future<String> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  });
 }
 
 class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
@@ -79,6 +91,13 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       RoomType.external => 'external',
       RoomType.download => 'download',
       RoomType.torrent => 'torrent',
+      RoomType.youtube => 'youtube',
+      // The UI submits a Telegram room as a `download` (the t.me link goes in
+      // videoUrl and the server resolves it), so this branch is never actually
+      // reached — mapped to `download` to stay safe and keep the switch total.
+      RoomType.telegram => 'download',
+      // Live-TV: the packed stream string travels in `videoUrl` and the server
+      // stores it verbatim as the room's `externalUrl`.
       RoomType.tv => 'tv',
       RoomType.upload => 'upload',
     };
@@ -110,9 +129,13 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       if (params.password != null && params.password!.isNotEmpty) 'password': params.password,
       if (params.externalUrl != null) 'externalUrl': params.externalUrl,
       if (params.videoUrl != null) 'videoUrl': params.videoUrl,
+      // Present only for a YouTube download whose video+audio were resolved
+      // on-device; the server downloads both and muxes them.
+      if (params.audioUrl != null) 'audioUrl': params.audioUrl,
       if (params.magnet != null) 'magnet': params.magnet,
       if (params.category != null && params.category!.isNotEmpty) 'category': params.category,
       if (params.imdbId != null && params.imdbId!.isNotEmpty) 'imdbId': params.imdbId,
+      if (params.maxHeight != null) 'maxHeight': params.maxHeight,
       if (params.thumbnail != null && params.thumbnail!.isNotEmpty) 'thumbnail': params.thumbnail,
       if (params.reactions != null) 'reactions': _encodeReactions(params.reactions!),
     });
@@ -154,6 +177,38 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
     final form = FormData.fromMap({'subtitle': await MultipartFile.fromFile(filePath)});
     final res = await _client.postMultipart('/rooms/$slug/subtitle', data: form);
     if (!res.success) throw ServerException(res.message ?? 'subtitle_upload_failed');
+    final data = res.data;
+    return (data is Map && data['filename'] != null) ? data['filename'].toString() : '';
+  }
+
+  @override
+  Future<String> uploadVoice(
+    String slug,
+    String filePath, {
+    String? clientId,
+    int? durationMs,
+    String? name,
+  }) async {
+    // The clip rides the multipart body; its metadata (sender name, length,
+    // client nonce) goes on the query string instead of as form fields. The
+    // server reads all three with `request.input(...)` either way, but query
+    // params are parsed independently of the multipart stream — so the name
+    // never gets dropped (which showed received clips as an empty "Anonymous"
+    // message) and the duration always arrives (so it renders as a voice clip).
+    final query = <String, String>{
+      if (clientId != null && clientId.isNotEmpty) 'clientId': clientId,
+      if (durationMs != null) 'durationMs': durationMs.toString(),
+      if (name != null && name.isNotEmpty) 'name': name,
+    };
+    final form = FormData.fromMap({
+      'voice': await MultipartFile.fromFile(filePath),
+    });
+    final res = await _client.postMultipart(
+      '/rooms/$slug/voice',
+      data: form,
+      queryParameters: query.isEmpty ? null : query,
+    );
+    if (!res.success) throw ServerException(res.message ?? 'voice_upload_failed');
     final data = res.data;
     return (data is Map && data['filename'] != null) ? data['filename'].toString() : '';
   }

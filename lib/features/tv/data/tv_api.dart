@@ -1,24 +1,36 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 import '/core/errors/exceptions.dart';
-import '/core/network/api_client.dart';
 import '../domain/entities/tv_channel.dart';
 import '../domain/entities/tv_node.dart';
 
-/// Fetches and parses the YacineTV live-TV tree from the app's own server
-/// (`GET /api/tv/tree`), which fetches + caches it from the provider — so the
-/// device never talks to YacineTV directly, exactly like the catalogue/streams/
-/// topcinema sources. The server returns the provider's native shape, so the
-/// parsing below is unchanged; only the transport moved off-device.
+/// Fetches and parses the YacineTV live-TV tree.
 ///
-/// The parsed tree is cached in memory for the session; [fetchTree] re-fetches
-/// (with `?refresh=1`, forcing the server to renew the short-lived per-channel
-/// tokens) when [forceRefresh] is set — a manual refresh, or the token-refresh
-/// path, gets fresh, playable links.
+/// Talks straight to the provider over `package:http` — its only gate is a fixed
+/// `User-Agent` header (no token or API key) — exactly like the Cinema/Browse
+/// datasources, so the feature stays independent of the app's backend
+/// [ApiClient]. The parsed tree is cached in memory for the session;
+/// [fetchTree] re-fetches when [forceRefresh] is set, because the per-channel
+/// stream URLs carry short-lived signed tokens — a manual refresh gets fresh,
+/// playable links.
 ///
 /// Throws [ServerException] with a stable, translatable key on failure.
 class TvApi {
-  TvApi(this._api);
+  TvApi([http.Client? client]) : _client = client ?? http.Client();
 
-  final ApiClient _api;
+  final http.Client _client;
+
+  static const String _treeUrl = 'https://ostoraapptv.com/yacine_tree.json';
+
+  /// The app-specific User-Agent the backend gates on; the request is rejected
+  /// without it.
+  static const Map<String, String> _headers = {
+    'User-Agent': 'FlutterApp/1.0 (YacineTV)',
+  };
+  static const Duration _timeout = Duration(seconds: 25);
 
   List<TvNode>? _cache;
 
@@ -28,15 +40,8 @@ class TvApi {
     final cached = _cache;
     if (cached != null && !forceRefresh) return cached;
 
-    final res = await _api.get(
-      '/tv/tree',
-      queryParameters: {if (forceRefresh) 'refresh': 1},
-    );
-    if (!res.success) {
-      throw ServerException(res.message ?? 'tv_unavailable', statusCode: res.statusCode);
-    }
-    final data = res.data;
-    final cats = data is Map ? data['categories'] : null;
+    final json = await _getJson(_treeUrl);
+    final cats = json['categories'];
     final tree = (cats is List)
         ? cats
               .whereType<Map>()
@@ -109,5 +114,23 @@ class TvApi {
     if (v == null) return null;
     final s = v.toString().trim();
     return s.isEmpty ? null : s;
+  }
+
+  Future<Map<String, dynamic>> _getJson(String url) async {
+    try {
+      final res =
+          await _client.get(Uri.parse(url), headers: _headers).timeout(_timeout);
+      if (res.statusCode != 200) {
+        throw ServerException('error_request_failed', statusCode: res.statusCode);
+      }
+      final body = jsonDecode(res.body);
+      return body is Map<String, dynamic> ? body : <String, dynamic>{};
+    } on ServerException {
+      rethrow;
+    } on TimeoutException {
+      throw const ServerException('error_timeout');
+    } catch (e) {
+      throw ServerException('error_unknown', cause: e);
+    }
   }
 }

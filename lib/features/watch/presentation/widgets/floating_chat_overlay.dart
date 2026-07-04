@@ -31,6 +31,8 @@ class _FloatingChatOverlayState extends State<FloatingChatOverlay> {
   }
 
   void _add(ChatMessage m) {
+    // Float text messages and voice notes (a voice note has no text — show a
+    // "🎤 Voice message" notice instead), but never a genuinely empty message.
     if (!mounted || (m.text.isEmpty && !m.isVoice)) return;
     setState(() {
       _items.add(_ChatBubble(key: UniqueKey(), message: m, onDone: _remove));
@@ -116,7 +118,7 @@ class _ChatBubbleState extends State<_ChatBubble> with SingleTickerProviderState
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         constraints: const BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
+          color: Colors.black.withValues(alpha: 0.38),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text.rich(
@@ -130,17 +132,23 @@ class _ChatBubbleState extends State<_ChatBubble> with SingleTickerProviderState
                   fontSize: 13,
                 ),
               ),
-              if (widget.message.isVoice)
+              if (widget.message.isVoice) ...[
                 const WidgetSpan(
                   alignment: PlaceholderAlignment.middle,
-                  child: Icon(Icons.mic_rounded, color: Colors.white, size: 15),
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 3),
+                    child: Icon(Icons.mic_rounded, size: 15, color: Colors.white),
+                  ),
                 ),
-              TextSpan(
-                text: widget.message.isVoice
-                    ? ' ${context.tr(TranslationKeys.voiceMessage)}'
-                    : widget.message.text,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
+                TextSpan(
+                  text: context.tr(TranslationKeys.voiceMessage),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ] else
+                TextSpan(
+                  text: widget.message.text,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
             ],
           ),
         ),

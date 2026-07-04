@@ -15,16 +15,29 @@ enum RoomType {
   /// (real player, full sync/seek), not a WebView embed.
   torrent,
 
-  /// A live-TV channel. The room's `externalUrl` holds a packed live-stream ref
-  /// (stream URL + per-channel headers + provider path); clients play it through
-  /// the server's `/livetv/preview` HLS relay — like a file room (real player),
-  /// not a WebView embed.
+  /// A YouTube watch URL. The server resolves it to a direct stream and proxies
+  /// it over `/youtube/:slug`, so it plays like an ordinary file room (our own
+  /// player + full sync/seek), never the YouTube iframe.
+  youtube,
+
+  /// A link to a public Telegram channel post that holds a video. The server
+  /// scrapes the post's web preview for the direct CDN URL and downloads it
+  /// into an ordinary file room — submitted on the wire as a `download` whose
+  /// `videoUrl` is the `t.me/...` link (the server detects and resolves it).
+  telegram,
+
+  /// A live-TV channel (YacineTV). The stream URL + per-channel headers + the
+  /// channel's tree path are packed into the room's `externalUrl`; the app
+  /// plays it natively (HLS, no seek) and re-resolves a fresh URL when the
+  /// token expires.
   tv;
 
   static RoomType fromString(String? value) => switch (value) {
     'external' => RoomType.external,
     'download' => RoomType.download,
     'torrent' => RoomType.torrent,
+    'youtube' => RoomType.youtube,
+    'telegram' => RoomType.telegram,
     'tv' => RoomType.tv,
     _ => RoomType.upload,
   };
@@ -33,6 +46,11 @@ enum RoomType {
 
   bool get isTorrent => this == RoomType.torrent;
 
+  bool get isYoutube => this == RoomType.youtube;
+
+  bool get isTelegram => this == RoomType.telegram;
+
+  /// A live-TV room — plays a remote HLS stream with custom headers, no seek.
   bool get isTv => this == RoomType.tv;
 
   /// Wire value sent to the backend `roomType` field.

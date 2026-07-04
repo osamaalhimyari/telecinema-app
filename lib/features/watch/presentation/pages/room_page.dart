@@ -20,22 +20,29 @@ import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
 import '/core/shared/name_dialog.dart';
 import '/core/shared/status_view.dart';
+import '/features/cache/presentation/widgets/download_button.dart';
 import '/features/rooms/domain/entities/room.dart';
 import '/injections/injection.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_status_indicator.dart';
 import '/routes/routes_names.dart';
+import '../bloc/chat_divider/chat_divider_cubit.dart';
+import '../bloc/chat_divider/chat_divider_state.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/voice/voice_cubit.dart';
+import '../bloc/voice_playback/voice_playback_cubit.dart';
 import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../widgets/bookmark_button.dart';
 import '../widgets/chat_panel.dart';
+import '../widgets/controls_lock_button.dart';
 import '../widgets/draw_toggle_button.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/drawing_overlay.dart';
+import '../widgets/floating_chat_overlay.dart';
 import '../widgets/floating_reactions.dart';
 import '../widgets/player_stage.dart';
+import '../widgets/presence_notices.dart';
 import '../widgets/reaction_bar.dart';
 import '../widgets/subtitle/subtitle_settings_sheet.dart';
 import '../widgets/unlock_overlay.dart';
@@ -59,13 +66,11 @@ class RoomPage extends StatelessWidget {
         BlocProvider<WatchCubit>(
           create: (_) => sl<WatchCubit>()..init(room: initialRoom, slug: slug),
         ),
-        // VoiceCubit owns the audio engine but pushes its voice-note bubbles into
-        // the WatchCubit's message list, so attach the (already-provided) brain.
-        BlocProvider<VoiceCubit>(
-          create: (ctx) => sl<VoiceCubit>()..attach(ctx.read<WatchCubit>()),
-        ),
-        // On-video drawing mode, shared with the fullscreen page via `.value`.
+        BlocProvider<VoiceCubit>(create: (_) => sl<VoiceCubit>()),
         BlocProvider<DrawModeCubit>(create: (_) => DrawModeCubit()),
+        BlocProvider<ChatDividerCubit>(create: (_) => ChatDividerCubit()),
+        // Shared chat voice-message player (one clip plays at a time).
+        BlocProvider<VoicePlaybackCubit>(create: (_) => VoicePlaybackCubit()),
       ],
       child: const _RoomView(),
     );
@@ -154,15 +159,17 @@ class _RoomViewState extends State<_RoomView> {
   @override
   Widget build(BuildContext context) {
     final content = BlocListener<WatchCubit, WatchState>(
-      listenWhen: (a, b) => a.phase != b.phase,
+      listenWhen: (a, b) =>
+          a.phase != b.phase || a.videoReady != b.videoReady,
       listener: (context, state) {
         if (state.phase == WatchPhase.deleted) {
           context.showSnack(context.tr(TranslationKeys.roomDeleted));
           if (context.canPop()) context.pop();
-        } else if (state.phase == WatchPhase.ready) {
-          // Re-arm auto-PiP now that the video surface exists — the initState
-          // post-frame call runs while the room is still initializing, which on
-          // some devices is too early for the system to honor auto-enter.
+        } else if (state.phase == WatchPhase.ready || state.videoReady) {
+          // Re-arm auto-PiP once the room is ready AND again once the video
+          // surface actually exists — the initState post-frame call (and even the
+          // `ready` phase) can run before the surface is up, which on some devices
+          // is too early for the system to honor auto-enter.
           _enableAutoPip();
         }
       },
@@ -214,22 +221,46 @@ class _RoomViewState extends State<_RoomView> {
   }
 }
 
-/// The minimal video-only view shown inside the Android PiP window.
+/// The video view shown inside the Android PiP window. Reactions, chat and
+/// join/leave notices float over it too, so backgrounding the app from portrait
+/// keeps them visible — matching the fullscreen surface (which Android captures
+/// whole, overlays and all).
 class _PipVideoView extends StatelessWidget {
   const _PipVideoView();
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<WatchCubit>().videoController;
-    return ColoredBox(
-      color: Colors.black,
-      child: controller == null
-          ? const SizedBox.expand()
-          : Video(
-              controller: controller,
-              controls: NoVideoControls,
-              fit: BoxFit.contain,
-            ),
+    final cubit = context.watch<WatchCubit>();
+    final controller = cubit.videoController;
+    // The PiP window is rendered outside the Scaffold/Material of the room, so
+    // its text (chat + join/leave) and emoji would otherwise paint with Flutter's
+    // "no Material" debug style — the yellow underline. A transparent Material
+    // (with an explicit Directionality) supplies a real default text style and
+    // kills the underline, without adding any background of its own.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
+        type: MaterialType.transparency,
+        child: ColoredBox(
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (controller == null)
+                const SizedBox.expand()
+              else
+                Video(
+                  controller: controller,
+                  controls: NoVideoControls,
+                  fit: BoxFit.contain,
+                ),
+              FloatingReactions(stream: cubit.reactions),
+              FloatingChatOverlay(stream: cubit.incomingChat),
+              PresenceNotices(stream: cubit.presenceNotices),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -242,6 +273,7 @@ class _RoomScaffold extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           titleSpacing: 0,
           // Only the title and menu read state — and only room/viewerCount, not
@@ -255,10 +287,18 @@ class _RoomScaffold extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  state.room?.name ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Tapping the (possibly truncated) name surfaces it in full as
+                // a snack — handy when the room title is ellipsized.
+                GestureDetector(
+                  onTap: () {
+                    final name = state.room?.name ?? '';
+                    if (name.isNotEmpty) context.showSnack(name);
+                  },
+                  child: Text(
+                    state.room?.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Text(
                   '${state.viewerCount} ${context.tr(TranslationKeys.watching)}',
@@ -283,51 +323,116 @@ class _RoomScaffold extends StatelessWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            // The video takes the top half of the screen in portrait; the
-            // reaction bar, tabs and (now smaller) chat share the rest.
-            final playerHeight = constraints.maxHeight * 0.5;
-            return Column(
-              children: [
-                SizedBox(
-                  height: playerHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const PlayerStage(),
-                      FloatingReactions(
-                        stream: context.read<WatchCubit>().reactions,
+            final totalHeight = constraints.maxHeight;
+            const handleHeight = 20.0;
+            // Guard against degenerate/transient constraints (e.g. a mid-
+            // keyboard-animation frame giving maxHeight <= handleHeight): a
+            // non-positive availableHeight would make the fraction math produce
+            // negative SizedBox heights and throw.
+            final availableHeight = (totalHeight - handleHeight).clamp(
+              0.0,
+              double.infinity,
+            );
+
+            return BlocBuilder<ChatDividerCubit, ChatDividerState>(
+              builder: (context, divider) {
+                final minFraction =
+                    (ChatDividerCubit.minBottomHeight / availableHeight)
+                        .clamp(0.0, ChatDividerCubit.maxFraction);
+                final clampedFraction =
+                    divider.fraction.clamp(minFraction, ChatDividerCubit.maxFraction);
+                final bottomHeight = availableHeight * clampedFraction;
+                final videoHeight = availableHeight - bottomHeight;
+
+                return Column(
+                  children: [
+                    // Top section: just the video player — fills all available
+                    // space; the Video widget letterboxes to the real aspect ratio.
+                    SizedBox(
+                      height: videoHeight,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const PlayerStage(),
+                          FloatingReactions(
+                            stream: context.read<WatchCubit>().reactions,
+                          ),
+                          PresenceNotices(
+                            stream: context.read<WatchCubit>().presenceNotices,
+                          ),
+                          DrawingOverlay(
+                            stream: context.read<WatchCubit>().drawings,
+                          ),
+                          const DrawingCanvas(),
+                        ],
                       ),
-                      // Render strokes beneath the capture canvas; the canvas
-                      // only intercepts touches while draw mode is engaged.
-                      DrawingOverlay(stream: context.read<WatchCubit>().drawings),
-                      const DrawingCanvas(),
-                    ],
-                  ),
-                ),
-                const WaitBanner(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      const Expanded(child: ReactionBar()),
-                      const SizedBox(width: 4),
-                      const DrawToggleButton(),
-                      const BookmarkButton(),
-                      const VoiceButton(),
-                      const SizedBox(width: 12),
-                    ],
-                  ),
-                ),
-                TabBar(
-                  tabs: [
-                    Tab(text: context.tr(TranslationKeys.chatTab)),
-                    Tab(text: context.tr(TranslationKeys.viewersTab)),
+                    ),
+                    // Drag handle
+                    GestureDetector(
+                      onVerticalDragUpdate: (details) {
+                        context.read<ChatDividerCubit>().setFraction(
+                          ((bottomHeight - details.delta.dy) / availableHeight),
+                          availableHeight: availableHeight,
+                        );
+                      },
+                      child: Container(
+                        height: handleHeight,
+                        color: Colors.transparent,
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Bottom section: buttons + reaction bar + chat
+                    SizedBox(
+                      height: bottomHeight,
+                      child: Column(
+                        children: [
+                          const WaitBanner(),
+                          // Action buttons row — emojis moved to their own row below it.
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              children: [
+                                const Spacer(),
+                                const VoiceButton(),
+                                const SizedBox(width: 4),
+                                const BookmarkButton(),
+                                const SizedBox(width: 4),
+                                const DownloadButton(),
+                                const DrawToggleButton(),
+                                const ControlsLockButton(),
+                                const SizedBox(width: 8),
+                              ],
+                            ),
+                          ),
+                          // Emoji reaction strip, on its own row under the buttons.
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2, bottom: 6),
+                            child: ReactionBar(),
+                          ),
+                          TabBar(
+                            tabs: [
+                              Tab(text: context.tr(TranslationKeys.chatTab)),
+                              Tab(text: context.tr(TranslationKeys.viewersTab)),
+                            ],
+                          ),
+                          const Expanded(
+                            child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-                const Expanded(
-                  child: TabBarView(children: [ChatPanel(), ViewersPanel()]),
-                ),
-              ],
+                );
+              },
             );
           },
         ),
@@ -576,11 +681,11 @@ class _RoomMenu extends StatelessWidget {
   }
 
   Future<void> _pickSubtitle(BuildContext context, WatchCubit cubit) async {
-    final result = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['srt', 'vtt'],
     );
-    final path = result?.files.single.path;
+    final path = file?.path;
     if (path == null) return;
     final error = await cubit.uploadSubtitle(path);
     if (!context.mounted) return;

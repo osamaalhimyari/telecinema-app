@@ -8,8 +8,8 @@ import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 
 /// Bottom sheet that lists saved bookmarks for the current room.
-/// Tap a bookmark to seek, tap the pencil to rename, tap delete to remove.
-/// The "Add" button at the top saves the current video position as a bookmark.
+/// Tap a bookmark to seek, tap the name to rename, tap delete to remove.
+/// The "+" button at the top saves the current video position as a new bookmark.
 class BookmarkListSheet extends StatelessWidget {
   const BookmarkListSheet({super.key});
 
@@ -45,7 +45,9 @@ class BookmarkListSheet extends StatelessWidget {
           content: TextField(
             controller: controller,
             autofocus: true,
-            decoration: InputDecoration(hintText: ctx.tr(TranslationKeys.bookmarkNameHint)),
+            decoration: InputDecoration(
+              hintText: ctx.tr(TranslationKeys.bookmarkNameHint),
+            ),
           ),
           actions: [
             TextButton(
@@ -66,8 +68,10 @@ class BookmarkListSheet extends StatelessWidget {
     await cubit.updateBookmark(b.id, name: name.isEmpty ? null : name);
   }
 
-  Future<void> _delete(BuildContext context, Bookmark b) =>
-      context.read<WatchCubit>().deleteBookmark(b.id);
+  Future<void> _delete(BuildContext context, Bookmark b) async {
+    final cubit = context.read<WatchCubit>();
+    await cubit.deleteBookmark(b.id);
+  }
 
   String _format(Duration d) {
     final h = d.inHours;
@@ -91,9 +95,13 @@ class BookmarkListSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Header row with title and save button
               Row(
                 children: [
-                  Text(context.tr(TranslationKeys.bookmarks), style: context.text.titleMedium),
+                  Text(
+                    context.tr(TranslationKeys.bookmarks),
+                    style: context.text.titleMedium,
+                  ),
                   const Spacer(),
                   FilledButton.tonalIcon(
                     onPressed: () => _save(context),
@@ -108,7 +116,6 @@ class BookmarkListSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Text(
                     context.tr(TranslationKeys.noBookmarks),
-                    textAlign: TextAlign.center,
                     style: context.text.bodyMedium?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
@@ -146,7 +153,10 @@ class BookmarkListSheet extends StatelessWidget {
                               onPressed: () => _rename(context, b),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 20,
+                              ),
                               onPressed: () => _delete(context, b),
                             ),
                           ],

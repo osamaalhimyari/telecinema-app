@@ -6,9 +6,9 @@ import '/core/localization/translation_keys.dart';
 import '../bloc/draw_mode/draw_mode_cubit.dart';
 import '../bloc/draw_mode/draw_mode_state.dart';
 
-/// Fullscreen variant — a 38×38 circle that matches the other fullscreen
-/// toggles, so it stacks cleanly in the fullscreen control column. Toggles
-/// draw-on-video mode; fills in (primary tint) while active.
+/// Fullscreen variant — a 38×38 circle that matches [FullscreenVoiceButton] /
+/// [FullscreenLockButton], so it stacks cleanly in the fullscreen control
+/// column. Toggles draw-on-video mode; fills in (primary tint) while active.
 class FullscreenDrawButton extends StatelessWidget {
   const FullscreenDrawButton({super.key});
 

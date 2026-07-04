@@ -30,37 +30,27 @@ abstract class WatchRepository {
   Stream<String> get subtitleChanged;
   Stream<SubtitleSettings> get subtitleSettings;
   Stream<ReactionEvent> get reaction;
+  Stream<DrawEvent> get draw;
+  Stream<TypingEvent> get typing;
   Stream<void> get roomDeleted;
   Stream<VoiceEvent> get voice;
 
-  /// `clipId`s of voice messages a listener opened (read receipts).
-  Stream<String> get voiceRead;
-
-  /// Relayed drawing-stroke segments from other viewers.
-  Stream<DrawEvent> get draw;
-
-  /// Relayed "is writing…" signals from other viewers.
-  Stream<TypingEvent> get typing;
-
   void sendControl({required String action, double? currentTime, double? rate});
-  void sendChat(String text, {String? clientId});
+  void sendChat(String text, {String? clientId, String? audioUrl, int? durationMs});
   void sendReaction(String emoji);
-  void setBuffering(bool buffering);
-  void requestResync();
-  void changeSource(String url);
-  void setSubtitleSettings({double? offset, int? weight, int? size});
-
-  void voiceStart(String mimeType, String clipId);
-  void voiceChunk(List<int> bytes);
-  void voiceEnd(String clipId);
-  void sendVoiceRead(String clipId);
-
   void sendDraw({
     required String strokeId,
     required String color,
     required List<List<double>> points,
     required bool done,
   });
-
   void sendTyping(bool typing);
+  void setBuffering(bool buffering);
+  void requestResync();
+  void changeSource(String url);
+  void setSubtitleSettings({double? offset, int? weight, int? size});
+
+  void voiceStart(String mimeType);
+  void voiceChunk(List<int> bytes);
+  void voiceEnd();
 }

@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-/// One direct source of a movie resolved from the iwaatch "direct link" provider
-/// (`GET /api/iwaatch/resolve`). [url] is a direct, playable/downloadable video
-/// link the server resolved (iwaatch is geo-blocked for the client, so the
-/// backend scrapes it). [kind] is `mp4` (a single file) or `hls` (an `.m3u8`).
+/// One playable/downloadable quality of a movie resolved from the iwaatch
+/// "direct link" source (`GET /api/iwaatch/resolve`). [url] is a direct media
+/// link — an `.mp4` file or an `.m3u8` HLS playlist, per [kind] — that the
+/// server can fetch through the normal `download` room flow.
 class IwaatchSource extends Equatable {
   const IwaatchSource({
     required this.quality,
@@ -14,10 +14,10 @@ class IwaatchSource extends Equatable {
     this.subtitle,
   });
 
-  /// `2160p` … `360p`, or `auto`.
+  /// `2160p` … `360p`, or `auto` when the url carries no resolution hint.
   final String quality;
 
-  /// Human label shown in the picker (an `(HLS)` tag for m3u8).
+  /// Human label shown in the picker (carries an `HLS` tag for m3u8).
   final String label;
 
   /// Direct, playable/downloadable url.
@@ -33,24 +33,21 @@ class IwaatchSource extends Equatable {
 
   bool get isHls => kind == 'hls';
 
-  /// Short tag for the badge, e.g. `1080p` (or `HLS`/`MP4` when unknown).
-  String get shortLabel {
-    if (quality != 'auto') return quality;
-    return kind.toUpperCase();
-  }
+  /// A short tag for the badge, derived from [label] (e.g. `1080p`).
+  String get shortLabel =>
+      RegExp(r'\d{3,4}p').firstMatch(label)?.group(0) ?? quality.toUpperCase();
 
-  /// Secondary line in the picker.
+  /// Secondary line in the picker: resolution and/or an `HLS` marker.
   String get meta {
     final parts = <String>[
       ?resolution,
-      if (isHls) 'HLS stream' else 'MP4 file',
-      if (subtitle != null) 'subtitle',
+      if (isHls) 'HLS',
     ];
     return parts.join('  ·  ');
   }
 
   factory IwaatchSource.fromJson(Map<String, dynamic> json) => IwaatchSource(
-    quality: json['quality']?.toString() ?? 'auto',
+    quality: json['quality']?.toString() ?? '',
     label: json['label']?.toString() ?? '',
     url: json['url']?.toString() ?? '',
     kind: json['kind']?.toString() ?? 'mp4',

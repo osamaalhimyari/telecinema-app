@@ -8,12 +8,16 @@ import '/core/network/dio_api_client.dart';
 import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
+import '/features/cache/injections/cache_injection.dart';
+import '/features/cinema/injections/cinema_injection.dart';
 import '/features/favorites/injections/favorites_injection.dart';
+import '/features/iwaatch/injections/iwaatch_injection.dart';
+import '/features/app_update/injections/app_update_injection.dart';
 import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/topcinema/injections/topcinema_injection.dart';
-import '/features/iwaatch/injections/iwaatch_injection.dart';
 import '/features/tv/injections/tv_injection.dart';
+import '/features/youtube/injections/youtube_injection.dart';
 import '/features/subtitles/injections/subtitles_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 import '/logic/favorites/favorites_cubit.dart';
@@ -73,9 +77,19 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectWatchSingletons(sl);
   await injectBrowseSingletons(sl);
   await injectFavoritesSingletons(sl);
+  // Isolated EgyBest catalogue → on-device resolve → direct-download room.
+  await injectCinemaSingletons(sl);
+  // On-device video cache (download-before-watch + offline playback).
+  await injectCacheSingletons(sl);
   await injectTopcinemaSingletons(sl);
+  // Isolated iwaatch direct-link source — resolved on the server (iwaatch.com is
+  // reachable there but geo-blocked for clients), movies only.
   await injectIwaatchSingletons(sl);
+  // Isolated live-TV catalogue (YacineTV tree) → on-device native player.
   await injectTvSingletons(sl);
+  await injectYoutubeSingletons(sl);
   await injectSubtitlesSingletons(sl);
   await injectOperationsSingletons(sl);
+  // In-app updates — checks the server for a newer APK, downloads + installs it.
+  await injectAppUpdateSingletons(sl);
 }
