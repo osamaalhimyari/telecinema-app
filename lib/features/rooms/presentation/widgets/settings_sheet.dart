@@ -137,34 +137,34 @@ class _SettingsSheetView extends StatelessWidget {
             style: context.text.titleSmall,
           ),
           const SizedBox(height: 8),
-          // Row(
-          //   children: [
-          //     Expanded(
-          //       child: TextField(
-          //         controller: cubit.server,
-          //         keyboardType: TextInputType.url,
-          //         autocorrect: false,
-          //         textInputAction: TextInputAction.done,
-          //         onChanged: (_) => cubit.onServerChanged(),
-          //         decoration: InputDecoration(
-          //           hintText: context.tr(TranslationKeys.serverHint),
-          //           prefixIcon: const Icon(Icons.dns_outlined),
-          //         ),
-          //         onSubmitted: (_) => _save(context),
-          //       ),
-          //     ),
-          //     const SizedBox(width: 8),
-          //     BlocSelector<SettingsSheetCubit, SettingsSheetState, bool>(
-          //       selector: (state) => state.isServerDefault,
-          //       builder: (context, isServerDefault) => IconButton.filledTonal(
-          //         tooltip: context.tr(TranslationKeys.resetToDefault),
-          //         onPressed: isServerDefault ? null : cubit.resetServer,
-          //         icon: const Icon(Icons.restart_alt_rounded),
-          //       ),
-          //     ),
-          //   ],
-          // ),
-          // const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: cubit.server,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => cubit.onServerChanged(),
+                  decoration: InputDecoration(
+                    hintText: context.tr(TranslationKeys.serverHint),
+                    prefixIcon: const Icon(Icons.dns_outlined),
+                  ),
+                  onSubmitted: (_) => _save(context),
+                ),
+              ),
+              const SizedBox(width: 8),
+              BlocSelector<SettingsSheetCubit, SettingsSheetState, bool>(
+                selector: (state) => state.isServerDefault,
+                builder: (context, isServerDefault) => IconButton.filledTonal(
+                  tooltip: context.tr(TranslationKeys.resetToDefault),
+                  onPressed: isServerDefault ? null : cubit.resetServer,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           BlocSelector<SettingsSheetCubit, SettingsSheetState, String?>(
             selector: (state) => state.serverError,
             builder: (context, serverError) => Text(

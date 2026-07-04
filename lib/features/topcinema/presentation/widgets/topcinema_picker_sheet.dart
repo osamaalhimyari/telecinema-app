@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '/core/config/endpoints.dart';
 import '/core/errors/exceptions.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
@@ -31,6 +32,12 @@ Future<void> showTopcinemaPicker(
   String? imdbId,
   String? poster,
 }) async {
+  // Both domains host the same catalogue behind the same scraper, but each has
+  // titles the other is missing — so let the viewer pick which mirror to search
+  // (pinned, no automatic failover) instead of the code always taking the first.
+  final host = await _pickHost(context);
+  if (host == null || !context.mounted) return;
+
   final name = await _askName(context, _slugify(title));
   if (name == null || name.isEmpty || !context.mounted) return;
 
@@ -40,10 +47,10 @@ Future<void> showTopcinemaPicker(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _SeasonsSheet(name: name, title: title, datasource: datasource),
+      builder: (_) => _SeasonsSheet(name: name, title: title, datasource: datasource, host: host),
     );
   } else {
-    choice = await _pickMovie(context, datasource, name, title);
+    choice = await _pickMovie(context, datasource, name, title, host);
   }
   if (choice == null || !context.mounted) return;
 
@@ -77,6 +84,41 @@ String _slugify(String s) => s
     .replaceAll(RegExp(r"['’`]"), '')
     .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
     .replaceAll(RegExp(r'^-+|-+$'), '');
+
+/// Bottom sheet listing the configured topcinema mirrors (one button each),
+/// returning the base url of the one the viewer taps. The scraper is identical
+/// for every mirror — this only pins which domain it walks — so adding a host in
+/// `endpoints.dart` grows this list with no other change. Returns null if
+/// dismissed.
+Future<String?> _pickHost(BuildContext context) {
+  return showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: Text(
+              context.tr(TranslationKeys.topcinemaChooseSource),
+              style: context.text.titleLarge,
+            ),
+          ),
+          for (final host in Endpoints.topcinemaHosts)
+            ListTile(
+              leading: const Icon(Icons.public_rounded),
+              title: Text(Uri.parse(host).host),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(sheetContext).pop(host),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+}
 
 /// Prompts for the (editable) name used to locate the title on topcinema.
 Future<String?> _askName(BuildContext context, String initial) {
@@ -123,8 +165,9 @@ Future<_TopcinemaChoice?> _pickMovie(
   TopcinemaRemoteDataSource datasource,
   String name,
   String title,
+  String host,
 ) async {
-  final sources = await _withLoading(context, () => datasource.resolveMovie(name));
+  final sources = await _withLoading(context, () => datasource.resolveMovie(name, host: host));
   if (sources == null || !context.mounted) return null;
   if (sources.isEmpty) {
     context.showSnack(context.tr(TranslationKeys.topcinemaNotFound));
@@ -169,16 +212,23 @@ Future<T?> _withLoading<T>(BuildContext context, Future<T> Function() task) asyn
 // ===========================================================================
 
 class _SeasonsSheet extends StatelessWidget {
-  const _SeasonsSheet({required this.name, required this.title, required this.datasource});
+  const _SeasonsSheet({
+    required this.name,
+    required this.title,
+    required this.datasource,
+    required this.host,
+  });
 
   final String name;
   final String title;
   final TopcinemaRemoteDataSource datasource;
+  final String host;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TopcinemaSeasonsCubit(title: title, name: name, datasource: datasource),
+      create: (_) =>
+          TopcinemaSeasonsCubit(title: title, name: name, datasource: datasource, host: host),
       child: _SeasonsView(title: title),
     );
   }

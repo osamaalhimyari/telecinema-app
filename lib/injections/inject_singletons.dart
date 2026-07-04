@@ -12,6 +12,7 @@ import '/features/cache/injections/cache_injection.dart';
 import '/features/cinema/injections/cinema_injection.dart';
 import '/features/favorites/injections/favorites_injection.dart';
 import '/features/iwaatch/injections/iwaatch_injection.dart';
+import '/features/imdb/injections/imdb_injection.dart';
 import '/features/app_update/injections/app_update_injection.dart';
 import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
@@ -82,6 +83,8 @@ Future<void> injectSingletons(GetIt sl) async {
   // On-device video cache (download-before-watch + offline playback).
   await injectCacheSingletons(sl);
   await injectTopcinemaSingletons(sl);
+  // Isolated IMDb ratings dashboard source — on-device GraphQL, series only.
+  await injectImdbSingletons(sl);
   // Isolated iwaatch direct-link source — resolved on the server (iwaatch.com is
   // reachable there but geo-blocked for clients), movies only.
   await injectIwaatchSingletons(sl);

@@ -97,8 +97,14 @@ class TranslationKeys {
   static const favoritesEmpty = 'favorites_empty';
   static const favoritesEmptyHint = 'favorites_empty_hint';
 
+  // IMDb ratings dashboard (season/episode ratings on the detail page)
+  static const imdbEpisodesTitle = 'imdb_episodes_title';
+  static const imdbNotRated = 'imdb_not_rated';
+  static const imdbNoEpisodes = 'imdb_no_episodes';
+
   // TopCinema (isolated direct-download "second way")
   static const topcinemaButton = 'topcinema_button';
+  static const topcinemaChooseSource = 'topcinema_choose_source';
   static const topcinemaTitle = 'topcinema_title';
   static const topcinemaNameHint = 'topcinema_name_hint';
   static const topcinemaGo = 'topcinema_go';
