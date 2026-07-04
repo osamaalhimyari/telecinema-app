@@ -127,10 +127,13 @@ class _RoomsView extends StatelessWidget {
             ),
             RoomsListStatus.success =>
               state.rooms.isEmpty
-                  ? StatusView(
-                      icon: Icons.weekend_outlined,
-                      title: context.tr(TranslationKeys.roomsEmpty),
-                      message: context.tr(TranslationKeys.roomsEmptyHint),
+                  ? _refreshable(
+                      context,
+                      StatusView(
+                        icon: Icons.weekend_outlined,
+                        title: context.tr(TranslationKeys.roomsEmpty),
+                        message: context.tr(TranslationKeys.roomsEmptyHint),
+                      ),
                     )
                   : _success(context, state),
           };
@@ -149,10 +152,13 @@ class _RoomsView extends StatelessWidget {
         _filterChips(context, state, collection),
         Expanded(
           child: shown.isEmpty
-              ? StatusView(
-                  icon: Icons.search_off_rounded,
-                  title: context.tr(TranslationKeys.roomsNoResults),
-                  message: context.tr(TranslationKeys.roomsEmptyHint),
+              ? _refreshable(
+                  context,
+                  StatusView(
+                    icon: Icons.search_off_rounded,
+                    title: context.tr(TranslationKeys.roomsNoResults),
+                    message: context.tr(TranslationKeys.roomsEmptyHint),
+                  ),
                 )
               : _grid(context, shown),
         ),
@@ -242,6 +248,25 @@ class _RoomsView extends StatelessWidget {
             ],
           ],
         ],
+      ),
+    );
+  }
+
+  /// Wraps a non-scrolling [child] (an empty / no-results [StatusView]) so it
+  /// fills the viewport and still responds to pull-to-refresh, mirroring the
+  /// grid's own [RefreshIndicator]. Without the always-scrollable, viewport-
+  /// height scroll view there'd be nothing for the drag gesture to grab.
+  Widget _refreshable(BuildContext context, Widget child) {
+    return RefreshIndicator(
+      onRefresh: () => context.read<RoomsListCubit>().refresh(),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
+          ),
+        ),
       ),
     );
   }

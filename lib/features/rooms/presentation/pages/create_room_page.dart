@@ -235,60 +235,74 @@ class _CreateRoomForm extends StatelessWidget {
         builder: (context, state) {
           return AbsorbPointer(
             absorbing: state.isBusy,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-              children: [
-                Form(
-                  key: form.formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label(context, TranslationKeys.roomName),
-                      TextFormField(
-                        controller: form.name,
-                        decoration: InputDecoration(
-                          hintText: context.tr(TranslationKeys.roomNameHint),
-                        ),
-                        validator: (v) => (v == null || v.trim().length < 2)
-                            ? context.tr(TranslationKeys.roomName)
-                            : null,
-                      ),
-                      const SizedBox(height: 20),
-
-                      _label(context, TranslationKeys.sourceType),
-                      _typeSelector(context),
-                      const SizedBox(height: 16),
-
-                      _sourceField(context),
-                      const SizedBox(height: 20),
-
-                      _label(context, TranslationKeys.password),
-                      TextFormField(
-                        controller: form.password,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: context.tr(
-                            TranslationKeys.passwordOptionalHint,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: ListView(
+                  // Drag anywhere over the form to dismiss the keyboard — vital
+                  // on short screens where it covers the fields below.
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+                  children: [
+                    Form(
+                      key: form.formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label(context, TranslationKeys.roomName),
+                          TextFormField(
+                            controller: form.name,
+                            decoration: InputDecoration(
+                              hintText: context.tr(
+                                TranslationKeys.roomNameHint,
+                              ),
+                            ),
+                            validator: (v) => (v == null || v.trim().length < 2)
+                                ? context.tr(TranslationKeys.roomName)
+                                : null,
                           ),
-                          prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        ),
+                          const SizedBox(height: 20),
+
+                          _label(context, TranslationKeys.sourceType),
+                          _typeSelector(context),
+                          const SizedBox(height: 16),
+
+                          _sourceField(context),
+                          const SizedBox(height: 20),
+
+                          _label(context, TranslationKeys.password),
+                          TextFormField(
+                            controller: form.password,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              hintText: context.tr(
+                                TranslationKeys.passwordOptionalHint,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          _label(context, TranslationKeys.category),
+                          _categorySelector(context),
+                          const SizedBox(height: 20),
+
+                          _reactionsHeader(context),
+                          _selectedReactionsRow(context),
+                          _collapsibleReactionsPicker(context),
+                        ],
                       ),
-                      const SizedBox(height: 20),
-
-                      _label(context, TranslationKeys.category),
-                      _categorySelector(context),
-                      const SizedBox(height: 20),
-
-                      _reactionsHeader(context),
-                      _selectedReactionsRow(context),
-                      _collapsibleReactionsPicker(context),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 28),
+                    _submitButton(context, state),
+                    const SizedBox(height: 28),
+                  ],
                 ),
-                const SizedBox(height: 28),
-                _submitButton(context, state),
-                const SizedBox(height: 28),
-              ],
+              ),
             ),
           );
         },
@@ -415,8 +429,9 @@ class _CreateRoomForm extends StatelessWidget {
       builder: (context, expanded) => AnimatedCrossFade(
         firstChild: const SizedBox(width: double.infinity),
         secondChild: _reactionsPicker(context),
-        crossFadeState:
-            expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+        crossFadeState: expanded
+            ? CrossFadeState.showSecond
+            : CrossFadeState.showFirst,
         duration: const Duration(milliseconds: 200),
         sizeCurve: Curves.easeOutCubic,
       ),
@@ -424,8 +439,13 @@ class _CreateRoomForm extends StatelessWidget {
   }
 
   Widget _reactionsPicker(BuildContext context) {
+    // Scale the emoji grid to the viewport so it never dominates a short/split
+    // screen; it still scrolls internally when the emojis overflow this height.
+    final double height = (MediaQuery.sizeOf(context).height * 0.28)
+        .clamp(150.0, 240.0)
+        .toDouble();
     return Container(
-      height: 220,
+      height: height,
       decoration: BoxDecoration(
         border: Border.all(color: context.colors.outline),
         borderRadius: BorderRadius.circular(12),
@@ -528,16 +548,36 @@ class _CreateRoomForm extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               icon: const Icon(Icons.arrow_drop_down_rounded),
               items: [
-                _typeItem(context, RoomType.torrent, Icons.stream_rounded,
-                    TranslationKeys.typeTorrent),
-                _typeItem(context, RoomType.download, Icons.link_rounded,
-                    TranslationKeys.typeDownload),
-                _typeItem(context, RoomType.youtube, Icons.smart_display_outlined,
-                    TranslationKeys.typeYoutube),
-                _typeItem(context, RoomType.telegram, Icons.send_rounded,
-                    TranslationKeys.typeTelegram),
-                _typeItem(context, RoomType.upload, Icons.upload_rounded,
-                    TranslationKeys.typeUpload),
+                _typeItem(
+                  context,
+                  RoomType.torrent,
+                  Icons.stream_rounded,
+                  TranslationKeys.typeTorrent,
+                ),
+                _typeItem(
+                  context,
+                  RoomType.download,
+                  Icons.link_rounded,
+                  TranslationKeys.typeDownload,
+                ),
+                _typeItem(
+                  context,
+                  RoomType.youtube,
+                  Icons.smart_display_outlined,
+                  TranslationKeys.typeYoutube,
+                ),
+                _typeItem(
+                  context,
+                  RoomType.telegram,
+                  Icons.send_rounded,
+                  TranslationKeys.typeTelegram,
+                ),
+                _typeItem(
+                  context,
+                  RoomType.upload,
+                  Icons.upload_rounded,
+                  TranslationKeys.typeUpload,
+                ),
               ],
               onChanged: (value) {
                 if (value != null) {
@@ -564,7 +604,11 @@ class _CreateRoomForm extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: context.colors.primary),
           const SizedBox(width: 10),
-          Text(context.tr(labelKey)),
+          // Flexible + ellipsis so a long (e.g. translated) label can't overflow
+          // the dropdown on a narrow screen.
+          Flexible(
+            child: Text(context.tr(labelKey), overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
     );
@@ -682,9 +726,12 @@ class _CreateRoomForm extends StatelessWidget {
                   validator: (v) {
                     if (type != RoomType.youtube) return null;
                     final t = v?.trim().toLowerCase() ?? '';
-                    final ok = t.startsWith('http') &&
+                    final ok =
+                        t.startsWith('http') &&
                         (t.contains('youtube.com') || t.contains('youtu.be'));
-                    return ok ? null : context.tr(TranslationKeys.youtubeLinkHint);
+                    return ok
+                        ? null
+                        : context.tr(TranslationKeys.youtubeLinkHint);
                   },
                 ),
               ],
@@ -712,9 +759,12 @@ class _CreateRoomForm extends StatelessWidget {
                   validator: (v) {
                     if (type != RoomType.telegram) return null;
                     final t = v?.trim().toLowerCase() ?? '';
-                    final ok = t.startsWith('http') &&
+                    final ok =
+                        t.startsWith('http') &&
                         (t.contains('t.me/') || t.contains('telegram.me/'));
-                    return ok ? null : context.tr(TranslationKeys.telegramLinkHint);
+                    return ok
+                        ? null
+                        : context.tr(TranslationKeys.telegramLinkHint);
                   },
                 ),
               ],
