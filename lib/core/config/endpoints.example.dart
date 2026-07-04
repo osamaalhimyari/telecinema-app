@@ -20,6 +20,11 @@ class Endpoints {
   /// `https://web4.topcinema.fan`. Mirror subdomain rotates — bump it here.
   static const String topcinema = '';
 
+  /// All known TopCinema mirror hosts, tried in order (failover). Include the
+  /// real serving host of any domain that redirects, e.g.
+  /// `['https://web4.topcinema.fan', 'https://web.topcinemaa.com']`.
+  static const List<String> topcinemaHosts = [];
+
   /// Public trackers appended to every built magnet to seed peer discovery.
   static const List<String> trackers = [
     // 'udp://tracker.example.org:1337/announce',

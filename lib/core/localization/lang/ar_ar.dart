@@ -57,6 +57,8 @@ const Map<String, String> arAr = {
   TranslationKeys.tvLive: 'مباشر',
   TranslationKeys.tvChannelUnavailable:
       'تعذّر تشغيل هذه القناة. ربما انتهت صلاحية البث — اسحب لتحديث القائمة وحاول مجددًا.',
+  TranslationKeys.tvCreateRoom: 'إنشاء غرفة ومشاهدة معاً',
+  TranslationKeys.tvPreviewFailed: 'المعاينة غير متاحة — يمكنك إنشاء غرفة وتجربتها.',
 
   TranslationKeys.cinemaTitle: 'سينما',
   TranslationKeys.cinemaSearchHint: 'ابحث عن أفلام ومسلسلات',
@@ -90,6 +92,13 @@ const Map<String, String> arAr = {
   TranslationKeys.topcinemaGo: 'بحث',
   TranslationKeys.topcinemaNotFound: 'لا يوجد مصدر مباشر لهذا العنوان.',
   TranslationKeys.topcinemaUnavailable: 'المصدر المباشر غير متاح حالياً.',
+
+  TranslationKeys.iwaatchButton: 'رابط مباشر',
+  TranslationKeys.iwaatchTitle: 'رابط مباشر',
+  TranslationKeys.iwaatchNameHint: 'عدّل الاسم إذا لزم (مثال: back-in-action-2025).',
+  TranslationKeys.iwaatchGo: 'بحث',
+  TranslationKeys.iwaatchNotFound: 'لا يوجد رابط مباشر لهذا العنوان.',
+  TranslationKeys.iwaatchUnavailable: 'مصدر الرابط المباشر غير متاح حالياً.',
 
   TranslationKeys.browseTitle: 'استكشاف',
   TranslationKeys.browseSearchHint: 'ابحث عن أفلام ومسلسلات',
@@ -167,6 +176,7 @@ const Map<String, String> arAr = {
   TranslationKeys.voiceReleaseToCancel: 'أفلت للإلغاء',
   TranslationKeys.voiceMicPermission: 'إذن الميكروفون مطلوب',
   TranslationKeys.voiceHoldToRecord: 'سجّل رسالة صوتية',
+  TranslationKeys.voiceMessage: 'رسالة صوتية',
   TranslationKeys.draw: 'رسم',
 
   TranslationKeys.reactions: 'تفاعلات',

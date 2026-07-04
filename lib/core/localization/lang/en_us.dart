@@ -59,6 +59,8 @@ const Map<String, String> enUs = {
   TranslationKeys.tvLive: 'LIVE',
   TranslationKeys.tvChannelUnavailable:
       'This channel could not be played. Its stream may have expired — pull to refresh the list and try again.',
+  TranslationKeys.tvCreateRoom: 'Create room & watch together',
+  TranslationKeys.tvPreviewFailed: 'Preview unavailable — you can still create a room and try it.',
 
   TranslationKeys.cinemaTitle: 'Cinema',
   TranslationKeys.cinemaSearchHint: 'Search movies & series',
@@ -92,6 +94,13 @@ const Map<String, String> enUs = {
   TranslationKeys.topcinemaGo: 'Find',
   TranslationKeys.topcinemaNotFound: 'No direct source found for this title.',
   TranslationKeys.topcinemaUnavailable: 'The direct source is unavailable right now.',
+
+  TranslationKeys.iwaatchButton: 'Direct link',
+  TranslationKeys.iwaatchTitle: 'Direct link',
+  TranslationKeys.iwaatchNameHint: 'Edit the name if needed (e.g. back-in-action-2025).',
+  TranslationKeys.iwaatchGo: 'Find',
+  TranslationKeys.iwaatchNotFound: 'No direct link found for this title.',
+  TranslationKeys.iwaatchUnavailable: 'The direct link source is unavailable right now.',
 
   TranslationKeys.browseTitle: 'Browse',
   TranslationKeys.browseSearchHint: 'Search movies & series',
@@ -170,6 +179,7 @@ const Map<String, String> enUs = {
   TranslationKeys.voiceReleaseToCancel: 'Release to cancel',
   TranslationKeys.voiceMicPermission: 'Microphone permission is required',
   TranslationKeys.voiceHoldToRecord: 'Record a voice message',
+  TranslationKeys.voiceMessage: 'Voice message',
   TranslationKeys.draw: 'Draw',
 
   TranslationKeys.reactions: 'Reactions',

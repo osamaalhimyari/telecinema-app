@@ -339,6 +339,15 @@ class WatchCubit extends Cubit<WatchState> {
     _subscribe();
     final room = state.room!;
     _repo.join(room.slug);
+    _startVideoSource();
+  }
+
+  /// Selects and opens the right video source for the current room — TV relay,
+  /// a finished local cache copy, an on-device torrent stream, or the server
+  /// file URL. Factored out of [_enterRoom] so [retryVideo] can re-run it after
+  /// a load error without re-subscribing or re-joining the room.
+  void _startVideoSource() {
+    final room = state.room!;
     if (state.isExternal) return;
 
     // Live-TV room: play through the server-side HLS relay (`/livetv/:slug`),
@@ -348,10 +357,13 @@ class WatchCubit extends Cubit<WatchState> {
     // local cache / torrent path applies; sync rides the socket like any other
     // room, only without seeking (handled in `_applyToVideo`).
     if (room.roomType.isTv) {
-      _tvRef = room.liveStream;
-      final relayUrl = room.videoUrl; // → $baseUrl/livetv/:slug
-      if (relayUrl != null) {
-        _initVideo(relayUrl, autoplay: true);
+      final ref = room.liveStream;
+      _tvRef = ref;
+      if (ref != null && ref.url.isNotEmpty) {
+        // On-device: play the channel origin directly with its per-channel
+        // headers. When the signed token expires the player errors, and
+        // _refreshTvStream re-resolves a fresh origin via the channel's tree path.
+        _initVideo(ref.url, httpHeaders: ref.headers, autoplay: true);
       } else {
         emit(state.copyWith(videoError: true));
       }
@@ -437,6 +449,18 @@ class WatchCubit extends Cubit<WatchState> {
     await _initVideo(serverUrl);
   }
 
+  /// Re-attempts playback after a load error — the "Retry" button on the
+  /// "video unavailable" overlay. Re-runs the same source selection used on
+  /// entry: for a torrent room this re-resolves the magnet and, failing that,
+  /// falls back to the server stream — which is the usual cause of a cold-swarm
+  /// "not found" on re-entry. Resumes at the room's current position via the
+  /// next socket sync. No-op until a room is loaded.
+  void retryVideo() {
+    if (state.room == null || state.isExternal) return;
+    emit(state.copyWith(videoError: false));
+    _startVideoSource();
+  }
+
   void _subscribe() {
     _subs.addAll([
       _repo.sync.listen(_onSync),
@@ -481,7 +505,11 @@ class WatchCubit extends Cubit<WatchState> {
   // Video (file rooms)
   // ===========================================================================
 
-  Future<void> _initVideo(String url, {bool autoplay = false}) async {
+  Future<void> _initVideo(
+    String url, {
+    bool autoplay = false,
+    Map<String, String>? httpHeaders,
+  }) async {
     // Tear down any previous player first — this method is re-entered when a
     // stalled torrent stream falls back to the server stream (or a live-TV
     // token is refreshed). Clear the handles
@@ -567,7 +595,7 @@ class WatchCubit extends Cubit<WatchState> {
     ]);
 
     try {
-      await player.open(Media(url), play: autoplay);
+      await player.open(Media(url, httpHeaders: httpHeaders), play: autoplay);
       emit(state.copyWith(videoReady: true, videoError: false));
       if (_pendingSync != null) {
         await _applyToVideo(_pendingSync!);
@@ -636,14 +664,11 @@ class WatchCubit extends Cubit<WatchState> {
       emit(state.copyWith(videoError: true));
       return;
     }
-    // The resolver persisted the fresh stream to the room, so replay through the
-    // relay — the same `/livetv/:slug` URL now serves the refreshed stream.
-    final relayUrl = state.room?.videoUrl;
-    if (relayUrl != null) {
-      await _initVideo(relayUrl, autoplay: true);
-    } else {
-      emit(state.copyWith(videoError: true));
-    }
+    // Replay the freshly-resolved origin on-device with its headers. (The
+    // resolver also persisted it to the room, so late joiners get a recent
+    // token; each client still re-resolves on its own when needed.)
+    _tvRef = LiveStreamRef(url: fresh.url, headers: fresh.headers, path: ref.path);
+    await _initVideo(fresh.url, httpHeaders: fresh.headers, autoplay: true);
   }
 
   /// Loads an external subtitle track into the file-room player (libmpv via

@@ -66,6 +66,8 @@ class TranslationKeys {
   static const tvEmpty = 'tv_empty';
   static const tvLive = 'tv_live';
   static const tvChannelUnavailable = 'tv_channel_unavailable';
+  static const tvCreateRoom = 'tv_create_room';
+  static const tvPreviewFailed = 'tv_preview_failed';
 
   // Cinema (isolated EgyBest catalogue → on-device resolve → direct-download room)
   static const cinemaTitle = 'cinema_title';
@@ -102,6 +104,14 @@ class TranslationKeys {
   static const topcinemaGo = 'topcinema_go';
   static const topcinemaNotFound = 'topcinema_not_found';
   static const topcinemaUnavailable = 'topcinema_unavailable';
+
+  // iwaatch (isolated server-resolved direct-link "third way", movies only)
+  static const iwaatchButton = 'iwaatch_button';
+  static const iwaatchTitle = 'iwaatch_title';
+  static const iwaatchNameHint = 'iwaatch_name_hint';
+  static const iwaatchGo = 'iwaatch_go';
+  static const iwaatchNotFound = 'iwaatch_not_found';
+  static const iwaatchUnavailable = 'iwaatch_unavailable';
 
   // Browse (catalogue)
   static const browseTitle = 'browse_title';
@@ -184,6 +194,7 @@ class TranslationKeys {
   static const voiceReleaseToCancel = 'voice_release_to_cancel';
   static const voiceMicPermission = 'voice_mic_permission';
   static const voiceHoldToRecord = 'voice_hold_to_record';
+  static const voiceMessage = 'voice_message';
 
   // Presence join/leave toasts ("<name> joined" / "<name> left")
   static const userJoined = 'user_joined';

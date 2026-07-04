@@ -1,20 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
-import '/features/watch/presentation/pages/room_page.dart';
-import '/injections/injection.dart';
 import '../../domain/entities/tv_channel.dart';
 import '../../domain/entities/tv_node.dart';
-import '../bloc/tv_launch/tv_launch_cubit.dart';
-import '../bloc/tv_launch/tv_launch_state.dart';
+import 'tv_channel_preview_page.dart';
 
 /// One level of the live-TV tree: lists [node]'s sub-groups and/or playable
 /// channels. Tapping a group drills into another [TvChannelsPage]; tapping a
-/// channel creates a synced "watch together" room and opens it. Pushed on the
-/// root navigator (above the bottom bar).
+/// channel opens a live [TvChannelPreviewPage] where the viewer can watch it and
+/// then create a synced room — the same "preview, then create a room" flow as a
+/// movie. Pushed on the root navigator (above the bottom bar).
 ///
 /// [path] is the node's name-path from the root (e.g. `["ARABIC", "EGYPTE"]`),
 /// carried so a launched room can re-resolve a fresh stream token later.
@@ -24,31 +21,11 @@ class TvChannelsPage extends StatelessWidget {
   final TvNode node;
   final List<String> path;
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider<TvLaunchCubit>(
-      create: (_) => sl<TvLaunchCubit>(),
-      child: _TvChannelsView(node: node, path: path),
-    );
-  }
-}
-
-class _TvChannelsView extends StatelessWidget {
-  const _TvChannelsView({required this.node, required this.path});
-
-  final TvNode node;
-  final List<String> path;
-
-  Future<void> _openChannel(
-    BuildContext context,
-    TvChannel channel,
-    List<String> channelPath,
-  ) async {
-    final cubit = context.read<TvLaunchCubit>();
-    final room = await cubit.launch(channel: channel, path: channelPath);
-    if (room == null || !context.mounted) return;
+  void _openChannel(BuildContext context, TvChannel channel, List<String> channelPath) {
     Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => RoomPage(slug: room.slug, initialRoom: room)),
+      MaterialPageRoute(
+        builder: (_) => TvChannelPreviewPage(channel: channel, path: channelPath),
+      ),
     );
   }
 
@@ -63,7 +40,7 @@ class _TvChannelsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Direct channels first (rare), then sub-nodes. Each entry is either a group
-    // to drill into or a leaf channel that launches a room.
+    // to drill into or a leaf channel that opens its preview.
     final entries = <Widget>[
       for (final channel in node.channels)
         _ChannelTile(
@@ -84,40 +61,19 @@ class _TvChannelsView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(node.name)),
-      body: BlocListener<TvLaunchCubit, TvLaunchState>(
-        listenWhen: (a, b) => b.errorKey != null && a.errorKey != b.errorKey,
-        listener: (context, state) {
-          if (state.errorKey != null) context.showSnack(context.tr(state.errorKey!));
-        },
-        child: Stack(
-          children: [
-            if (entries.isEmpty)
-              Center(
-                child: Text(
-                  context.tr(TranslationKeys.tvEmpty),
-                  style: context.text.bodyMedium,
-                ),
-              )
-            else
-              ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: entries.length,
-                separatorBuilder: (_, _) => const Divider(height: 1, indent: 76),
-                itemBuilder: (_, i) => entries[i],
+      body: entries.isEmpty
+          ? Center(
+              child: Text(
+                context.tr(TranslationKeys.tvEmpty),
+                style: context.text.bodyMedium,
               ),
-            // Blocking overlay while a room is being created for a tapped channel.
-            BlocBuilder<TvLaunchCubit, TvLaunchState>(
-              buildWhen: (a, b) => a.busy != b.busy,
-              builder: (context, state) => state.busy
-                  ? const ColoredBox(
-                      color: Color(0x99000000),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : const SizedBox.shrink(),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: entries.length,
+              separatorBuilder: (_, _) => const Divider(height: 1, indent: 76),
+              itemBuilder: (_, i) => entries[i],
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -141,7 +97,7 @@ class _GroupTile extends StatelessWidget {
   }
 }
 
-/// A playable channel row — creates and opens a synced room.
+/// A playable channel row — opens its live preview.
 class _ChannelTile extends StatelessWidget {
   const _ChannelTile({required this.name, required this.logo, required this.onTap});
 
