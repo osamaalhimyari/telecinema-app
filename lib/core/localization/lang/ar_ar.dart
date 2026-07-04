@@ -86,6 +86,10 @@ const Map<String, String> arAr = {
   TranslationKeys.favoritesEmptyHint:
       'اضغط على القلب في فيلم أو مسلسل داخل الاستكشاف لحفظه هنا.',
 
+  TranslationKeys.imdbEpisodesTitle: 'الحلقات',
+  TranslationKeys.imdbNotRated: 'لم تُقيَّم بعد',
+  TranslationKeys.imdbNoEpisodes: 'لا توجد حلقات بعد',
+
   TranslationKeys.topcinemaButton: 'تحميل مباشر',
   TranslationKeys.topcinemaChooseSource: 'اختر مصدراً',
   TranslationKeys.topcinemaTitle: 'تحميل مباشر',

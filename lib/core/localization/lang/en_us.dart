@@ -88,6 +88,10 @@ const Map<String, String> enUs = {
   TranslationKeys.favoritesEmptyHint:
       'Tap the heart on a movie or series in Browse to save it here.',
 
+  TranslationKeys.imdbEpisodesTitle: 'Episodes',
+  TranslationKeys.imdbNotRated: 'Not rated yet',
+  TranslationKeys.imdbNoEpisodes: 'No episodes yet',
+
   TranslationKeys.topcinemaButton: 'Direct download',
   TranslationKeys.topcinemaChooseSource: 'Choose a source',
   TranslationKeys.topcinemaTitle: 'Direct download',
