@@ -89,6 +89,7 @@ const Map<String, String> enUs = {
       'Tap the heart on a movie or series in Browse to save it here.',
 
   TranslationKeys.topcinemaButton: 'Direct download',
+  TranslationKeys.topcinemaChooseSource: 'Choose a source',
   TranslationKeys.topcinemaTitle: 'Direct download',
   TranslationKeys.topcinemaNameHint: 'Edit the name if needed (e.g. widows-bay).',
   TranslationKeys.topcinemaGo: 'Find',

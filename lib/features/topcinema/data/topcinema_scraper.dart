@@ -49,9 +49,12 @@ class TopcinemaScraper {
   /// Opens a series by editable [name] (its url slug). Tries the canonical
   /// season-one page, then the base series page, then search. Returns the
   /// seasons list + that page's episodes.
-  Future<TopcinemaSeries> seriesByName(String name) async {
+  ///
+  /// When [host] is given the search is pinned to that mirror (the viewer picked
+  /// it) — no failover to the others; otherwise every mirror is tried in order.
+  Future<TopcinemaSeries> seriesByName(String name, {String? host}) async {
     final slug = _slugify(name);
-    final series = await _acrossHosts((base) => _seriesByNameOn(base, slug));
+    final series = await _acrossHosts((base) => _seriesByNameOn(base, slug), host: host);
     if (series == null) throw const ServerException('topcinema_not_found');
     return series;
   }
@@ -104,10 +107,11 @@ class TopcinemaScraper {
     return sources;
   }
 
-  /// Resolves a movie (by editable name slug) to its sources.
-  Future<List<TopcinemaSource>> resolveMovie(String name) async {
+  /// Resolves a movie (by editable name slug) to its sources. [host] pins the
+  /// mirror when the viewer picked one (see [seriesByName]).
+  Future<List<TopcinemaSource>> resolveMovie(String name, {String? host}) async {
     final slug = _slugify(name);
-    final sources = await _acrossHosts((base) => _resolveMovieOn(base, slug));
+    final sources = await _acrossHosts((base) => _resolveMovieOn(base, slug), host: host);
     if (sources == null || sources.isEmpty) {
       throw const ServerException('topcinema_not_found');
     }
@@ -238,9 +242,14 @@ class TopcinemaScraper {
   /// skipped so a dead mirror falls through to the next; only if *every* host is
   /// unreachable is the connectivity error surfaced. A reachable host that
   /// simply has no match returns null and the caller decides (`not_found`).
-  Future<T?> _acrossHosts<T>(Future<T?> Function(String base) attempt) async {
+  ///
+  /// When [host] is given, only that mirror is tried (the viewer pinned it) —
+  /// there is no failover, so a miss there surfaces `not_found` rather than
+  /// silently searching the other domain.
+  Future<T?> _acrossHosts<T>(Future<T?> Function(String base) attempt, {String? host}) async {
+    final hosts = host == null ? _hosts : [host];
     ServerException? lastError;
-    for (final base in _hosts) {
+    for (final base in hosts) {
       try {
         final result = await attempt(base);
         if (result != null) return result;

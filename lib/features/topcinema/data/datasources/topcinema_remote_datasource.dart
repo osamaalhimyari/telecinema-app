@@ -10,14 +10,16 @@ import '../topcinema_scraper.dart';
 /// feature's code, only its UI route.
 abstract class TopcinemaRemoteDataSource {
   /// Opens a series by editable [name] (its url slug), or loads a specific
-  /// season page by [url] (when switching seasons).
-  Future<TopcinemaSeries> series({String? name, String? url});
+  /// season page by [url] (when switching seasons). [host] pins the mirror the
+  /// viewer picked (only used with [name]; a [url] already carries its host).
+  Future<TopcinemaSeries> series({String? name, String? url, String? host});
 
   /// Resolves a parsed episode page to its downloadable qualities.
   Future<List<TopcinemaSource>> resolveEpisode(String episodeUrl);
 
   /// Resolves a movie (by editable name slug) to its downloadable qualities.
-  Future<List<TopcinemaSource>> resolveMovie(String title);
+  /// [host] pins the mirror the viewer picked.
+  Future<List<TopcinemaSource>> resolveMovie(String title, {String? host});
 }
 
 class TopcinemaRemoteDataSourceImpl implements TopcinemaRemoteDataSource {
@@ -26,9 +28,9 @@ class TopcinemaRemoteDataSourceImpl implements TopcinemaRemoteDataSource {
   final TopcinemaScraper _scraper;
 
   @override
-  Future<TopcinemaSeries> series({String? name, String? url}) {
+  Future<TopcinemaSeries> series({String? name, String? url, String? host}) {
     if (url != null && url.isNotEmpty) return _scraper.seasonPage(url);
-    if (name != null && name.isNotEmpty) return _scraper.seriesByName(name);
+    if (name != null && name.isNotEmpty) return _scraper.seriesByName(name, host: host);
     throw const ServerException('topcinema_not_found');
   }
 
@@ -37,5 +39,6 @@ class TopcinemaRemoteDataSourceImpl implements TopcinemaRemoteDataSource {
       _scraper.resolveEpisode(episodeUrl);
 
   @override
-  Future<List<TopcinemaSource>> resolveMovie(String title) => _scraper.resolveMovie(title);
+  Future<List<TopcinemaSource>> resolveMovie(String title, {String? host}) =>
+      _scraper.resolveMovie(title, host: host);
 }

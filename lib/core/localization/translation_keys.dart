@@ -99,6 +99,7 @@ class TranslationKeys {
 
   // TopCinema (isolated direct-download "second way")
   static const topcinemaButton = 'topcinema_button';
+  static const topcinemaChooseSource = 'topcinema_choose_source';
   static const topcinemaTitle = 'topcinema_title';
   static const topcinemaNameHint = 'topcinema_name_hint';
   static const topcinemaGo = 'topcinema_go';

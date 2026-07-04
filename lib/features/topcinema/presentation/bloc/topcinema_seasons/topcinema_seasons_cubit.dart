@@ -13,6 +13,7 @@ class TopcinemaSeasonsCubit extends Cubit<TopcinemaSeasonsState> {
     required this.title,
     required this.name,
     required this.datasource,
+    this.host,
   }) : super(const TopcinemaSeasonsState()) {
     _loadByName();
   }
@@ -20,6 +21,10 @@ class TopcinemaSeasonsCubit extends Cubit<TopcinemaSeasonsState> {
   final String title;
   final String name;
   final TopcinemaRemoteDataSource datasource;
+
+  /// The mirror the viewer picked, pinned for this whole drill-down (later
+  /// season/episode loads follow their own urls, which already carry the host).
+  final String? host;
 
   void _setError(Object error) {
     if (isClosed) return;
@@ -35,7 +40,7 @@ class TopcinemaSeasonsCubit extends Cubit<TopcinemaSeasonsState> {
   /// single-season title skips straight to the episodes step.
   Future<void> _loadByName() async {
     try {
-      final s = await datasource.series(name: name);
+      final s = await datasource.series(name: name, host: host);
       if (isClosed) return;
       if (s.seasons.length <= 1) {
         emit(
