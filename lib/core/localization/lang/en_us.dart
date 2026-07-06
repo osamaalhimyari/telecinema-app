@@ -315,6 +315,7 @@ const Map<String, String> enUs = {
   TranslationKeys.preparingLocalFile: 'Preparing your file…',
   TranslationKeys.localFileError: 'Couldn\'t load that file. Try another.',
   TranslationKeys.syncOffset: 'Sync offset',
+  TranslationKeys.resetOffset: 'Reset',
   TranslationKeys.replaceLocalFile: 'Replace local file',
 
   TranslationKeys.enterPassword: 'This room is password protected.',

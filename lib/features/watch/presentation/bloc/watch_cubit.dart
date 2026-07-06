@@ -192,6 +192,13 @@ class WatchCubit extends Cubit<WatchState> {
   /// server stream or a plain file), so the stall watchdog only watches that.
   bool _onDeviceTorrent = false;
 
+  /// Whether to use the server's adaptive-HLS transcode for file rooms. Turned
+  /// off because the on-demand ffmpeg transcode gets killed by the host — with
+  /// it off the app plays the progressive `/video` file directly and the server
+  /// never transcodes. Flip to `true` (and re-enable the quality menu) to
+  /// restore adaptive HLS + the quality picker. The HLS code is kept intact.
+  static const bool _serverHlsEnabled = false;
+
   /// For a `local` room: set once the viewer chooses to stream the creator's
   /// optional server upload instead of supplying their own file, so re-running
   /// source selection plays the online copy rather than raising the gate.
@@ -428,11 +435,13 @@ class WatchCubit extends Cubit<WatchState> {
       return;
     }
 
-    // File rooms (upload/download): prefer adaptive HLS so media_kit/libmpv
-    // adapts across the server's quality ladder ("Auto"). Keep the progressive
-    // /video URL as an automatic fallback if the HLS source can't be opened, so
-    // a transcode hiccup never leaves the room unplayable.
-    final hlsUrl = room.hlsUrl;
+    // File rooms (upload/download): adaptive HLS lets media_kit/libmpv adapt
+    // across the server's quality ladder ("Auto"), but it makes the server
+    // transcode on demand with ffmpeg — which the host keeps killing. So HLS is
+    // disabled ([_serverHlsEnabled]) and we play the progressive `/video` URL
+    // directly; the server never has to transcode. Flip the flag to restore the
+    // adaptive-HLS path (and re-enable the quality menu in video_surface.dart).
+    final hlsUrl = _serverHlsEnabled ? room.hlsUrl : null;
     if (hlsUrl != null) {
       _hlsFallbackUrl = room.videoUrl;
       // Discover the server's real quality ladder for the pin menu (fire and
@@ -1142,6 +1151,13 @@ class WatchCubit extends Cubit<WatchState> {
     final dur = p.state.duration;
     if (dur > Duration.zero && target > dur) target = dur;
     await p.seek(target);
+  }
+
+  /// Clears this viewer's local sync offset back to 0 (and seeks the player back
+  /// by the current offset so the picture returns to the room's timeline).
+  Future<void> resetSyncOffset() async {
+    if (_syncOffset == 0) return;
+    await nudgeSyncOffset(-_syncOffset);
   }
 
   /// Skip by [delta] (e.g. ±10s), clamped to the video's bounds. Like a manual

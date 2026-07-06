@@ -286,7 +286,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
                     _fmt(dur),
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
-                  _qualityMenu(context, state, cubit),
+                  // Quality menu disabled — the app no longer uses server-side
+                  // HLS, so there are no quality variants to pick. Method kept
+                  // in _qualityMenu(); uncomment to restore.
+                  // _qualityMenu(context, state, cubit),
                   _speedMenu(context, state, cubit),
                   _syncOffsetButton(context, state, cubit),
                 ],
@@ -373,7 +376,9 @@ class _VideoSurfaceState extends State<VideoSurface> {
     WatchState state,
     WatchCubit cubit,
   ) {
-    if (!(state.room?.roomType.isLocal ?? false)) return const SizedBox.shrink();
+    if (!(state.room?.roomType.isLocal ?? false)) {
+      return const SizedBox.shrink();
+    }
     return IconButton(
       visualDensity: VisualDensity.compact,
       color: Colors.white,
@@ -387,6 +392,9 @@ class _VideoSurfaceState extends State<VideoSurface> {
   }
 
   void _showSyncOffsetSheet(BuildContext context, WatchCubit cubit) {
+    // Fine (±0.5/±1s) through large (±60s) steps so a big drift can be fixed in
+    // one or two taps. The grid wraps so it fits any width.
+    const steps = <double>[-60, -30, -10, -5, -1, -0.5, 0.5, 1, 5, 10, 30, 60];
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF1C1C1E),
@@ -403,34 +411,58 @@ class _VideoSurfaceState extends State<VideoSurface> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  context.tr(TranslationKeys.syncOffset),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _offsetChip(context, '-5s', () => nudge(-5)),
-                    _offsetChip(context, '-0.5s', () => nudge(-0.5)),
-                    SizedBox(
-                      width: 76,
+                    Expanded(
                       child: Text(
-                        _fmtOffset(cubit.state.syncOffsetSeconds),
-                        textAlign: TextAlign.center,
+                        context.tr(TranslationKeys.syncOffset),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _fmtOffset(cubit.state.syncOffsetSeconds),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    _offsetChip(context, '+0.5s', () => nudge(0.5)),
-                    _offsetChip(context, '+5s', () => nudge(5)),
+                    const SizedBox(width: 4),
+                    TextButton.icon(
+                      onPressed: () {
+                        cubit.resetSyncOffset();
+                        setSheetState(() {});
+                      },
+                      icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                      label: Text(context.tr(TranslationKeys.resetOffset)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final s in steps)
+                      _offsetChip(context, _stepLabel(s), () => nudge(s)),
                   ],
                 ),
               ],
@@ -447,12 +479,18 @@ class _VideoSurfaceState extends State<VideoSurface> {
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.white,
         side: const BorderSide(color: Colors.white38),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         minimumSize: const Size(0, 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: Text(label),
     );
+  }
+
+  /// Button label for a step, e.g. `+30s`, `-0.5s` (negative keeps its sign).
+  String _stepLabel(double s) {
+    final str = s.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+    return '${s > 0 ? '+' : ''}${str}s';
   }
 
   /// e.g. `0s`, `+2.5s`, `-0.5s` (negative already carries its own sign).
@@ -468,11 +506,11 @@ class _VideoSurfaceState extends State<VideoSurface> {
   /// player at the current position and is never synced to the room. The pinned
   /// rungs come from the parsed master playlist (state.qualities), so the menu
   /// matches whatever ladder the server is configured for.
-  Widget _qualityMenu(
-    BuildContext context,
-    WatchState state,
-    WatchCubit cubit,
-  ) {
+  // Currently unused: the quality picker is disabled because the app no longer
+  // uses server-side HLS (see WatchCubit._startVideoSource). Kept intact so it
+  // can be re-enabled by uncommenting the call in _controls().
+  // ignore: unused_element
+  Widget _qualityMenu(BuildContext context, WatchState state, WatchCubit cubit) {
     final room = state.room;
     if (room == null || !room.supportsHls) return const SizedBox.shrink();
 

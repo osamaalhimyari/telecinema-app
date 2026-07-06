@@ -334,6 +334,7 @@ class TranslationKeys {
   static const preparingLocalFile = 'preparing_local_file';
   static const localFileError = 'local_file_error';
   static const syncOffset = 'sync_offset';
+  static const resetOffset = 'reset_offset';
   static const replaceLocalFile = 'replace_local_file';
 
   // Unlock

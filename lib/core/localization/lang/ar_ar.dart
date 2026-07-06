@@ -306,6 +306,7 @@ const Map<String, String> arAr = {
   TranslationKeys.preparingLocalFile: 'جارٍ تجهيز ملفك…',
   TranslationKeys.localFileError: 'تعذّر تحميل هذا الملف. جرّب ملفًا آخر.',
   TranslationKeys.syncOffset: 'إزاحة المزامنة',
+  TranslationKeys.resetOffset: 'تصفير',
   TranslationKeys.replaceLocalFile: 'استبدال الملف المحلي',
 
   TranslationKeys.enterPassword: 'هذه الغرفة محمية بكلمة مرور.',
