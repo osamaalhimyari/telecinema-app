@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # The `+N` build number is the Android versionCode the in-app updater compares
 # on — it MUST increase on every release you publish to the admin dashboard.
-version: 1.0.5+12
+version: 1.0.6+1
 
 environment:
   sdk: ^3.11.0

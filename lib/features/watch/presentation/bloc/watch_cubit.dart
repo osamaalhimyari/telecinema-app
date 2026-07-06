@@ -5,6 +5,7 @@ import 'dart:ui' show Offset;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -27,6 +28,7 @@ import '/logic/storage/shared_prefs_storage.dart';
 import '../../domain/entities/bookmark.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/draw_event.dart';
+import '../../domain/entities/hls_quality.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/presence_notice.dart';
 import '../../domain/entities/presence_user.dart';
@@ -411,6 +413,9 @@ class WatchCubit extends Cubit<WatchState> {
     final hlsUrl = room.hlsUrl;
     if (hlsUrl != null) {
       _hlsFallbackUrl = room.videoUrl;
+      // Discover the server's real quality ladder for the pin menu (fire and
+      // forget — playback never waits on it, and the menu works without it).
+      _loadHlsQualities(hlsUrl);
       _initVideo(hlsUrl);
       return;
     }
@@ -493,9 +498,68 @@ class WatchCubit extends Cubit<WatchState> {
     final original = room.videoUrl;
     _hlsFallbackUrl = (original != null && url != original) ? original : null;
     emit(state.copyWith(videoError: false));
-    // Resume at wherever the room is now after the re-open.
-    _pendingSync = state.lastSync;
+    // A quality change is client-only (never synced to the room), so the LOCAL
+    // playhead is the source of truth — not state.lastSync, which only moves on
+    // room-wide controls and is stale/null for a solo viewer (that's why it used
+    // to jump to the start). Snapshot the current position + play state as a
+    // sync stamped "now"; since _applyToVideo extrapolates a *playing* sync by
+    // the elapsed time, the ~1-2s the re-open takes is added back automatically,
+    // so playback resumes at the exact frame (like YouTube).
+    final p = _player;
+    _pendingSync = PlaybackSync(
+      isPlaying: p?.state.playing ?? state.isPlaying,
+      currentTime: _seconds,
+      playbackRate: state.playbackRate,
+      serverTime: DateTime.now().millisecondsSinceEpoch,
+    );
     await _initVideo(url);
+  }
+
+  /// Fetches the room's HLS master playlist and parses its variant ladder so the
+  /// quality menu reflects exactly what the server offers (which depends on the
+  /// server's HLS_RENDITIONS config), rather than assuming a fixed 720/480/240
+  /// set. Best-effort: on any failure the menu simply keeps "Auto" + "Original".
+  Future<void> _loadHlsQualities(String masterUrl) async {
+    try {
+      final res = await http.get(Uri.parse(masterUrl));
+      if (isClosed || res.statusCode != 200) return;
+      final qualities = _parseMasterPlaylist(res.body, Uri.parse(masterUrl));
+      if (qualities.isEmpty || isClosed) return;
+      emit(state.copyWith(qualities: qualities));
+    } catch (_) {
+      /* leave the menu with Auto + Original only */
+    }
+  }
+
+  /// Extracts the variant rungs from a master playlist: each `#EXT-X-STREAM-INF`
+  /// line (its `RESOLUTION` height) paired with the URI line that follows it,
+  /// resolved to an absolute URL against [masterUri]. Ordered highest-first.
+  static List<HlsQuality> _parseMasterPlaylist(String body, Uri masterUri) {
+    final lines = body.split('\n');
+    final out = <HlsQuality>[];
+    for (var i = 0; i < lines.length; i++) {
+      if (!lines[i].trimLeft().startsWith('#EXT-X-STREAM-INF:')) continue;
+      // The variant URI is the next non-blank, non-comment line.
+      String? uri;
+      for (var j = i + 1; j < lines.length; j++) {
+        final l = lines[j].trim();
+        if (l.isEmpty || l.startsWith('#')) continue;
+        uri = l;
+        break;
+      }
+      if (uri == null) continue;
+      final m = RegExp(r'RESOLUTION=\d+x(\d+)').firstMatch(lines[i]);
+      final height = m != null ? (int.tryParse(m.group(1)!) ?? 0) : 0;
+      out.add(
+        HlsQuality(
+          label: height > 0 ? '${height}p' : 'Variant ${out.length + 1}',
+          url: masterUri.resolve(uri).toString(),
+          height: height,
+        ),
+      );
+    }
+    out.sort((a, b) => b.height.compareTo(a.height));
+    return out;
   }
 
   void _subscribe() {

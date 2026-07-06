@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '/features/rooms/domain/entities/room.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/hls_quality.dart';
 import '../../domain/entities/playback_sync.dart';
 import '../../domain/entities/presence_user.dart';
 import '../../domain/entities/subtitle_settings.dart';
@@ -37,6 +38,7 @@ class WatchState extends Equatable {
     this.lastSync,
     this.bookmarkVersion = 0,
     this.controlsLocked = false,
+    this.qualities = const [],
   });
 
   final WatchPhase phase;
@@ -109,6 +111,12 @@ class WatchState extends Equatable {
   /// to other viewers.
   final bool controlsLocked;
 
+  /// The adaptive-HLS variants the server actually offers for this room, parsed
+  /// from its `master.m3u8` (highest quality first). Empty until fetched or for
+  /// non-HLS rooms; the quality menu shows "Auto" + "Original" regardless and
+  /// fills in these pinned rungs once known.
+  final List<HlsQuality> qualities;
+
   bool get isExternal => room?.isExternal ?? false;
 
   /// Live-TV room — plays a remote HLS stream natively; no scrub/seek timeline.
@@ -145,6 +153,7 @@ class WatchState extends Equatable {
     PlaybackSync? lastSync,
     int? bookmarkVersion,
     bool? controlsLocked,
+    List<HlsQuality>? qualities,
   }) {
     return WatchState(
       phase: phase ?? this.phase,
@@ -176,6 +185,7 @@ class WatchState extends Equatable {
       lastSync: lastSync ?? this.lastSync,
       bookmarkVersion: bookmarkVersion ?? this.bookmarkVersion,
       controlsLocked: controlsLocked ?? this.controlsLocked,
+      qualities: qualities ?? this.qualities,
     );
   }
 
@@ -208,5 +218,6 @@ class WatchState extends Equatable {
     lastSync,
     bookmarkVersion,
     controlsLocked,
+    qualities,
   ];
 }

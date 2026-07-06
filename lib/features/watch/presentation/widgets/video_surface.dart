@@ -364,11 +364,12 @@ class _VideoSurfaceState extends State<VideoSurface> {
   }
 
   /// Quality selector for adaptive-HLS file rooms: "Auto" (libmpv adapts across
-  /// the server ladder), pinned variants, and the progressive "Original". Hidden
-  /// for rooms the server can't transcode (torrent/youtube/external/tv). The
-  /// choice is client-only — it re-opens the player at the current position and
-  /// is never synced to the room. Variant indices track the server's default
-  /// ladder (v0=720p, v1=480p, v2=240p).
+  /// the server ladder), the pinned variants the server actually offers, and the
+  /// progressive "Original". Hidden for rooms the server can't transcode
+  /// (torrent/youtube/external/tv). The choice is client-only — it re-opens the
+  /// player at the current position and is never synced to the room. The pinned
+  /// rungs come from the parsed master playlist (state.qualities), so the menu
+  /// matches whatever ladder the server is configured for.
   Widget _qualityMenu(
     BuildContext context,
     WatchState state,
@@ -379,9 +380,7 @@ class _VideoSurfaceState extends State<VideoSurface> {
 
     final options = <MapEntry<String, String?>>[
       MapEntry('Auto', room.hlsUrl),
-      MapEntry('720p', room.hlsVariantUrl(0)),
-      MapEntry('480p', room.hlsVariantUrl(1)),
-      MapEntry('240p', room.hlsVariantUrl(2)),
+      for (final q in state.qualities) MapEntry(q.label, q.url),
       MapEntry('Original', room.videoUrl),
     ].where((e) => e.value != null).toList();
     if (options.isEmpty) return const SizedBox.shrink();
