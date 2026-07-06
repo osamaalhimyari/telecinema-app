@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 
 import '/core/network/api_client.dart';
+import '/features/cache/data/cache_manager.dart';
 import '/features/operations/presentation/bloc/operations_cubit.dart';
 import '/logic/identity/identity_cubit.dart';
 import '/logic/socket/socket_cubit.dart';
@@ -59,6 +60,7 @@ Future<void> injectRoomsFactories(GetIt sl) async {
       sl<CreateRoomUseCase>(),
       sl<DownloadProgressUseCase>(),
       sl<OperationsCubit>(),
+      sl<CacheManager>(),
     ),
   );
 }

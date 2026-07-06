@@ -298,6 +298,25 @@ const Map<String, String> enUs = {
   TranslationKeys.uploadingVideo: 'Uploading…',
   TranslationKeys.changeSourceUrlHint: 'Paste the next embed URL',
 
+  TranslationKeys.typeLocal: 'Play locally',
+  TranslationKeys.typeLocalDesc:
+      'No upload. Each viewer picks this same file on their own device — only playback is synced.',
+  TranslationKeys.localAlsoUpload: 'Also upload to the server',
+  TranslationKeys.localAlsoUploadDesc:
+      'Let viewers who don\'t have the file stream it online.',
+  TranslationKeys.preparingLocalCopy: 'Preparing local copy…',
+  TranslationKeys.localRoomTitle: 'This room plays a local file',
+  TranslationKeys.localRoomInstruction:
+      'Pick a video from this device to watch in sync. Only playback controls are shared — your file is never uploaded, and you can nudge the timing to line up.',
+  TranslationKeys.chooseFile: 'Choose file',
+  TranslationKeys.watchOnlineInstead: 'Watch online instead',
+  TranslationKeys.localRoomWebUnsupported:
+      'Local rooms aren\'t supported on the web — open this room in the app.',
+  TranslationKeys.preparingLocalFile: 'Preparing your file…',
+  TranslationKeys.localFileError: 'Couldn\'t load that file. Try another.',
+  TranslationKeys.syncOffset: 'Sync offset',
+  TranslationKeys.replaceLocalFile: 'Replace local file',
+
   TranslationKeys.enterPassword: 'This room is password protected.',
   TranslationKeys.unlock: 'Unlock',
   TranslationKeys.incorrectPassword: 'Incorrect password.',

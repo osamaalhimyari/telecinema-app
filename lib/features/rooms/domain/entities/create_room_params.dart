@@ -7,6 +7,8 @@ import 'room_type.dart';
 ///   * [RoomType.download] → [videoUrl]
 ///   * [RoomType.torrent]  → [magnet]
 ///   * [RoomType.upload]   → [localVideoPath]
+///   * [RoomType.local]    → [localVideoPath] (kept on-device; the file is only
+///                           sent to the server when [uploadToServer] is set)
 class CreateRoomParams {
   const CreateRoomParams({
     required this.name,
@@ -17,6 +19,7 @@ class CreateRoomParams {
     this.audioUrl,
     this.magnet,
     this.localVideoPath,
+    this.uploadToServer = false,
     this.reactions,
     this.category,
     this.imdbId,
@@ -38,6 +41,12 @@ class CreateRoomParams {
 
   final String? magnet;
   final String? localVideoPath;
+
+  /// For a `local` room, whether to ALSO upload the file to the server so
+  /// viewers without their own copy can stream it online. When true the create
+  /// call goes out as multipart (like an upload room) but stays `roomType:local`.
+  final bool uploadToServer;
+
   final List<String>? reactions;
   final String? category;
 

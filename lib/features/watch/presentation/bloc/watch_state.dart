@@ -39,6 +39,9 @@ class WatchState extends Equatable {
     this.bookmarkVersion = 0,
     this.controlsLocked = false,
     this.qualities = const [],
+    this.needsLocalFile = false,
+    this.importingLocal = false,
+    this.syncOffsetSeconds = 0,
   });
 
   final WatchPhase phase;
@@ -117,6 +120,21 @@ class WatchState extends Equatable {
   /// fills in these pinned rungs once known.
   final List<HlsQuality> qualities;
 
+  /// For a `local` room with no on-device copy yet: true drives the
+  /// "provide your file" gate over the player. Cleared once the viewer supplies
+  /// (or imports) their copy, or chooses to watch online.
+  final bool needsLocalFile;
+
+  /// True while the viewer's picked local file is being copied into the cache
+  /// (shows a spinner in the gate).
+  final bool importingLocal;
+
+  /// Per-viewer, LOCAL-ONLY playback offset in seconds, added when applying the
+  /// room's synced position and subtracted when broadcasting this device's own
+  /// controls. Lets a viewer whose file differs slightly (e.g. a longer intro)
+  /// nudge their picture into alignment without moving anyone else. Never synced.
+  final double syncOffsetSeconds;
+
   bool get isExternal => room?.isExternal ?? false;
 
   /// Live-TV room — plays a remote HLS stream natively; no scrub/seek timeline.
@@ -154,6 +172,9 @@ class WatchState extends Equatable {
     int? bookmarkVersion,
     bool? controlsLocked,
     List<HlsQuality>? qualities,
+    bool? needsLocalFile,
+    bool? importingLocal,
+    double? syncOffsetSeconds,
   }) {
     return WatchState(
       phase: phase ?? this.phase,
@@ -186,6 +207,9 @@ class WatchState extends Equatable {
       bookmarkVersion: bookmarkVersion ?? this.bookmarkVersion,
       controlsLocked: controlsLocked ?? this.controlsLocked,
       qualities: qualities ?? this.qualities,
+      needsLocalFile: needsLocalFile ?? this.needsLocalFile,
+      importingLocal: importingLocal ?? this.importingLocal,
+      syncOffsetSeconds: syncOffsetSeconds ?? this.syncOffsetSeconds,
     );
   }
 
@@ -219,5 +243,8 @@ class WatchState extends Equatable {
     bookmarkVersion,
     controlsLocked,
     qualities,
+    needsLocalFile,
+    importingLocal,
+    syncOffsetSeconds,
   ];
 }

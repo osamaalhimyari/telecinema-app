@@ -79,6 +79,11 @@ class CreateRoomFormCubit extends Cubit<CreateRoomFormState> {
   void setVideo(String path, String videoName) =>
       emit(state.copyWith(videoPath: path, videoName: videoName));
 
+  /// For a `local` room: toggle whether the picked file is also uploaded to the
+  /// server (online fallback for viewers who don't have their own copy).
+  void setUploadToServer(bool value) =>
+      emit(state.copyWith(uploadToServer: value));
+
   /// Single-select category. Passing the already-active category clears it
   /// (category is optional).
   void setCategory(String category) => emit(

@@ -320,6 +320,22 @@ class TranslationKeys {
   static const uploadingVideo = 'uploading_video';
   static const changeSourceUrlHint = 'change_source_url_hint';
 
+  // Local ("play locally") rooms — the video stays on each viewer's device.
+  static const typeLocal = 'type_local';
+  static const typeLocalDesc = 'type_local_desc';
+  static const localAlsoUpload = 'local_also_upload';
+  static const localAlsoUploadDesc = 'local_also_upload_desc';
+  static const preparingLocalCopy = 'preparing_local_copy';
+  static const localRoomTitle = 'local_room_title';
+  static const localRoomInstruction = 'local_room_instruction';
+  static const chooseFile = 'choose_file';
+  static const watchOnlineInstead = 'watch_online_instead';
+  static const localRoomWebUnsupported = 'local_room_web_unsupported';
+  static const preparingLocalFile = 'preparing_local_file';
+  static const localFileError = 'local_file_error';
+  static const syncOffset = 'sync_offset';
+  static const replaceLocalFile = 'replace_local_file';
+
   // Unlock
   static const enterPassword = 'enter_password';
   static const unlock = 'unlock';

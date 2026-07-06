@@ -289,6 +289,25 @@ const Map<String, String> arAr = {
   TranslationKeys.uploadingVideo: 'جارٍ الرفع…',
   TranslationKeys.changeSourceUrlHint: 'الصق رابط التضمين التالي',
 
+  TranslationKeys.typeLocal: 'تشغيل محلي',
+  TranslationKeys.typeLocalDesc:
+      'بدون رفع. كل مشاهد يختار نفس الملف على جهازه — تتم مزامنة التشغيل فقط.',
+  TranslationKeys.localAlsoUpload: 'ارفعه أيضًا إلى الخادم',
+  TranslationKeys.localAlsoUploadDesc:
+      'ليتمكن من لا يملك الملف من مشاهدته عبر الإنترنت.',
+  TranslationKeys.preparingLocalCopy: 'جارٍ تجهيز نسخة محلية…',
+  TranslationKeys.localRoomTitle: 'تشغّل هذه الغرفة ملفًا محليًا',
+  TranslationKeys.localRoomInstruction:
+      'اختر فيديو من هذا الجهاز لمشاهدته بالتزامن. تتم مشاركة أزرار التشغيل فقط — لا يُرفع ملفك أبدًا، ويمكنك ضبط التوقيت للمطابقة.',
+  TranslationKeys.chooseFile: 'اختر ملفًا',
+  TranslationKeys.watchOnlineInstead: 'المشاهدة عبر الإنترنت بدلًا من ذلك',
+  TranslationKeys.localRoomWebUnsupported:
+      'الغرف المحلية غير مدعومة على الويب — افتح هذه الغرفة في التطبيق.',
+  TranslationKeys.preparingLocalFile: 'جارٍ تجهيز ملفك…',
+  TranslationKeys.localFileError: 'تعذّر تحميل هذا الملف. جرّب ملفًا آخر.',
+  TranslationKeys.syncOffset: 'إزاحة المزامنة',
+  TranslationKeys.replaceLocalFile: 'استبدال الملف المحلي',
+
   TranslationKeys.enterPassword: 'هذه الغرفة محمية بكلمة مرور.',
   TranslationKeys.unlock: 'فتح',
   TranslationKeys.incorrectPassword: 'كلمة المرور غير صحيحة.',

@@ -78,6 +78,13 @@ class Room extends Equatable {
     if (isTv) return AppConfig.liveStreamUrl(slug);
     if (roomType.isTorrent) return AppConfig.torrentStreamUrl(slug);
     if (roomType.isYoutube) return AppConfig.youtubeStreamUrl(slug);
+    // A `local` room only has a server URL when the creator also uploaded the
+    // file (as an online fallback for viewers without their own copy).
+    if (roomType.isLocal) {
+      return (videoFilename?.isNotEmpty ?? false)
+          ? AppConfig.videoUrl(videoFilename)
+          : null;
+    }
     return AppConfig.videoUrl(videoFilename);
   }
 
@@ -90,6 +97,7 @@ class Room extends Equatable {
       !isTv &&
       !roomType.isTorrent &&
       !roomType.isYoutube &&
+      !roomType.isLocal &&
       (videoFilename?.isNotEmpty ?? false);
 
   /// Adaptive-HLS master URL for file rooms — the "Auto" quality that lets

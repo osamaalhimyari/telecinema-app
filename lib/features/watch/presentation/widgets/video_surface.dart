@@ -288,6 +288,7 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   ),
                   _qualityMenu(context, state, cubit),
                   _speedMenu(context, state, cubit),
+                  _syncOffsetButton(context, state, cubit),
                 ],
                 if (!widget.fullscreen && _pipSupported)
                   IconButton(
@@ -361,6 +362,103 @@ class _VideoSurfaceState extends State<VideoSurface> {
         ),
       ),
     );
+  }
+
+  /// Per-viewer sync nudge — only for `local` rooms, where each viewer plays
+  /// their own (possibly slightly different) file. Opens a small panel to shift
+  /// THIS device's timeline ± seconds so the picture lines up with the room;
+  /// never synced to anyone else.
+  Widget _syncOffsetButton(
+    BuildContext context,
+    WatchState state,
+    WatchCubit cubit,
+  ) {
+    if (!(state.room?.roomType.isLocal ?? false)) return const SizedBox.shrink();
+    return IconButton(
+      visualDensity: VisualDensity.compact,
+      color: Colors.white,
+      tooltip: context.tr(TranslationKeys.syncOffset),
+      icon: const Icon(Icons.published_with_changes_rounded),
+      onPressed: () {
+        _restartHideTimer();
+        _showSyncOffsetSheet(context, cubit);
+      },
+    );
+  }
+
+  void _showSyncOffsetSheet(BuildContext context, WatchCubit cubit) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      showDragHandle: true,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          void nudge(double d) {
+            cubit.nudgeSyncOffset(d);
+            setSheetState(() {});
+          }
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.tr(TranslationKeys.syncOffset),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _offsetChip(context, '-5s', () => nudge(-5)),
+                    _offsetChip(context, '-0.5s', () => nudge(-0.5)),
+                    SizedBox(
+                      width: 76,
+                      child: Text(
+                        _fmtOffset(cubit.state.syncOffsetSeconds),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _offsetChip(context, '+0.5s', () => nudge(0.5)),
+                    _offsetChip(context, '+5s', () => nudge(5)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _offsetChip(BuildContext context, String label, VoidCallback onTap) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white38),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        minimumSize: const Size(0, 0),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(label),
+    );
+  }
+
+  /// e.g. `0s`, `+2.5s`, `-0.5s` (negative already carries its own sign).
+  String _fmtOffset(double s) {
+    final str = s.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+    return '${s > 0 ? '+' : ''}${str}s';
   }
 
   /// Quality selector for adaptive-HLS file rooms: "Auto" (libmpv adapts across

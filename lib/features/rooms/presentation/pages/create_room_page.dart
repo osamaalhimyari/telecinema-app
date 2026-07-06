@@ -1,3 +1,5 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -123,11 +125,24 @@ class _CreateRoomForm extends StatelessWidget {
     }
   }
 
+  /// Picks the local file for a "play locally" room. Uses the file picker
+  /// (not the gallery) so any container in device storage — .mkv, .avi, a movie
+  /// in Downloads — can be chosen, not just gallery videos.
+  Future<void> _pickLocalVideo(BuildContext context) async {
+    final file = await FilePicker.pickFile(type: FileType.video);
+    final path = file?.path;
+    if (path != null && context.mounted) {
+      context.read<CreateRoomFormCubit>().setVideo(path, file!.name);
+    }
+  }
+
   Future<void> _submit(BuildContext context) async {
     final form = context.read<CreateRoomFormCubit>();
     final state = form.state;
     if (!form.formKey.currentState!.validate()) return;
-    if (state.type == RoomType.upload && state.videoPath == null) {
+    final needsLocalFile =
+        state.type == RoomType.upload || state.type == RoomType.local;
+    if (needsLocalFile && state.videoPath == null) {
       context.showSnack(context.tr(TranslationKeys.pickVideo));
       return;
     }
@@ -196,7 +211,9 @@ class _CreateRoomForm extends StatelessWidget {
             : (state.type == RoomType.download && downloadIsMagnet
                   ? downloadText
                   : null),
-        localVideoPath: state.type == RoomType.upload ? state.videoPath : null,
+        localVideoPath: needsLocalFile ? state.videoPath : null,
+        uploadToServer:
+            state.type == RoomType.local ? state.uploadToServer : false,
         reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
         category: state.category,
         imdbId: initialImdbId,
@@ -576,6 +593,15 @@ class _CreateRoomForm extends StatelessWidget {
                   Icons.upload_rounded,
                   TranslationKeys.typeUpload,
                 ),
+                // "Play locally" needs the on-device cache, which is disabled on
+                // web — so the option is native-only.
+                if (!kIsWeb)
+                  _typeItem(
+                    context,
+                    RoomType.local,
+                    Icons.devices_rounded,
+                    TranslationKeys.typeLocal,
+                  ),
               ],
               onChanged: (value) {
                 if (value != null) {
@@ -788,6 +814,41 @@ class _CreateRoomForm extends StatelessWidget {
                 ),
               ],
             );
+          case RoomType.local:
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(TranslationKeys.typeLocalDesc),
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                BlocSelector<CreateRoomFormCubit, CreateRoomFormState, String?>(
+                  selector: (s) => s.videoName,
+                  builder: (context, videoName) => OutlinedButton.icon(
+                    onPressed: () => _pickLocalVideo(context),
+                    icon: const Icon(Icons.video_library_outlined),
+                    label: Text(
+                      videoName ?? context.tr(TranslationKeys.pickVideo),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                BlocSelector<CreateRoomFormCubit, CreateRoomFormState, bool>(
+                  selector: (s) => s.uploadToServer,
+                  builder: (context, uploadToServer) => SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: uploadToServer,
+                    onChanged: (v) =>
+                        context.read<CreateRoomFormCubit>().setUploadToServer(v),
+                    title: Text(context.tr(TranslationKeys.localAlsoUpload)),
+                    subtitle: Text(
+                      context.tr(TranslationKeys.localAlsoUploadDesc),
+                    ),
+                  ),
+                ),
+              ],
+            );
           // Live-TV rooms are created from the TV tab, never this form, so there
           // is no source field to show — but the switch must stay exhaustive.
           case RoomType.tv:
@@ -800,9 +861,18 @@ class _CreateRoomForm extends StatelessWidget {
   Widget _submitButton(BuildContext context, CreateRoomState state) {
     final type = context.read<CreateRoomFormCubit>().state.type;
     if (state.status == CreateRoomStatus.uploading) {
+      // A plain local room does no server transfer — the "uploading" phase is
+      // really the on-device cache copy, so label it accordingly.
+      final uploadsToServer =
+          type == RoomType.upload ||
+          context.read<CreateRoomFormCubit>().state.uploadToServer;
       return _progress(
         context,
-        context.tr(TranslationKeys.uploadingVideo),
+        context.tr(
+          uploadsToServer
+              ? TranslationKeys.uploadingVideo
+              : TranslationKeys.preparingLocalCopy,
+        ),
         state.uploadProgress,
       );
     }

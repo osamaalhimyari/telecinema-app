@@ -192,6 +192,14 @@ class WatchCubit extends Cubit<WatchState> {
   /// server stream or a plain file), so the stall watchdog only watches that.
   bool _onDeviceTorrent = false;
 
+  /// For a `local` room: set once the viewer chooses to stream the creator's
+  /// optional server upload instead of supplying their own file, so re-running
+  /// source selection plays the online copy rather than raising the gate.
+  bool _watchOnline = false;
+
+  /// Per-viewer local playback offset (see [WatchState.syncOffsetSeconds]).
+  double _syncOffset = 0;
+
   /// Fires when an on-device torrent stream buffers too long without progress —
   /// the phone can't reach the swarm, so we fall back to the server's copy.
   Timer? _torrentStallTimer;
@@ -392,6 +400,20 @@ class WatchCubit extends Cubit<WatchState> {
       return;
     }
 
+    // A `local` room keeps the video on each device: with no imported copy above
+    // and no server file, either stream the creator's optional online upload (if
+    // this viewer chose to) or raise the "provide your file" gate. Sync/chat flow
+    // over the socket regardless — the server never needs the media.
+    if (room.roomType.isLocal) {
+      final onlineUrl = room.videoUrl;
+      if (_watchOnline && onlineUrl != null && onlineUrl.isNotEmpty) {
+        _initVideo(onlineUrl);
+        return;
+      }
+      emit(state.copyWith(needsLocalFile: true));
+      return;
+    }
+
     // Torrent rooms stream on-device: each client adds the magnet to its own
     // embedded librqbit engine and plays the resulting local 127.0.0.1 URL.
     // Sync (play/pause/seek/chat/reactions) still flows over the server socket
@@ -421,6 +443,53 @@ class WatchCubit extends Cubit<WatchState> {
     }
     final videoUrl = room.videoUrl;
     if (videoUrl != null) _initVideo(videoUrl);
+  }
+
+  /// A `local`-room viewer supplies their own copy of the file: import it into
+  /// the on-device cache, then re-run source selection so it plays from disk.
+  /// Only this viewer is affected — nothing is uploaded and no one else is told.
+  Future<void> provideLocalFile(String path, {String? name}) async {
+    final room = state.room;
+    if (room == null) return;
+    emit(state.copyWith(importingLocal: true));
+    final imported = await _cache.importLocalFile(
+      room.slug,
+      path,
+      title: room.name,
+      originalName: name,
+    );
+    if (isClosed) return;
+    if (imported == null) {
+      // Import failed (unreadable file / no space): keep the gate up to retry.
+      emit(state.copyWith(importingLocal: false));
+      return;
+    }
+    emit(state.copyWith(importingLocal: false, needsLocalFile: false));
+    _startVideoSource();
+  }
+
+  /// Discards this device's imported copy for a `local` room and re-raises the
+  /// provide-file gate so the viewer can pick a different file — recovers from a
+  /// wrong pick. Local-only; nothing is uploaded and no one else is affected.
+  Future<void> replaceLocalFile() async {
+    final room = state.room;
+    if (room == null || !room.roomType.isLocal) return;
+    await _player?.pause(); // stop the (about-to-be-deleted) file's audio
+    _watchOnline = false;
+    await _cache.delete(room.slug);
+    if (isClosed) return;
+    emit(state.copyWith(needsLocalFile: true, videoReady: false));
+    _startVideoSource();
+  }
+
+  /// A `local`-room viewer without their own copy opts to stream the creator's
+  /// optional server upload instead. No-op when the room has no online copy.
+  void watchOnlineFallback() {
+    final room = state.room;
+    if (room == null || (room.videoUrl ?? '').isEmpty) return;
+    _watchOnline = true;
+    emit(state.copyWith(needsLocalFile: false));
+    _startVideoSource();
   }
 
   /// Resolves a torrent magnet to a local stream URL via the embedded engine,
@@ -508,7 +577,9 @@ class WatchCubit extends Cubit<WatchState> {
     final p = _player;
     _pendingSync = PlaybackSync(
       isPlaying: p?.state.playing ?? state.isPlaying,
-      currentTime: _seconds,
+      // Snapshot in canonical (room) time; _applyToVideo folds the local offset
+      // back in when re-opening, so a nudged viewer resumes at the same frame.
+      currentTime: _canonicalSeconds,
       playbackRate: state.playbackRate,
       serverTime: DateTime.now().millisecondsSinceEpoch,
     );
@@ -995,7 +1066,9 @@ class WatchCubit extends Cubit<WatchState> {
       await p.setRate(s.playbackRate);
       if (stale()) return;
     }
-    final target = s.effectiveTime();
+    // Fold in this viewer's local offset: the room timeline is canonical, so a
+    // viewer whose file runs ahead/behind plays at effectiveTime + their offset.
+    final target = s.effectiveTime() + _syncOffset;
     final current = p.state.position.inMilliseconds / 1000.0;
     if ((target - current).abs() > AppConstants.hardSeekThresholdSeconds) {
       await p.seek(Duration(milliseconds: (target * 1000).round()));
@@ -1020,15 +1093,20 @@ class WatchCubit extends Cubit<WatchState> {
 
   double get _seconds => (_player?.state.position.inMilliseconds ?? 0) / 1000.0;
 
+  /// This device's playhead mapped back to the room's canonical timeline (undoes
+  /// the local [syncOffsetSeconds]). Everything broadcast to the room uses this
+  /// so a viewer's local offset never shifts anyone else.
+  double get _canonicalSeconds => _seconds - _syncOffset;
+
   Future<void> togglePlay() async {
     final p = _player;
     if (p == null) return;
     if (p.state.playing) {
       await p.pause();
-      _repo.sendControl(action: 'pause', currentTime: _seconds);
+      _repo.sendControl(action: 'pause', currentTime: _canonicalSeconds);
     } else {
       await p.play();
-      _repo.sendControl(action: 'play', currentTime: _seconds);
+      _repo.sendControl(action: 'play', currentTime: _canonicalSeconds);
     }
   }
 
@@ -1043,8 +1121,27 @@ class WatchCubit extends Cubit<WatchState> {
     await p.seek(position);
     _repo.sendControl(
       action: 'seek',
-      currentTime: position.inMilliseconds / 1000.0,
+      // Broadcast in canonical (room) time — subtract this viewer's local offset.
+      currentTime: position.inMilliseconds / 1000.0 - _syncOffset,
     );
+  }
+
+  /// Adjusts this viewer's LOCAL playback offset by [deltaSeconds] to realign a
+  /// slightly different local file with the room, without moving anyone else.
+  /// Purely local: no `control` is emitted, and future room syncs already fold
+  /// in the new offset (see [_applyToVideo]). The local player is nudged now so
+  /// the change is visible immediately.
+  Future<void> nudgeSyncOffset(double deltaSeconds) async {
+    _syncOffset += deltaSeconds;
+    emit(state.copyWith(syncOffsetSeconds: _syncOffset));
+    final p = _player;
+    if (p == null) return;
+    var target =
+        p.state.position + Duration(milliseconds: (deltaSeconds * 1000).round());
+    if (target < Duration.zero) target = Duration.zero;
+    final dur = p.state.duration;
+    if (dur > Duration.zero && target > dur) target = dur;
+    await p.seek(target);
   }
 
   /// Skip by [delta] (e.g. ±10s), clamped to the video's bounds. Like a manual

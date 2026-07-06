@@ -99,10 +99,18 @@ class RoomsRemoteDataSourceImpl implements RoomsRemoteDataSource {
       // Live-TV: the packed stream string travels in `videoUrl` and the server
       // stores it verbatim as the room's `externalUrl`.
       RoomType.tv => 'tv',
+      RoomType.local => 'local',
       RoomType.upload => 'upload',
     };
 
-    if (params.type == RoomType.upload) {
+    // Multipart is used for a real file upload: always for `upload`, and for a
+    // `local` room only when the creator opted to also upload the file so
+    // others can stream it. A plain `local` room sends no file at all.
+    final useMultipart =
+        params.type == RoomType.upload ||
+        (params.type == RoomType.local && params.uploadToServer);
+
+    if (useMultipart) {
       final form = FormData.fromMap({
         'name': params.name,
         'roomType': type,

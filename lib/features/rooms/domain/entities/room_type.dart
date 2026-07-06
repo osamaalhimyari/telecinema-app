@@ -30,7 +30,13 @@ enum RoomType {
   /// channel's tree path are packed into the room's `externalUrl`; the app
   /// plays it natively (HLS, no seek) and re-resolves a fresh URL when the
   /// token expires.
-  tv;
+  tv,
+
+  /// A "play locally" room: the video never has to touch the server. Each
+  /// viewer plays their own on-device copy of the same file and only playback
+  /// controls are synced. The creator may optionally also upload the file so
+  /// viewers who don't have it can stream online as a fallback.
+  local;
 
   static RoomType fromString(String? value) => switch (value) {
     'external' => RoomType.external,
@@ -39,6 +45,7 @@ enum RoomType {
     'youtube' => RoomType.youtube,
     'telegram' => RoomType.telegram,
     'tv' => RoomType.tv,
+    'local' => RoomType.local,
     _ => RoomType.upload,
   };
 
@@ -52,6 +59,10 @@ enum RoomType {
 
   /// A live-TV room — plays a remote HLS stream with custom headers, no seek.
   bool get isTv => this == RoomType.tv;
+
+  /// A "play locally" room — each viewer supplies their own copy of the file;
+  /// only playback controls are synced.
+  bool get isLocal => this == RoomType.local;
 
   /// Wire value sent to the backend `roomType` field.
   String get wire => name;

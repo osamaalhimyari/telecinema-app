@@ -10,6 +10,7 @@ import '../bloc/watch_cubit.dart';
 import '../bloc/watch_state.dart';
 import '../pages/fullscreen_player_page.dart';
 import 'external_player_view.dart';
+import 'local_file_gate.dart';
 import 'subtitle/subtitle_overlay.dart';
 import 'video_surface.dart';
 
@@ -39,7 +40,9 @@ class PlayerStage extends StatelessWidget {
             a.subtitleUrl != b.subtitleUrl ||
             a.subtitleSettings != b.subtitleSettings ||
             a.resyncTick != b.resyncTick ||
-            a.lastSync != b.lastSync,
+            a.lastSync != b.lastSync ||
+            a.needsLocalFile != b.needsLocalFile ||
+            a.importingLocal != b.importingLocal,
         builder: (context, state) {
           if (state.isExternal) return _external(context, state);
           return _file(context, state);
@@ -66,6 +69,12 @@ class PlayerStage extends StatelessWidget {
   }
 
   Widget _file(BuildContext context, WatchState state) {
+    // A local room with no on-device copy yet: prompt this viewer to supply
+    // their own file (or stream online). Checked before the readiness/error
+    // states since there is no player to show until a source is chosen.
+    if (state.needsLocalFile || state.importingLocal) {
+      return const LocalFileGate();
+    }
     if (state.videoError) {
       return _message(
         context,

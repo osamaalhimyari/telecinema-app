@@ -111,6 +111,83 @@ class CacheManager {
     return (s != null && File(s).existsSync()) ? s : null;
   }
 
+  /// Registers an EXISTING on-device file into the cache under [slug] by
+  /// stream-copying it into `cache/videos/<slug>.<ext>` and writing a `done`
+  /// index entry — so [resolvePlayable] then plays it from disk without any
+  /// server download.
+  ///
+  /// Used by `local` rooms (each viewer supplies the same file themselves) and
+  /// by `upload` rooms (the uploader plays their own copy from disk instead of
+  /// re-streaming it). Reports progress via [onProgress] so a multi-GB copy can
+  /// show a bar. Returns the entry, or null on web/disabled, a missing source,
+  /// or any I/O failure (the partial copy is cleaned up).
+  Future<CachedVideo?> importLocalFile(
+    String slug,
+    String sourcePath, {
+    String? title,
+    String? originalName,
+    int? size,
+    void Function(int copied, int total)? onProgress,
+  }) async {
+    if (_disabled || _videosDir == null) return null;
+
+    // Already imported and the file is still present — reuse it (idempotent).
+    final existing = _store.get(slug);
+    if (existing?.status == CacheStatus.done) {
+      final p = existing!.localPath;
+      if (p != null && File(p).existsSync()) return existing;
+    }
+
+    final src = File(sourcePath);
+    if (!await src.exists()) return null;
+
+    final ext = _extFromName(originalName ?? sourcePath);
+    final finalPath = '$_videosDir/$slug.$ext';
+    final total = size ?? await src.length();
+
+    IOSink? out;
+    try {
+      // Fresh copy: drop any stale file at the target so bytes never mix.
+      await _deleteFile(finalPath);
+      out = File(finalPath).openWrite();
+      var copied = 0;
+      await for (final chunk in src.openRead()) {
+        out.add(chunk);
+        copied += chunk.length;
+        onProgress?.call(copied, total);
+      }
+      await out.flush();
+      await out.close();
+      out = null;
+    } catch (_) {
+      try {
+        await out?.close();
+      } catch (_) {/* best-effort */}
+      await _deleteFile(finalPath);
+      return null;
+    }
+
+    final len = await _fileLen(finalPath);
+    if (len <= 0) {
+      await _deleteFile(finalPath);
+      return null;
+    }
+    final entry = CachedVideo(
+      key: slug,
+      slug: slug,
+      title: title ?? originalName ?? slug,
+      // A user-supplied local file — never re-downloadable, so no source URL.
+      sourceUrl: '',
+      status: CacheStatus.done,
+      localPath: finalPath,
+      totalBytes: len,
+      downloadedBytes: len,
+      updatedAtMs: _now(),
+    );
+    await _put(entry);
+    return entry;
+  }
+
   // ---- Commands ----------------------------------------------------------
 
   /// Begin (or resume) caching [room]. No-op if already running or finished.
@@ -330,6 +407,11 @@ class CacheManager {
       /* best-effort */
     }
   }
+
+  /// Extension from a bare filename or filesystem path — handles both `/` and
+  /// `\` separators (a picked path may be Windows-style), reusing [_extFromUrl].
+  String _extFromName(String name, {String fallback = 'mp4'}) =>
+      _extFromUrl(name.split(RegExp(r'[\\/]')).last, fallback: fallback);
 
   /// Extension from the URL's last path segment, defaulting to [fallback]
   /// (torrent stream URLs like `/stream/:slug` carry none).

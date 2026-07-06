@@ -10,6 +10,7 @@ class CreateRoomFormState extends Equatable {
     this.category,
     this.reactions = const <String>[],
     this.reactionsExpanded = false,
+    this.uploadToServer = false,
   });
 
   final RoomType type;
@@ -17,6 +18,11 @@ class CreateRoomFormState extends Equatable {
   final String? videoName;
   final String? category;
   final List<String> reactions;
+
+  /// For a `local` room: whether to also upload the picked file to the server so
+  /// viewers without their own copy can stream it online. Off by default — the
+  /// point of a local room is to avoid uploading.
+  final bool uploadToServer;
 
   /// Whether the (large) emoji picker grid is expanded. Collapsed by default to
   /// keep the form compact; the chosen reactions still show above it.
@@ -29,6 +35,7 @@ class CreateRoomFormState extends Equatable {
     String? category,
     List<String>? reactions,
     bool? reactionsExpanded,
+    bool? uploadToServer,
     bool clearVideo = false,
     bool clearCategory = false,
   }) {
@@ -39,6 +46,7 @@ class CreateRoomFormState extends Equatable {
       category: clearCategory ? null : (category ?? this.category),
       reactions: reactions ?? this.reactions,
       reactionsExpanded: reactionsExpanded ?? this.reactionsExpanded,
+      uploadToServer: uploadToServer ?? this.uploadToServer,
     );
   }
 
@@ -50,5 +58,6 @@ class CreateRoomFormState extends Equatable {
     category,
     reactions,
     reactionsExpanded,
+    uploadToServer,
   ];
 }

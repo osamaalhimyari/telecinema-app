@@ -496,6 +496,15 @@ class _RoomMenu extends StatelessWidget {
               context.tr(TranslationKeys.subtitleSettings),
             ),
           ),
+        // Local rooms: swap the on-device copy (recovers from a wrong pick).
+        if (room?.roomType.isLocal ?? false)
+          PopupMenuItem(
+            value: 'replace_local',
+            child: _item(
+              Icons.file_upload_outlined,
+              context.tr(TranslationKeys.replaceLocalFile),
+            ),
+          ),
         if ((room?.slug ?? '').isNotEmpty)
           PopupMenuItem(
             value: 'share',
@@ -547,6 +556,8 @@ class _RoomMenu extends StatelessWidget {
         await showSubtitleSettingsSheet(context, cubit);
       case 'share':
         await _share(context, state.room);
+      case 'replace_local':
+        await cubit.replaceLocalFile();
       case 'delete':
         await _delete(context, cubit);
     }
