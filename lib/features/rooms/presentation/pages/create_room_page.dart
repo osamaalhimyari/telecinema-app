@@ -8,8 +8,6 @@ import '/core/constants/categories.dart';
 import '/core/constants/reaction_emojis.dart';
 import '/core/extensions/context_extensions.dart';
 import '/core/localization/translation_keys.dart';
-import '/features/youtube/data/datasources/youtube_remote_datasource.dart';
-import '/features/youtube/presentation/widgets/youtube_stream_picker.dart';
 import '/injections/injection.dart';
 import '/routes/routes_names.dart';
 import '../../domain/entities/create_room_params.dart';
@@ -140,30 +138,30 @@ class _CreateRoomForm extends StatelessWidget {
     // server downloads + muxes — no server-side yt-dlp. All YouTube logic stays
     // in the isolated youtube feature; here we just call its picker and submit
     // the resolved links. A null pick (resolve failed / cancelled) just aborts.
-    if (state.type == RoomType.youtube) {
-      final picked = await pickYoutubeStreams(
-        context,
-        form.youtubeUrl.text.trim(),
-        sl<YoutubeRemoteDataSource>(),
-      );
-      if (picked == null || !context.mounted) return;
-      context.read<CreateRoomCubit>().submit(
-        CreateRoomParams(
-          name: form.name.text.trim(),
-          type: RoomType.download,
-          password: form.password.text.trim().isEmpty
-              ? null
-              : form.password.text.trim(),
-          videoUrl: picked.videoUrl,
-          audioUrl: picked.audioUrl,
-          reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
-          category: state.category,
-          imdbId: initialImdbId,
-          thumbnail: initialThumbnail,
-        ),
-      );
-      return;
-    }
+    // if (state.type == RoomType.youtube) {
+    //   final picked = await pickYoutubeStreams(
+    //     context,
+    //     form.youtubeUrl.text.trim(),
+    //     sl<YoutubeRemoteDataSource>(),
+    //   );
+    //   if (picked == null || !context.mounted) return;
+    //   context.read<CreateRoomCubit>().submit(
+    //     CreateRoomParams(
+    //       name: form.name.text.trim(),
+    //       type: RoomType.download,
+    //       password: form.password.text.trim().isEmpty
+    //           ? null
+    //           : form.password.text.trim(),
+    //       videoUrl: picked.videoUrl,
+    //       audioUrl: picked.audioUrl,
+    //       reactions: state.reactions.isEmpty ? null : List.of(state.reactions),
+    //       category: state.category,
+    //       imdbId: initialImdbId,
+    //       thumbnail: initialThumbnail,
+    //     ),
+    //   );
+    //   return;
+    // }
 
     // The "Download (server fetches)" field accepts either an http(s) link or a
     // magnet — the server downloads either to a file. A magnet pasted here is

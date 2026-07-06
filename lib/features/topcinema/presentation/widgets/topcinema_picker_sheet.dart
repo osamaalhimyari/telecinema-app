@@ -85,9 +85,10 @@ String _slugify(String s) => s
     .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
     .replaceAll(RegExp(r'^-+|-+$'), '');
 
-/// Bottom sheet listing the configured topcinema mirrors (one button each),
+/// Bottom sheet offering the configured topcinema mirrors as generic, numbered
+/// "Direct link N" buttons (the site's identity is deliberately not shown),
 /// returning the base url of the one the viewer taps. The scraper is identical
-/// for every mirror — this only pins which domain it walks — so adding a host in
+/// for every mirror — this only pins which one it walks — so adding a host in
 /// `endpoints.dart` grows this list with no other change. Returns null if
 /// dismissed.
 Future<String?> _pickHost(BuildContext context) {
@@ -106,10 +107,10 @@ Future<String?> _pickHost(BuildContext context) {
               style: context.text.titleLarge,
             ),
           ),
-          for (final host in Endpoints.topcinemaHosts)
+          for (final (i, host) in Endpoints.topcinemaHosts.indexed)
             ListTile(
-              leading: const Icon(Icons.public_rounded),
-              title: Text(Uri.parse(host).host),
+              leading: const Icon(Icons.link_rounded),
+              title: Text('${context.tr(TranslationKeys.topcinemaDirectLink)} ${i + 1}'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.of(sheetContext).pop(host),
             ),

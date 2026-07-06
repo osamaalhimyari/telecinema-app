@@ -105,6 +105,7 @@ class TranslationKeys {
   // TopCinema (isolated direct-download "second way")
   static const topcinemaButton = 'topcinema_button';
   static const topcinemaChooseSource = 'topcinema_choose_source';
+  static const topcinemaDirectLink = 'topcinema_direct_link';
   static const topcinemaTitle = 'topcinema_title';
   static const topcinemaNameHint = 'topcinema_name_hint';
   static const topcinemaGo = 'topcinema_go';
@@ -267,6 +268,11 @@ class TranslationKeys {
   static const operationKindTorrent = 'operation_kind_torrent';
   static const operationKindMagnet = 'operation_kind_magnet';
   static const operationKindUpload = 'operation_kind_upload';
+
+  // Foreground service (ongoing notification for background transfers/downloads)
+  static const fgChannelName = 'fg_channel_name';
+  static const fgChannelDesc = 'fg_channel_desc';
+  static const fgActiveTransfers = 'fg_active_transfers'; // suffix: "3 <this>"
 
   // Online subtitles (OpenSubtitles search)
   static const downloadSubtitle = 'download_subtitle';

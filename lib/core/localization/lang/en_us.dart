@@ -94,6 +94,7 @@ const Map<String, String> enUs = {
 
   TranslationKeys.topcinemaButton: 'Direct download',
   TranslationKeys.topcinemaChooseSource: 'Choose a source',
+  TranslationKeys.topcinemaDirectLink: 'Direct link',
   TranslationKeys.topcinemaTitle: 'Direct download',
   TranslationKeys.topcinemaNameHint: 'Edit the name if needed (e.g. widows-bay).',
   TranslationKeys.topcinemaGo: 'Find',
@@ -244,6 +245,13 @@ const Map<String, String> enUs = {
   TranslationKeys.operationKindTorrent: 'Adding torrent',
   TranslationKeys.operationKindMagnet: 'Downloading magnet',
   TranslationKeys.operationKindUpload: 'Uploading',
+
+  // Foreground service (ongoing background-transfer notification)
+  TranslationKeys.fgChannelName: 'Downloads & transfers',
+  TranslationKeys.fgChannelDesc:
+      'Keeps downloads and room transfers running in the background.',
+  TranslationKeys.fgActiveTransfers: 'active transfers',
+
   TranslationKeys.subtitleImdbHint: 'IMDb ID (e.g. tt1190634)',
   TranslationKeys.subtitleSeasonHint: 'Season',
   TranslationKeys.subtitleEpisodeHint: 'Episode',

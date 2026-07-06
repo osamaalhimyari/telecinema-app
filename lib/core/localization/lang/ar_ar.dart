@@ -92,6 +92,7 @@ const Map<String, String> arAr = {
 
   TranslationKeys.topcinemaButton: 'تحميل مباشر',
   TranslationKeys.topcinemaChooseSource: 'اختر مصدراً',
+  TranslationKeys.topcinemaDirectLink: 'رابط مباشر',
   TranslationKeys.topcinemaTitle: 'تحميل مباشر',
   TranslationKeys.topcinemaNameHint: 'عدّل الاسم إذا لزم (مثال: widows-bay).',
   TranslationKeys.topcinemaGo: 'بحث',
@@ -239,6 +240,12 @@ const Map<String, String> arAr = {
   TranslationKeys.operationKindTorrent: 'إضافة تورنت',
   TranslationKeys.operationKindMagnet: 'تنزيل مغناطيس',
   TranslationKeys.operationKindUpload: 'جارٍ الرفع',
+
+  // Foreground service (ongoing background-transfer notification)
+  TranslationKeys.fgChannelName: 'التنزيلات والنقل',
+  TranslationKeys.fgChannelDesc: 'يُبقي التنزيلات وعمليات نقل الغرف تعمل في الخلفية.',
+  TranslationKeys.fgActiveTransfers: 'عمليات نشطة',
+
   TranslationKeys.subtitleImdbHint: 'معرّف IMDb (مثال tt1190634)',
   TranslationKeys.subtitleSeasonHint: 'الموسم',
   TranslationKeys.subtitleEpisodeHint: 'الحلقة',

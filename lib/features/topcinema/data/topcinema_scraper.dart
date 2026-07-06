@@ -32,11 +32,15 @@ class TopcinemaScraper {
   static const _base = Endpoints.topcinema;
   static const _timeout = Duration(seconds: 25);
 
-  /// `href="…"` links pointing back at any configured mirror host — so links are
-  /// captured whichever mirror served the page. Adding a host in `endpoints.dart`
-  /// is the only edit needed.
+  /// `href="…"` links to any topcinema mirror, matched by the brand host pattern
+  /// (`<sub>.topcinema.fan` / `topcinemaa.com`, whatever the rotating `webN`
+  /// subdomain currently is) rather than a fixed host list. The host rotates
+  /// periodically (web4 → web5 → …) and a request to a stale mirror just
+  /// 30x-redirects to the live one — so matching by brand keeps link extraction
+  /// working across a rotation without a code change. Captures links whichever
+  /// mirror served the page.
   static final RegExp _linkRe =
-      RegExp('href="((?:${_hosts.map(RegExp.escape).join('|')})/[^"]+)"');
+      RegExp(r'href="(https://(?:[\w-]+\.)*topcinemaa?\.(?:fan|com)/[^"]+)"');
 
   /// Arabic season ordinals as they appear in the url (الموسم الاول … العاشر).
   static const _ordinals = [

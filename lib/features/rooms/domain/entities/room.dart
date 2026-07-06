@@ -81,6 +81,27 @@ class Room extends Equatable {
     return AppConfig.videoUrl(videoFilename);
   }
 
+  /// True for rooms backed by a plain file on the server (upload/download and
+  /// any other file-backed type). These are the only rooms the server can
+  /// transcode to adaptive HLS — torrent/youtube/external/tv are excluded
+  /// because they carry no server-side file to transcode.
+  bool get supportsHls =>
+      !isExternal &&
+      !isTv &&
+      !roomType.isTorrent &&
+      !roomType.isYoutube &&
+      (videoFilename?.isNotEmpty ?? false);
+
+  /// Adaptive-HLS master URL for file rooms — the "Auto" quality that lets
+  /// media_kit/libmpv adapt across the server's bitrate ladder. Null for rooms
+  /// that can't be served as HLS.
+  String? get hlsUrl => supportsHls ? AppConfig.hlsUrl(slug) : null;
+
+  /// A single pinned-quality HLS variant URL (server ladder index, 0 = highest
+  /// quality). Null for rooms that can't be served as HLS.
+  String? hlsVariantUrl(int index) =>
+      supportsHls ? AppConfig.hlsVariantUrl(slug, index) : null;
+
   /// A stored full URL (a catalogue poster) is used as-is; a bare filename is a
   /// built-in placeholder served from the host's `/thumbnails/`.
   String? get thumbnailUrl {

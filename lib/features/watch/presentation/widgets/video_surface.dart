@@ -286,6 +286,7 @@ class _VideoSurfaceState extends State<VideoSurface> {
                     _fmt(dur),
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
+                  _qualityMenu(context, state, cubit),
                   _speedMenu(context, state, cubit),
                 ],
                 if (!widget.fullscreen && _pipSupported)
@@ -362,6 +363,64 @@ class _VideoSurfaceState extends State<VideoSurface> {
     );
   }
 
+  /// Quality selector for adaptive-HLS file rooms: "Auto" (libmpv adapts across
+  /// the server ladder), pinned variants, and the progressive "Original". Hidden
+  /// for rooms the server can't transcode (torrent/youtube/external/tv). The
+  /// choice is client-only — it re-opens the player at the current position and
+  /// is never synced to the room. Variant indices track the server's default
+  /// ladder (v0=720p, v1=480p, v2=240p).
+  Widget _qualityMenu(
+    BuildContext context,
+    WatchState state,
+    WatchCubit cubit,
+  ) {
+    final room = state.room;
+    if (room == null || !room.supportsHls) return const SizedBox.shrink();
+
+    final options = <MapEntry<String, String?>>[
+      MapEntry('Auto', room.hlsUrl),
+      MapEntry('720p', room.hlsVariantUrl(0)),
+      MapEntry('480p', room.hlsVariantUrl(1)),
+      MapEntry('240p', room.hlsVariantUrl(2)),
+      MapEntry('Original', room.videoUrl),
+    ].where((e) => e.value != null).toList();
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    // Null selection means the default the cubit opened, i.e. "Auto" (master).
+    final selected = cubit.selectedQualityUrl ?? room.hlsUrl;
+
+    return PopupMenuButton<String>(
+      tooltip: 'Quality',
+      initialValue: selected,
+      onSelected: (url) {
+        cubit.setQuality(url);
+        _restartHideTimer();
+      },
+      itemBuilder: (_) => options
+          .map(
+            (e) => PopupMenuItem<String>(
+              value: e.value!,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    e.value == selected ? Icons.check_rounded : null,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(e.key),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Icon(Icons.high_quality_rounded, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
   List<Bookmark> _loadBookmarks() => context.read<WatchCubit>().loadBookmarks();
 
   /// Small vertical lines on the seekbar at each bookmark's position.
@@ -381,8 +440,10 @@ class _VideoSurfaceState extends State<VideoSurface> {
               Positioned(
                 left:
                     horizontalPadding +
-                    (b.position.inMilliseconds / duration.inMilliseconds)
-                            .clamp(0.0, 1.0) *
+                    (b.position.inMilliseconds / duration.inMilliseconds).clamp(
+                          0.0,
+                          1.0,
+                        ) *
                         trackWidth -
                     1,
                 top: 0,

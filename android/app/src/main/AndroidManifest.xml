@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- In-app updates: let the app launch the system installer for the downloaded APK. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Foreground service: keep room-creation transfers (upload / server download)
+         and on-device cache downloads running while the app is backgrounded, with a
+         progress notification. dataSync is the correct Android 14+ service type for
+         data transfer; POST_NOTIFICATIONS is the Android 13+ runtime grant for the
+         ongoing notification (both are also merged in from flutter_foreground_task). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="TeleCinema"
         android:name="${applicationName}"
@@ -53,6 +61,14 @@
                 <data android:pathPrefix="/room" />
             </intent-filter>
         </activity>
+        <!-- flutter_foreground_task service. Name is fixed by the plugin — don't
+             rename. dataSync matches the FOREGROUND_SERVICE_DATA_SYNC permission
+             above; the service keeps the process alive during transfers/downloads. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

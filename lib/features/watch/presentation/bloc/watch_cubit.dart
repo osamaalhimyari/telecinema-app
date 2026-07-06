@@ -350,6 +350,11 @@ class WatchCubit extends Cubit<WatchState> {
     final room = state.room!;
     if (state.isExternal) return;
 
+    // Reset per-attempt quality state; the file-room branch below arms the
+    // progressive fallback when it opens an adaptive HLS source.
+    _hlsFallbackUrl = null;
+    _selectedQualityUrl = null;
+
     // Live-TV room: play through the server-side HLS relay (`/livetv/:slug`),
     // which fetches the ISP-blocked, header-gated origin stream for us — so the
     // device needs no per-channel headers. We keep the unpacked source ref only
@@ -396,6 +401,17 @@ class WatchCubit extends Cubit<WatchState> {
         magnet != null &&
         magnet.isNotEmpty) {
       _initTorrentVideo(magnet);
+      return;
+    }
+
+    // File rooms (upload/download): prefer adaptive HLS so media_kit/libmpv
+    // adapts across the server's quality ladder ("Auto"). Keep the progressive
+    // /video URL as an automatic fallback if the HLS source can't be opened, so
+    // a transcode hiccup never leaves the room unplayable.
+    final hlsUrl = room.hlsUrl;
+    if (hlsUrl != null) {
+      _hlsFallbackUrl = room.videoUrl;
+      _initVideo(hlsUrl);
       return;
     }
     final videoUrl = room.videoUrl;
@@ -461,6 +477,27 @@ class WatchCubit extends Cubit<WatchState> {
     _startVideoSource();
   }
 
+  /// Switches the video quality for THIS client only (a quality choice is never
+  /// synced to the room). Re-opens the player at the room's current position
+  /// with the chosen source — the HLS master ("Auto"), a pinned variant
+  /// playlist, or the progressive original. No-op for external rooms or when the
+  /// chosen source is already playing.
+  Future<void> setQuality(String url) async {
+    final room = state.room;
+    if (room == null || state.isExternal) return;
+    if (url == _selectedQualityUrl) return;
+
+    _selectedQualityUrl = url;
+    // Keep the progressive original as a safety net whenever an HLS source is
+    // chosen; clear it when the original itself is the selection.
+    final original = room.videoUrl;
+    _hlsFallbackUrl = (original != null && url != original) ? original : null;
+    emit(state.copyWith(videoError: false));
+    // Resume at wherever the room is now after the re-open.
+    _pendingSync = state.lastSync;
+    await _initVideo(url);
+  }
+
   void _subscribe() {
     _subs.addAll([
       _repo.sync.listen(_onSync),
@@ -504,6 +541,20 @@ class WatchCubit extends Cubit<WatchState> {
   // ===========================================================================
   // Video (file rooms)
   // ===========================================================================
+
+  /// The progressive `/video` URL to fall back to once if the current adaptive
+  /// HLS source fails to open; null when not applicable (non-file room, the
+  /// original is already playing, or we already fell back).
+  String? _hlsFallbackUrl;
+
+  /// The source the viewer explicitly picked from the quality menu (HLS master
+  /// = "Auto", a variant = a pinned quality, or the progressive original). Null
+  /// until they choose — the menu then shows "Auto" as active. Client-only; a
+  /// quality choice is never synced to the room.
+  String? _selectedQualityUrl;
+
+  /// The source the quality menu should show as active; null means "Auto".
+  String? get selectedQualityUrl => _selectedQualityUrl;
 
   Future<void> _initVideo(
     String url, {
@@ -625,9 +676,20 @@ class WatchCubit extends Cubit<WatchState> {
   void _onVideoError() {
     if (state.room?.roomType.isTv ?? false) {
       _refreshTvStream();
-    } else {
-      emit(state.copyWith(videoError: true));
+      return;
     }
+    // An adaptive-HLS source that failed to open falls back once to the
+    // progressive /video stream before surfacing an error, so a transcode
+    // hiccup never leaves a file room unplayable.
+    final fallback = _hlsFallbackUrl;
+    if (fallback != null) {
+      _hlsFallbackUrl = null;
+      _selectedQualityUrl = fallback;
+      _pendingSync = state.lastSync;
+      _initVideo(fallback);
+      return;
+    }
+    emit(state.copyWith(videoError: true));
   }
 
   /// Re-resolves a fresh, currently-valid stream for a live-TV room when its

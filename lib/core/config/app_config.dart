@@ -74,6 +74,22 @@ class AppConfig {
   static String? youtubeStreamUrl(String? slug) =>
       (slug == null || slug.isEmpty) ? null : '$baseUrl/youtube/$slug';
 
+  /// Absolute URL of a file room's adaptive-HLS master playlist
+  /// (`GET /hls/:slug/master.m3u8`). media_kit/libmpv plays it and adapts across
+  /// the server's bitrate ladder automatically ("Auto" quality). Additive to
+  /// [videoUrl]: the progressive `/video/:filename` route remains the fallback,
+  /// so older app builds (which don't request this) keep working unchanged.
+  static String? hlsUrl(String? slug) =>
+      (slug == null || slug.isEmpty) ? null : '$baseUrl/hls/$slug/master.m3u8';
+
+  /// Absolute URL of a single HLS variant playlist — used to pin one quality.
+  /// The server names variants `v0`, `v1`, … highest → lowest, so index 0 is the
+  /// top rung. (`GET /hls/:slug/v:index/playlist.m3u8`.)
+  static String? hlsVariantUrl(String? slug, int index) =>
+      (slug == null || slug.isEmpty)
+      ? null
+      : '$baseUrl/hls/$slug/v$index/playlist.m3u8';
+
   /// Absolute URL of a live-TV room's HLS relay (`GET /livetv/:slug`). The
   /// server fetches the (ISP-blocked, header-gated) channel stream and rewrites
   /// it through itself, so the device plays it like any other HLS source — no

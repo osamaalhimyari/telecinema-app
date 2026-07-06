@@ -5,6 +5,7 @@ import '/core/config/app_config.dart';
 import '/core/device/device_identity.dart';
 import '/core/network/api_client.dart';
 import '/core/network/dio_api_client.dart';
+import '/core/services/foreground_service_wiring.dart';
 import '/core/services/locale_service.dart';
 import '/core/services/theme_service.dart';
 import '/features/browse/injections/browse_injection.dart';
@@ -18,7 +19,6 @@ import '/features/operations/injections/operations_injection.dart';
 import '/features/rooms/injections/rooms_injection.dart';
 import '/features/topcinema/injections/topcinema_injection.dart';
 import '/features/tv/injections/tv_injection.dart';
-import '/features/youtube/injections/youtube_injection.dart';
 import '/features/subtitles/injections/subtitles_injection.dart';
 import '/features/watch/injections/watch_injection.dart';
 import '/logic/favorites/favorites_cubit.dart';
@@ -68,7 +68,9 @@ Future<void> injectSingletons(GetIt sl) async {
   sl.registerLazySingleton<ApiClient>(() => DioApiClient());
 
   // ===== Identity (display name → set_name) =====
-  sl.registerSingleton<IdentityCubit>(IdentityCubit(sl<KeyValueStorage>(), sl<SocketCubit>()));
+  sl.registerSingleton<IdentityCubit>(
+    IdentityCubit(sl<KeyValueStorage>(), sl<SocketCubit>()),
+  );
 
   // ===== Favorites + recently-watched (local, slug-keyed) =====
   sl.registerSingleton<FavoritesCubit>(FavoritesCubit(sl<KeyValueStorage>()));
@@ -90,9 +92,13 @@ Future<void> injectSingletons(GetIt sl) async {
   await injectIwaatchSingletons(sl);
   // Isolated live-TV catalogue (YacineTV tree) → on-device native player.
   await injectTvSingletons(sl);
-  await injectYoutubeSingletons(sl);
   await injectSubtitlesSingletons(sl);
   await injectOperationsSingletons(sl);
   // In-app updates — checks the server for a newer APK, downloads + installs it.
   await injectAppUpdateSingletons(sl);
+
+  // Android foreground service: keeps the process (and its in-flight transfers)
+  // alive while backgrounded. Must run last — it binds to the cache + operations
+  // singletons registered above. No-op off Android.
+  wireForegroundService(sl);
 }
